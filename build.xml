@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project basedir="." default="build" name="jamm" xmlns:ivy="antlib:org.apache.ivy.ant">
   <property name="debuglevel" value="source,lines,vars"/>
+  <property name="version" value="0.1"/>
 
   <property name="basedir" value="."/>
   <property name="build.src" value="${basedir}/src"/>
   <property name="build.dir" value="${basedir}/build"/>
   <property name="build.lib" value="${basedir}/build/lib"/>
   <property name="build.classes" value="${build.dir}/classes"/>
-  <property name="jar.name" value="jamm.jar"/>
+  <property name="jar.name" value="jamm-${version}.jar"/>
 
   <property name="test.src" value="${basedir}/test"/>
   <property name="test.classes" value="${build.dir}/test/classes"/>
