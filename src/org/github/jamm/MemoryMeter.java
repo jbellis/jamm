@@ -7,12 +7,33 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.Callable;
 
 public class MemoryMeter {
     private static Instrumentation inst;
 
     public static void premain(String options, Instrumentation inst) {
         MemoryMeter.inst = inst;
+    }
+
+    private final Callable<Set<Object>> trackerProvider;
+
+    public MemoryMeter() {
+        this(new Callable<Set<Object>>() {
+            public Set<Object> call() throws Exception {
+                // using a normal HashSet to track seen objects screws things up in two ways:
+                // - it can undercount objects that are "equal"
+                // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
+                return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+            }
+        });
+    }
+
+    /**
+     * @param trackerProvider returns a Set with which to track seen objects and avoid cycles
+     */
+    public MemoryMeter(Callable<Set<Object>> trackerProvider) {
+        this.trackerProvider = trackerProvider;
     }
 
     /**
@@ -31,20 +52,16 @@ public class MemoryMeter {
      * @throws NullPointerException if object is null
      */
     public long measureDeep(Object object) {
-        // using a normal HashSet to track seen objects screws things up in two ways:
-        // - it can undercount objects that are "equal"
-        // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
-        return measureDeep(object, Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>()));
-    }
-
-    /**
-     * @param tracker a Set with which to track objects already counted
-     * @return the memory usage of @param object including referenced objects
-     * @throws NullPointerException if object is null
-     */
-    public long measureDeep(Object object, Set<Object> tracker) {
         if (object == null) {
             throw new NullPointerException(); // match getObjectSize behavior
+        }
+
+        Set<Object> tracker;
+        try {
+            tracker = trackerProvider.call();
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
         tracker.add(object);
@@ -79,8 +96,8 @@ public class MemoryMeter {
             throw new NullPointerException();
         }
 
-        Set<Object> seen = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
-        seen.add(object);
+        Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+        tracker.add(object);
         Stack<Object> stack = new Stack<Object>();
         stack.push(object);
 
@@ -91,10 +108,10 @@ public class MemoryMeter {
             total++;
 
             if (current instanceof Object[]) {
-                addArrayChildren((Object[]) current, stack, seen);
+                addArrayChildren((Object[]) current, stack, tracker);
             }
             else {
-                addFieldChildren(current, stack, seen);
+                addFieldChildren(current, stack, tracker);
             }
         }
 
@@ -131,11 +148,11 @@ public class MemoryMeter {
         }
     }
 
-    private void addArrayChildren(Object[] current, Stack<Object> stack, Set<Object> seen) {
+    private void addArrayChildren(Object[] current, Stack<Object> stack, Set<Object> tracker) {
         for (Object child : current) {
-            if (child != null && !seen.contains(child)) {
+            if (child != null && !tracker.contains(child)) {
                 stack.push(child);
-                seen.add(child);
+                tracker.add(child);
             }
         }
     }

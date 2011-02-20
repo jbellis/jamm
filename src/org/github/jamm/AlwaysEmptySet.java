@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 public class AlwaysEmptySet<T> implements Set<T> {
     public static final Set EMPTY_SET = new AlwaysEmptySet();
@@ -13,6 +14,14 @@ public class AlwaysEmptySet<T> implements Set<T> {
 
     public static <T> Set<T> create() {
     	return (Set<T>) EMPTY_SET;
+    }
+
+    public static <T> Callable<Set<T>> provider() {
+        return new Callable<Set<T>>() {
+            public Set<T> call() throws Exception {
+                return create();
+            }
+        };
     }
 
     public int size() {
