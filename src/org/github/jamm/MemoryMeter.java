@@ -8,9 +8,9 @@ import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.Stack;
 
-public class MemoryMeter
-{
+public class MemoryMeter {
     private static Instrumentation inst;
+
     public static void premain(String options, Instrumentation inst) {
         MemoryMeter.inst = inst;
     }
@@ -31,15 +31,23 @@ public class MemoryMeter
      * @throws NullPointerException if object is null
      */
     public long measureDeep(Object object) {
+        // using a normal HashSet to track seen objects screws things up in two ways:
+        // - it can undercount objects that are "equal"
+        // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
+        return measureDeep(object, Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>()));
+    }
+
+    /**
+     * @param tracker a Set with which to track objects already counted
+     * @return the memory usage of @param object including referenced objects
+     * @throws NullPointerException if object is null
+     */
+    public long measureDeep(Object object, Set<Object> tracker) {
         if (object == null) {
             throw new NullPointerException(); // match getObjectSize behavior
         }
 
-        // using a normal HashSet to track seen objects screws things up in two ways:
-        // - it can undercount objects that are "equal"
-        // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
-        Set<Object> seen = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
-        seen.add(object);
+        tracker.add(object);
 
         // track stack manually so we can handle deeper heirarchies than recursion
         Stack<Object> stack = new Stack<Object>();
@@ -52,9 +60,10 @@ public class MemoryMeter
             total += measure(current);
 
             if (current instanceof Object[]) {
-                addArrayChildren((Object[]) current, stack, seen);
-            } else {
-                addFieldChildren(current, stack, seen);
+                addArrayChildren((Object[]) current, stack, tracker);
+            }
+            else {
+                addFieldChildren(current, stack, tracker);
             }
         }
 
@@ -83,7 +92,8 @@ public class MemoryMeter
 
             if (current instanceof Object[]) {
                 addArrayChildren((Object[]) current, stack, seen);
-            } else {
+            }
+            else {
                 addFieldChildren(current, stack, seen);
             }
         }
