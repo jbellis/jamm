@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project basedir="." default="build" name="jamm" xmlns:ivy="antlib:org.apache.ivy.ant">
+  <property name="debuglevel" value="source,lines,vars"/>
+
+  <property name="basedir" value="."/>
+  <property name="build.src" value="${basedir}/src"/>
+  <property name="build.dir" value="${basedir}/build"/>
+  <property name="build.lib" value="${basedir}/build/lib"/>
+  <property name="build.classes" value="${build.dir}/classes"/>
+  <property name="jar.name" value="jamm.jar"/>
+
+  <property name="test.src" value="${basedir}/test"/>
+  <property name="test.classes" value="${build.dir}/test/classes"/>
+  <property name="test.out" value="${build.dir}/test/output"/>
+  <property name="test.name" value="*Test"/>
+
+  <property name="ivy.version" value="2.1.0" />
+  <property name="ivy.url"
+            value="http://repo2.maven.org/maven2/org/apache/ivy/ivy" />
+
+  <condition property="ivy.jar.exists">
+    <available file="${build.dir}/ivy-${ivy.version}.jar" />
+  </condition>
+
+  <target name="ivy-download" unless="ivy.jar.exists">
+    <echo>Downloading Ivy...</echo>
+    <mkdir dir="${build.dir}" />
+    <get src="${ivy.url}/${ivy.version}/ivy-${ivy.version}.jar"
+         dest="${build.dir}/ivy-${ivy.version}.jar" usetimestamp="true" />
+  </target>
+
+  <target name="ivy-init" depends="ivy-download" unless="ivy.initialized">
+    <mkdir dir="${build.lib}"/>
+    <taskdef resource="org/apache/ivy/ant/antlib.xml"
+             uri="antlib:org.apache.ivy.ant"
+             classpathref="autoivy.classpath"/>
+    <property name="ivy.initialized" value="true"/>
+  </target>
+
+  <target name="ivy-retrieve-build" depends="ivy-init">
+    <ivy:retrieve type="jar,source" sync="true"
+           pattern="${build.lib}/[type]s/[artifact]-[revision].[ext]" />
+  </target>
+
+  <path id="autoivy.classpath">
+    <fileset dir="${build.lib}">
+      <include name="**/*.jar" />
+    </fileset>
+    <pathelement location="${build.dir}/ivy-${ivy.version}.jar"/>
+  </path>
+
+  <target name="init" depends="ivy-retrieve-build">
+    <mkdir dir="${build.classes}"/>
+    <mkdir dir="${test.classes}"/>
+  </target>
+  <target name="clean">
+    <delete dir="${build.classes}"/>
+    <delete dir="${test.classes}" />
+    <delete dir="${test.out}" />
+  </target>
+
+  <target depends="init" name="build">
+    <echo message="${ant.project.name}: ${ant.file}"/>
+    <javac debug="true" debuglevel="${debuglevel}" destdir="${build.classes}">
+      <src path="${build.src}"/>
+    </javac>
+  </target>
+
+  <target name="jar" depends="build">
+    <jar jarfile="${build.dir}/${jar.name}" basedir="${build.classes}">
+      <manifest>
+        <!-- see http://download.oracle.com/javase/6/docs/api/java/lang/instrument/package-summary.html -->
+        <attribute name="Premain-Class" value="org.github.jamm.MemoryMeter"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="build-test" depends="jar" description="Compile test classes">
+    <javac debug="true" debuglevel="${debuglevel}" destdir="${test.classes}">
+      <classpath>
+        <path refid="autoivy.classpath"/>
+        <pathelement location="${build.classes}"/>
+      </classpath>
+      <src path="${test.src}"/>
+    </javac>
+  </target>
+
+  <target name="test" depends="build-test">
+    <echo message="running tests"/>
+    <mkdir dir="${test.out}"/>
+    <junit fork="on" failureproperty="testfailed">
+      <formatter type="xml" usefile="true"/>
+      <formatter type="brief" usefile="false"/>
+      <classpath>
+        <path refid="autoivy.classpath"/>
+        <pathelement location="${build.classes}"/>
+        <pathelement location="${test.classes}"/>
+      </classpath>
+      <jvmarg value="-ea"/>
+      <jvmarg value="-javaagent:${build.dir}/${jar.name}"/>
+      <batchtest todir="${test.out}">
+        <fileset dir="${test.classes}" includes="**/${test.name}.class" />
+      </batchtest>
+    </junit>
+
+    <fail if="testfailed" message="Some test(s) failed."/>
+  </target>
+
+</project>
