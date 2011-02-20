@@ -61,6 +61,36 @@ public class MemoryMeter
         return total;
     }
 
+    /**
+     * @return the number of child objects referenced by @param object
+     * @throws NullPointerException if object is null
+     */
+    public long countChildren(Object object) {
+        if (object == null) {
+            throw new NullPointerException();
+        }
+
+        Set<Object> seen = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+        seen.add(object);
+        Stack<Object> stack = new Stack<Object>();
+        stack.push(object);
+
+        long total = 0;
+        while (!stack.isEmpty()) {
+            Object current = stack.pop();
+            assert current != null;
+            total++;
+
+            if (current instanceof Object[]) {
+                addArrayChildren((Object[]) current, stack, seen);
+            } else {
+                addFieldChildren(current, stack, seen);
+            }
+        }
+
+        return total;
+    }
+
     private void addFieldChildren(Object current, Stack<Object> stack, Set<Object> seen) {
         Class cls = current.getClass();
         while (cls != null) {

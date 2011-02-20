@@ -8,6 +8,7 @@ You can then use MemoryMeter in your code like this:
     MemoryMeter meter = new MemoryMeter();
     meter.measure(object);
     meter.measureDeep(object);
+    meter.countChildren(object);
 
 The fine print:
 
@@ -15,3 +16,8 @@ MemoryMeter is as accurate as
 java.lang.instrument.Instrumentation.getObjectSize, which only claims
 to provide "approximate" results, but in practice seems to work as
 expected.
+
+MemoryMeter uses reflection to crawl the object graph for measureDeep.
+Reflection is slow: measuring a one-million object Cassandra Memtable
+(that is, 1 million children from MemoryMeter.countChildren) took
+about 5 seconds wall clock time.
