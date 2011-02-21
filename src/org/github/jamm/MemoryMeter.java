@@ -146,7 +146,7 @@ public class MemoryMeter {
         return total;
     }
 
-    private void addFieldChildren(Object current, Stack<Object> stack, Set<Object> seen) {
+    private void addFieldChildren(Object current, Stack<Object> stack, Set<Object> tracker) {
         Class cls = current.getClass();
         while (cls != null) {
             for (Field field : cls.getDeclaredFields()) {
@@ -159,16 +159,13 @@ public class MemoryMeter {
                 try {
                     child = field.get(current);
                 }
-                catch (IllegalArgumentException e) {
-                    throw new RuntimeException(e);
-                }
                 catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
 
-                if (child != null && !seen.contains(child)) {
+                if (child != null && !tracker.contains(child)) {
                     stack.push(child);
-                    seen.add(child);
+                    tracker.add(child);
                 }
             }
 
