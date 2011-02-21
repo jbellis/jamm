@@ -1,5 +1,6 @@
 package org.github.jamm;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -10,13 +11,13 @@ import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
 
+import static org.github.jamm.MemoryMeter.EMPTY_ARRAY_SIZE;
+
 /**
  * Numbers here are for 64-bit Sun JVM.  Good luck with anything else.
  */
 public class MemoryMeterTest
 {
-    private static final int EMPTY_ARRAY_SIZE = 24;
-
     @Test
     public void testPrimitives() {
         MemoryMeter meter = new MemoryMeter();
@@ -40,6 +41,28 @@ public class MemoryMeterTest
             objects[i] = new Object();
         }
         assertEquals(EMPTY_ARRAY_SIZE + 8 * 100 + 16 * 100, meter.measureDeep(objects));
+    }
+
+    @Test
+    public void testByteBuffer() {
+        ByteBuffer empty = ByteBuffer.allocate(0);
+        ByteBuffer one = ByteBuffer.allocate(1);
+        ByteBuffer emptyOne = (ByteBuffer) one.duplicate().position(1);
+
+        MemoryMeter m1 = new MemoryMeter();
+        MemoryMeter m2 = m1.withBufferSharing();
+
+        int BB_SHALLOW = 56;
+        assertEquals(BB_SHALLOW, m1.measure(empty));
+        assertEquals(BB_SHALLOW + EMPTY_ARRAY_SIZE, m1.measureDeep(empty));
+        // 8 is apparently the minimum number of bytes allocated
+        assertEquals(BB_SHALLOW + EMPTY_ARRAY_SIZE + 8, m1.measureDeep(one));
+        assertEquals(BB_SHALLOW + EMPTY_ARRAY_SIZE + 8, m1.measureDeep(emptyOne));
+
+        assertEquals(BB_SHALLOW, m2.measure(empty));
+        assertEquals(BB_SHALLOW + 12, m2.measureDeep(empty));
+        assertEquals(BB_SHALLOW + 12 + 1, m2.measureDeep(one));
+        assertEquals(BB_SHALLOW + 12, m2.measureDeep(emptyOne));
     }
 
     @Test

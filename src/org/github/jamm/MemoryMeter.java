@@ -3,6 +3,7 @@ package org.github.jamm;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
@@ -10,6 +11,8 @@ import java.util.Stack;
 import java.util.concurrent.Callable;
 
 public class MemoryMeter {
+    static final int EMPTY_ARRAY_SIZE = 24;
+
     private static Instrumentation inst;
 
     public static void premain(String options, Instrumentation inst) {
@@ -17,6 +20,7 @@ public class MemoryMeter {
     }
 
     private final Callable<Set<Object>> trackerProvider;
+    private final boolean includeFullBufferSize;
 
     public MemoryMeter() {
         this(new Callable<Set<Object>>() {
@@ -26,14 +30,33 @@ public class MemoryMeter {
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
                 return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
             }
-        });
+        }, true);
     }
 
     /**
      * @param trackerProvider returns a Set with which to track seen objects and avoid cycles
+     * @param includeFullBufferSize
      */
-    public MemoryMeter(Callable<Set<Object>> trackerProvider) {
+    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize) {
         this.trackerProvider = trackerProvider;
+        this.includeFullBufferSize = includeFullBufferSize;
+    }
+
+    /**
+     * @param trackerProvider
+     * @return a MemoryMeter with the given provider
+     */
+    public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
+        return new MemoryMeter(trackerProvider, includeFullBufferSize);
+    }
+
+    /**
+     * @return a MemoryMeter that only counts the bytes remaining in a ByteBuffer
+     * in measureDeep, rather than the full size of the backing array.
+     * TODO: handle other types of Buffers
+     */
+    public MemoryMeter withBufferSharing() {
+        return new MemoryMeter(trackerProvider, false);
     }
 
     /**
@@ -79,7 +102,14 @@ public class MemoryMeter {
             if (current instanceof Object[]) {
                 addArrayChildren((Object[]) current, stack, tracker);
             }
-            else {
+            else if (current instanceof ByteBuffer
+                     && ((ByteBuffer) current).hasArray()
+                     && !includeFullBufferSize)
+            {
+                ByteBuffer buffer = (ByteBuffer) current;
+                // reference [to array] + int offset + bytes in the buffer
+                total += 8 + 4 + buffer.remaining();
+            } else {
                 addFieldChildren(current, stack, tracker);
             }
         }
