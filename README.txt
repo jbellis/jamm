@@ -4,6 +4,16 @@ Overview
 Jamm provides MemoryMeter, a java agent to measure actual object
 memory use including JVM overhead.
 
+
+Building
+========
+
+"ant jar"; optionally, "ant test"
+
+
+Use
+===
+
 To use MemoryMeter, start the JVM with "-javaagent:<path to>/jamm.jar"
 
 You can then use MemoryMeter in your code like this:
