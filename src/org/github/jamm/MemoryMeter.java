@@ -11,8 +11,6 @@ import java.util.Stack;
 import java.util.concurrent.Callable;
 
 public class MemoryMeter {
-    static final int EMPTY_ARRAY_SIZE = 24;
-
     private static Instrumentation inst;
 
     public static void premain(String options, Instrumentation inst) {
