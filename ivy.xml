@@ -1,0 +1,7 @@
+<ivy-module version="2.0">
+  <info organisation="jamm" module="jamm"/>
+
+  <dependencies>
+    <dependency org="junit" name="junit" rev="4.6" />
+  </dependencies>
+</ivy-module>
