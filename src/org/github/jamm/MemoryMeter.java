@@ -55,7 +55,7 @@ public class MemoryMeter {
      * in measureDeep, rather than the full size of the backing array.
      * TODO: handle other types of Buffers
      */
-    public MemoryMeter withBufferSharing() {
+    public MemoryMeter omitSharedBufferOverhead() {
         return new MemoryMeter(trackerProvider, false);
     }
 

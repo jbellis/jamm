@@ -50,7 +50,7 @@ public class MemoryMeterTest
         ByteBuffer emptyOne = (ByteBuffer) one.duplicate().position(1);
 
         MemoryMeter m1 = new MemoryMeter();
-        MemoryMeter m2 = m1.withBufferSharing();
+        MemoryMeter m2 = m1.omitSharedBufferOverhead();
 
         int BB_SHALLOW = 56;
         assertEquals(BB_SHALLOW, m1.measure(empty));
