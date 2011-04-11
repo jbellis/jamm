@@ -11,10 +11,14 @@ import java.util.Stack;
 import java.util.concurrent.Callable;
 
 public class MemoryMeter {
-    private static Instrumentation inst;
+    private static Instrumentation instrumentation;
 
     public static void premain(String options, Instrumentation inst) {
-        MemoryMeter.inst = inst;
+        MemoryMeter.instrumentation = inst;
+    }
+
+    public static boolean isInitialized() {
+        return instrumentation != null;
     }
 
     private final Callable<Set<Object>> trackerProvider;
@@ -62,10 +66,10 @@ public class MemoryMeter {
      * @throws NullPointerException if object is null
      */
     public long measure(Object object) {
-        if (inst == null) {
+        if (instrumentation == null) {
             throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
         }
-        return inst.getObjectSize(object);
+        return instrumentation.getObjectSize(object);
     }
 
     /**
