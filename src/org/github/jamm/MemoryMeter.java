@@ -105,13 +105,13 @@ public class MemoryMeter {
                 addArrayChildren((Object[]) current, stack, tracker);
             }
             else if (current instanceof ByteBuffer
-                     && ((ByteBuffer) current).hasArray()
                      && !includeFullBufferSize)
             {
                 ByteBuffer buffer = (ByteBuffer) current;
                 // reference [to array] + int offset + bytes in the buffer
                 total += 8 + 4 + buffer.remaining();
             } else {
+                // TODO does this work correctly with native allocation like DirectByteBuffer?
                 addFieldChildren(current, stack, tracker);
             }
         }
