@@ -22,7 +22,7 @@ public class MemoryMeter {
     }
 
     private final Callable<Set<Object>> trackerProvider;
-    private final boolean includeFullBufferSize;
+    private final boolean includeBufferSize;
 
     public MemoryMeter() {
         this(new Callable<Set<Object>>() {
@@ -37,11 +37,11 @@ public class MemoryMeter {
 
     /**
      * @param trackerProvider returns a Set with which to track seen objects and avoid cycles
-     * @param includeFullBufferSize
+     * @param includeBufferSize
      */
-    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize) {
+    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeBufferSize) {
         this.trackerProvider = trackerProvider;
-        this.includeFullBufferSize = includeFullBufferSize;
+        this.includeBufferSize = includeBufferSize;
     }
 
     /**
@@ -49,7 +49,7 @@ public class MemoryMeter {
      * @return a MemoryMeter with the given provider
      */
     public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize);
+        return new MemoryMeter(trackerProvider, includeBufferSize);
     }
 
     /**
@@ -103,15 +103,12 @@ public class MemoryMeter {
 
             if (current instanceof Object[]) {
                 addArrayChildren((Object[]) current, stack, tracker);
-            }
-            else if (current instanceof ByteBuffer
-                     && ((ByteBuffer) current).hasArray()
-                     && !includeFullBufferSize)
-            {
+            } else if (current instanceof ByteBuffer && !includeBufferSize) {
                 ByteBuffer buffer = (ByteBuffer) current;
-                // reference [to array] + int offset + bytes in the buffer
-                total += 8 + 4 + buffer.remaining();
+                // reference [to array] + int offset
+                total += 8 + 4;
             } else {
+                // TODO does this work correctly with native allocation like DirectByteBuffer?
                 addFieldChildren(current, stack, tracker);
             }
         }
