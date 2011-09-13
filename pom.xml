@@ -11,7 +11,7 @@
   <groupId>com.github.stephenc</groupId>
   <artifactId>jamm</artifactId>
   <packaging>jar</packaging>
-  <version>0.2.3-SNAPSHOT</version>
+  <version>0.2.4-SNAPSHOT</version>
   <name>Java Agent for Memory Measurements</name>
   <description>
     Jamm provides MemoryMeter, a java agent to measure actual object memory use including JVM overhead.
