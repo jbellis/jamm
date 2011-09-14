@@ -472,9 +472,9 @@ public class MemoryMeterTest
 
         // there are hard-coded 64-bit arch values when omiting shared buffer overhead
         assertEquals(BYTEBUFFER_SIZE, m2.measure(empty));
-        assertEquals(BYTEBUFFER_SIZE + 12, m2.measureDeep(empty));
-        assertEquals(BYTEBUFFER_SIZE + 12, m2.measureDeep(one)); // as of 0.2.4 we don't count the bytes!!!
-        assertEquals(BYTEBUFFER_SIZE + 12, m2.measureDeep(emptyOne));
+        assertEquals(BYTEBUFFER_SIZE, m2.measureDeep(empty));
+        assertEquals(BYTEBUFFER_SIZE, m2.measureDeep(one)); // as of 0.2.4 we don't count the bytes!!!
+        assertEquals(BYTEBUFFER_SIZE, m2.measureDeep(emptyOne));
     }
 
     @Test
