@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project basedir="." default="build" name="jamm" xmlns:ivy="antlib:org.apache.ivy.ant">
   <property name="debuglevel" value="source,lines,vars"/>
-  <property name="version" value="0.2.4"/>
+  <property name="version" value="0.2.5"/>
 
   <property name="basedir" value="."/>
   <property name="build.src" value="${basedir}/src"/>

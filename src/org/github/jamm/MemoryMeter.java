@@ -104,9 +104,8 @@ public class MemoryMeter {
             if (current instanceof Object[]) {
                 addArrayChildren((Object[]) current, stack, tracker);
             } else if (current instanceof ByteBuffer && !includeBufferSize) {
-                ByteBuffer buffer = (ByteBuffer) current;
-                // reference [to array] + int offset
-                total += 8 + 4;
+                // we already added shallow size of the ByteBuffer array reference + int offset.
+                // nothing more to do here.
             } else {
                 // TODO does this work correctly with native allocation like DirectByteBuffer?
                 addFieldChildren(current, stack, tracker);
