@@ -22,7 +22,7 @@ public class MemoryMeter {
     }
 
     private final Callable<Set<Object>> trackerProvider;
-    private final boolean includeBufferSize;
+    private final boolean includeFullBufferSize;
 
     public MemoryMeter() {
         this(new Callable<Set<Object>>() {
@@ -37,11 +37,11 @@ public class MemoryMeter {
 
     /**
      * @param trackerProvider returns a Set with which to track seen objects and avoid cycles
-     * @param includeBufferSize
+     * @param includeFullBufferSize
      */
-    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeBufferSize) {
+    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize) {
         this.trackerProvider = trackerProvider;
-        this.includeBufferSize = includeBufferSize;
+        this.includeFullBufferSize = includeFullBufferSize;
     }
 
     /**
@@ -49,7 +49,7 @@ public class MemoryMeter {
      * @return a MemoryMeter with the given provider
      */
     public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
-        return new MemoryMeter(trackerProvider, includeBufferSize);
+        return new MemoryMeter(trackerProvider, includeFullBufferSize);
     }
 
     /**
@@ -103,9 +103,8 @@ public class MemoryMeter {
 
             if (current instanceof Object[]) {
                 addArrayChildren((Object[]) current, stack, tracker);
-            } else if (current instanceof ByteBuffer && !includeBufferSize) {
-                // we already added shallow size of the ByteBuffer array reference + int offset.
-                // nothing more to do here.
+            } else if (current instanceof ByteBuffer && !includeFullBufferSize) {
+                total += ((ByteBuffer) current).remaining();
             } else {
                 // TODO does this work correctly with native allocation like DirectByteBuffer?
                 addFieldChildren(current, stack, tracker);
