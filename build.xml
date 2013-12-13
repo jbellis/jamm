@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project basedir="." default="build" name="jamm" xmlns:ivy="antlib:org.apache.ivy.ant">
   <property name="debuglevel" value="source,lines,vars"/>
-  <property name="version" value="0.2.5"/>
+  <property name="version" value="0.2.6"/>
 
   <property name="basedir" value="."/>
   <property name="build.src" value="${basedir}/src"/>
@@ -89,20 +89,37 @@
   <target name="test" depends="build-test">
     <echo message="running tests"/>
     <mkdir dir="${test.out}"/>
-    <junit fork="on" failureproperty="testfailed">
-      <formatter type="xml" usefile="true"/>
-      <formatter type="brief" usefile="false"/>
-      <classpath>
-        <path refid="autoivy.classpath"/>
-        <pathelement location="${build.classes}"/>
-        <pathelement location="${test.classes}"/>
-      </classpath>
-      <jvmarg value="-ea"/>
-      <jvmarg value="-javaagent:${build.dir}/${jar.name}"/>
-      <batchtest todir="${test.out}">
-        <fileset dir="${test.classes}" includes="**/${test.name}.class" />
-      </batchtest>
-    </junit>
+      <echo message="Testing with default Java"/>
+      <junit fork="on" failureproperty="testfailed">
+          <formatter type="xml" usefile="true"/>
+          <formatter type="brief" usefile="false"/>
+          <classpath>
+              <path refid="autoivy.classpath"/>
+              <pathelement location="${build.classes}"/>
+              <pathelement location="${test.classes}"/>
+          </classpath>
+          <jvmarg value="-ea"/>
+          <jvmarg value="-javaagent:${build.dir}/${jar.name}"/>
+          <batchtest todir="${test.out}">
+              <fileset dir="${test.classes}" includes="**/${test.name}.class" />
+          </batchtest>
+      </junit>
+      <echo message="Testing with modified object alignment"/>
+      <junit fork="on" failureproperty="testfailed">
+          <formatter type="xml" usefile="true"/>
+          <formatter type="brief" usefile="false"/>
+          <classpath>
+              <path refid="autoivy.classpath"/>
+              <pathelement location="${build.classes}"/>
+              <pathelement location="${test.classes}"/>
+          </classpath>
+          <jvmarg value="-ea"/>
+          <jvmarg value="-XX:ObjectAlignmentInBytes=16"/>
+          <jvmarg value="-javaagent:${build.dir}/${jar.name}"/>
+          <batchtest todir="${test.out}">
+              <fileset dir="${test.classes}" includes="**/${test.name}.class" />
+          </batchtest>
+      </junit>
 
     <fail if="testfailed" message="Some test(s) failed."/>
   </target>

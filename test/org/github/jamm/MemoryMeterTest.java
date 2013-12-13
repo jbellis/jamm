@@ -27,8 +27,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assume.assumeThat;
 
 /**
- * Numbers here are for 64-bit Sun JVM.  Good luck with anything else.
- */
+* Numbers here are for 64-bit Sun JVM.  Good luck with anything else.
+*/
 public class MemoryMeterTest
 {
     // JVM memory structure is like follows

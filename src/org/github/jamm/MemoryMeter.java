@@ -1,6 +1,7 @@
 package org.github.jamm;
 
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
@@ -11,6 +12,7 @@ import java.util.Stack;
 import java.util.concurrent.Callable;
 
 public class MemoryMeter {
+
     private static Instrumentation instrumentation;
 
     public static void premain(String options, Instrumentation inst) {
@@ -23,6 +25,7 @@ public class MemoryMeter {
 
     private final Callable<Set<Object>> trackerProvider;
     private final boolean includeFullBufferSize;
+    private final boolean permitGuessing;
 
     public MemoryMeter() {
         this(new Callable<Set<Object>>() {
@@ -32,16 +35,17 @@ public class MemoryMeter {
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
                 return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
             }
-        }, true);
+        }, true, false);
     }
 
     /**
      * @param trackerProvider returns a Set with which to track seen objects and avoid cycles
      * @param includeFullBufferSize
      */
-    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize) {
+    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize, boolean permitGuessing) {
         this.trackerProvider = trackerProvider;
         this.includeFullBufferSize = includeFullBufferSize;
+        this.permitGuessing = permitGuessing;
     }
 
     /**
@@ -49,7 +53,7 @@ public class MemoryMeter {
      * @return a MemoryMeter with the given provider
      */
     public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize);
+        return new MemoryMeter(trackerProvider, includeFullBufferSize, permitGuessing);
     }
 
     /**
@@ -58,7 +62,14 @@ public class MemoryMeter {
      * TODO: handle other types of Buffers
      */
     public MemoryMeter omitSharedBufferOverhead() {
-        return new MemoryMeter(trackerProvider, false);
+        return new MemoryMeter(trackerProvider, false, permitGuessing);
+    }
+
+    /**
+     * @return a MemoryMeter that permits guessing the size of objects if instrumentation isn't enabled
+     */
+    public MemoryMeter permitGuessing() {
+        return new MemoryMeter(trackerProvider, includeFullBufferSize, true);
     }
 
     /**
@@ -67,9 +78,21 @@ public class MemoryMeter {
      */
     public long measure(Object object) {
         if (instrumentation == null) {
-            throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
+            if (!permitGuessing)
+            {
+                throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
+            }
+            return MemoryLayoutSpecification.getSizeOfInstance(object.getClass());
         }
         return instrumentation.getObjectSize(object);
+    }
+
+    long guess(Object object)
+    {
+        Class<?> type = object.getClass();
+        if (type.isArray())
+            return MemoryLayoutSpecification.getSizeOfArray(type, object);
+        return MemoryLayoutSpecification.getSizeOfInstance(type);
     }
 
     /**
