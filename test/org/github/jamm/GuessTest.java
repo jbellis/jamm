@@ -12,20 +12,35 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+// UGLY AS SIN, BUT QUICK TO WRITE AND WORKS
 public class GuessTest
 {
+
+    private static final Callable<Set<Object>> TRACKER_PROVIDER = new Callable<Set<Object>>()
+    {
+        @Override
+        public Set<Object> call() throws Exception
+        {
+            return new HashSet<Object>();
+        }
+    };
 
     private static enum Types
     {
@@ -33,9 +48,11 @@ public class GuessTest
         FLOAT(float.class), LONG(long.class), DOUBLE(double.class), OBJECT(Object.class);
 
         final Class<?> clazz;
+        final String name;
         Types(Class<?> clazz)
         {
             this.clazz = clazz;
+            this.name = clazz.getSimpleName();
         }
     }
 
@@ -62,8 +79,14 @@ public class GuessTest
     static
     {
         tempDir.mkdirs();
+        for (File file : tempDir.listFiles())
+        {
+            if (!file.delete() || file.exists())
+                throw new IllegalStateException();
+        }
     }
 
+    // a class loader for loading our random classes
     private static final class MyClassLoader extends ClassLoader
     {
         Class<?> load(String name, byte[] bytes)
@@ -72,74 +95,197 @@ public class GuessTest
         }
     }
 
+    // a simple data-only class and its description
+    private static final class GeneratedClass
+    {
+        final Class<?> clazz;
+        final String description;
+        private GeneratedClass(Class<?> clazz, String description)
+        {
+            this.clazz = clazz;
+            this.description = description;
+        }
+    }
+
+    // a simple data-only class definition
     private static final class Def
     {
-        final List<DefPart> parts;
-        final Class<?> clazz;
-        private Def(List<DefPart> parts, Class<?> clazz)
+
+        private static final class TypeDef
         {
-            this.parts = parts;
-            this.clazz = clazz;
+            final Types type;
+            final int count;
+            private TypeDef(Types type, int count)
+            {
+                this.type = type;
+                this.count = count;
+            }
+        }
+        private static final class ClassDef
+        {
+            final TypeDef[] typedefs;
+            private ClassDef(TypeDef[] typedefs)
+            {
+                this.typedefs = typedefs;
+            }
+        }
+
+        final ClassDef[] classdefs;
+        private Def(ClassDef[] classdefs)
+        {
+            this.classdefs = classdefs;
+        }
+
+        private static Def random()
+        {
+            ClassDef[] classdefs = new ClassDef[1 + rnd.nextInt(4)];
+            for (int d = 0 ; d != classdefs.length ; d++)
+            {
+                final List<TypeDef> typedefs = new ArrayList<TypeDef>();
+                int fieldCount = rnd.nextInt(100);
+                int f = 0;
+                while (f < fieldCount)
+                {
+                    Types type = TYPES[rnd.nextInt(TYPES.length)];
+                    int fc = 1 + rnd.nextInt(fieldCount - f);
+                    typedefs.add(new TypeDef(type, fc));
+                    f += fc;
+
+                }
+                classdefs[d] = new ClassDef(typedefs.toArray(new TypeDef[0]));
+            }
+            return new Def(classdefs);
+        }
+
+        private static Def parse(String description)
+        {
+            final Pattern clazz = Pattern.compile("\\{([a-zO]+\\*[0-9]+ ?)+\\}");
+            final Pattern type = Pattern.compile("([a-zO]+)\\*([0-9]+)");
+            Matcher cm = clazz.matcher(description);
+            List<ClassDef> classdefs = new ArrayList<ClassDef>();
+            while (cm.find())
+            {
+                Matcher tm = type.matcher(cm.group());
+                List<TypeDef> typedefs = new ArrayList<TypeDef>();
+                while (tm.find())
+                {
+                    typedefs.add(new TypeDef(
+                            Types.valueOf(tm.group(1).toUpperCase()),
+                            Integer.parseInt(tm.group(2))));
+                }
+                classdefs.add(new ClassDef(typedefs.toArray(new TypeDef[0])));
+            }
+            return new Def(classdefs.toArray(new ClassDef[0]));
+        }
+
+        Decl declare() throws IOException
+        {
+            String prev = null;
+            List<Decl.ClassDecl> parts = new ArrayList<Decl.ClassDecl>();
+            for (ClassDef classdef : classdefs)
+            {
+                String name = "Test" + id.incrementAndGet();
+                StringBuilder decl = new StringBuilder("public class ");
+                decl.append(name);
+                if (prev != null)
+                {
+                    decl.append(" extends ");
+                    decl.append(prev);
+                }
+                decl.append(" {\n");
+                int field = 0;
+                for (TypeDef typedef : classdef.typedefs)
+                {
+                    for (int i = 0 ; i < typedef.count ; i++)
+                    {
+                        decl.append("public ");
+                        decl.append(typedef.type.name);
+                        decl.append(" field");
+                        decl.append(field++);
+                        decl.append(";\n");
+                    }
+                }
+                decl.append("}");
+                File src = new File(tempDir, name + ".java");
+                if (src.exists())
+                    throw new IllegalStateException();
+                final FileWriter writer = new FileWriter(src);
+                writer.append(decl);
+                writer.close();
+                File trg = new File(tempDir, name + ".class");
+                parts.add(new Decl.ClassDecl(src, trg, name, decl.toString()));
+                prev = name;
+            }
+            return new Decl(parts.toArray(new Decl.ClassDecl[0]), this);
+        }
+
+        // generate a simple description - these can be parsed by Def.parse()
+        String description()
+        {
+            final StringBuilder description = new StringBuilder();
+            for (ClassDef classdef : classdefs)
+            {
+                if (description.length() > 0)
+                    description.append("->");
+                description.append("{");
+                boolean first = true;
+                for (TypeDef typedef : classdef.typedefs)
+                {
+                    if (!first)
+                        description.append(" ");
+                    description.append(typedef.type);
+                    description.append("*");
+                    description.append(typedef.count);
+                    first = false;
+                }
+                description.append("}");
+            }
+            return description.toString();
+        }
+
+    }
+
+    // translate a def into a concrete declaration with source files
+    private static final class Decl
+    {
+        private static final class ClassDecl
+        {
+            final File srcfile;
+            final File binfile;
+            final String name;
+            final String declaration;
+            private ClassDecl(File srcfile, File binfile, String name, String declaration)
+            {
+                this.srcfile = srcfile;
+                this.binfile = binfile;
+                this.name = name;
+                this.declaration = declaration;
+            }
+        }
+
+        final ClassDecl[] classdecls;
+        final Def def;
+        private Decl(ClassDecl[] classdecls, Def def)
+        {
+            this.classdecls = classdecls;
+            this.def = def;
         }
     }
 
-    private static final class DefPart
+    // compile the provided defs by declaring them in source files and calling javac
+    private static List<GeneratedClass> compile(List<Def> defs) throws IOException, ExecutionException, InterruptedException
     {
-        final File srcfile;
-        final File binfile;
-        final String name;
-        final String declaration;
-        private DefPart(File srcfile, File binfile, String name, String declaration)
-        {
-            this.srcfile = srcfile;
-            this.binfile = binfile;
-            this.name = name;
-            this.declaration = declaration;
-        }
-    }
+        final List<String> args = new ArrayList<String>();
+        args.addAll(Arrays.asList("javac", "-d", tempDir.getAbsolutePath()));
+        final List<Decl> decls = new ArrayList<Decl>();
+        for (Def def : defs)
+            decls.add(def.declare());
+        for (Decl decl : decls)
+            for (Decl.ClassDecl classdecl : decl.classdecls)
+                args.add(classdecl.srcfile.getAbsolutePath());
 
-    // UGLY AS SIN, BUT QUICK TO WRITE AND WORKS
-    private static Def generateClassDef() throws IOException, ExecutionException, InterruptedException
-    {
-        int superClasses = rnd.nextInt(4);
-        String prev = null;
-        List<DefPart> defs = new ArrayList<DefPart>();
-        for (int s = 0 ; s < superClasses + 1 ; s++)
-        {
-            String name = "Test" + id.incrementAndGet();
-            int fields = rnd.nextInt(100);
-            StringBuilder decl = new StringBuilder("public class ");
-            decl.append(name);
-            if (prev != null)
-            {
-                decl.append(" extends ");
-                decl.append(prev);
-            }
-            decl.append(" {\n");
-            for (int i = 0 ; i < fields ; i++)
-            {
-                decl.append("public ");
-                decl.append(TYPES[rnd.nextInt(TYPES.length)].clazz.getSimpleName());
-                decl.append(" field");
-                decl.append(i);
-                decl.append(";\n");
-            }
-            decl.append("}");
-            File src = new File(tempDir, name + ".java");
-            final FileWriter writer = new FileWriter(src);
-            writer.append(decl);
-            writer.close();
-            File trg = new File(tempDir, name + ".class");
-            defs.add(new DefPart(src, trg, name, decl.toString()));
-            prev = name;
-        }
-        final String[] args = new String[3 + defs.size()];
-        args[0] = "javac";
-        args[1] = "-d";
-        args[2] = tempDir.getAbsolutePath();
-        for (int s = 0 ; s < defs.size() ; s++)
-            args[3 + s] = defs.get(s).srcfile.getAbsolutePath();
-        final Process p = new ProcessBuilder(args).start();
+        // compile
+        final Process p = new ProcessBuilder(args.toArray(new String[0])).start();
         final Future<String> stdout = CONSUME_PROCESS_OUTPUT.submit(new ConsumeOutput(p.getInputStream()));
         final Future<String> stderr = CONSUME_PROCESS_OUTPUT.submit(new ConsumeOutput(p.getErrorStream()));
         try
@@ -149,23 +295,40 @@ public class GuessTest
         {
             throw new IllegalStateException();
         }
-        Class<?> loaded = null;
-        for (int s = 0 ; s < defs.size() ; s++)
+
+        final List<GeneratedClass> generated = new ArrayList<GeneratedClass>();
+        // load
+        for (Decl decl : decls)
         {
-            File trg = defs.get(s).binfile;
-            if (!trg.exists())
+            Class<?> loaded = null;
+            for (Decl.ClassDecl classdecl : decl.classdecls)
             {
-                System.out.println(stdout.get());
-                System.err.println(stderr.get());
+                File trg = classdecl.binfile;
+                if (!trg.exists())
+                {
+                    System.out.println(stdout.get());
+                    System.err.println(stderr.get());
+                }
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                BufferedInputStream in = new BufferedInputStream(new FileInputStream(trg));
+                int i;
+                while ( (i = in.read()) >= 0)
+                    buffer.write(i);
+                in.close();
+                loaded = CL.load(classdecl.name, buffer.toByteArray());
             }
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            BufferedInputStream in = new BufferedInputStream(new FileInputStream(trg));
-            int i;
-            while ( (i = in.read()) >= 0)
-                buffer.write(i);
-            loaded = CL.load(defs.get(s).name, buffer.toByteArray());
+            generated.add(new GeneratedClass(loaded, decl.def.description()));
         }
-        return new Def(defs, loaded);
+        return generated;
+    }
+
+    private static List<GeneratedClass> randomClasses(int count) throws IOException, ExecutionException, InterruptedException
+    {
+        // define
+        final List<Def> defs = new ArrayList<Def>();
+        while (defs.size() < count)
+            defs.add(Def.random());
+        return compile(defs);
     }
 
     private static final class ConsumeOutput implements Callable<String>
@@ -199,56 +362,105 @@ public class GuessTest
     }
 
     @Test
+    public void testDeepNecessaryClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException
+    {
+        final MemoryMeter instrument = new MemoryMeter().withTrackerProvider(TRACKER_PROVIDER);
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SAFE).withTrackerProvider(TRACKER_PROVIDER);
+        Assert.assertTrue("MemoryMeter not initialised", instrument.isInitialized());
+        final List<Object> objects = new ArrayList<Object>();
+        {
+            final ConcurrentSkipListMap<Long, Long> map = new ConcurrentSkipListMap<Long, Long>();
+            for (long i = 0 ; i < 100 ; i++)
+                map.put(i, i);
+            objects.add(map);
+        }
+        int failures = 0;
+        for (final Object obj : objects)
+        {
+            long instrumented = instrument.measureDeep(obj);
+            long guessed = guess.measureDeep(obj);
+            if (instrumented != guessed)
+            {
+                System.err.println(String.format("Guessed %d, instrumented %d for %s", guessed, instrumented, obj.getClass().getName()));
+                failures++;
+            }
+        }
+        Assert.assertEquals("Not all guesses matched the instrumented values. See output for details.", 0, failures);
+    }
+
+    @Test
+    public void testProblemClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException
+    {
+        final MemoryMeter instrument = new MemoryMeter();
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
+        Assert.assertTrue("MemoryMeter not initialised", instrument.isInitialized());
+        List<Def> defs = new ArrayList<Def>();
+        defs.add(Def.parse("{long*1}->{float*1}"));
+        defs.add(Def.parse("{long*1}->{byte*4}"));
+        defs.add(Def.parse("{long*1}->{byte*7}"));
+        defs.add(Def.parse("{long*1}->{byte*9}"));
+        defs.add(Def.parse("{long*1}->{float*1}->{long*1}->{float*1}"));
+        final List<GeneratedClass> classes = compile(defs);
+        int failures = 0;
+        for (final GeneratedClass clazz : classes)
+        {
+            Object obj = clazz.clazz.newInstance();
+            long instrumented = instrument.measure(obj);
+            long guessed = guess.measure(obj);
+            if (instrumented != guessed)
+            {
+                System.err.println(String.format("Guessed %d, instrumented %d for %s", guessed, instrumented, clazz.description));
+                failures++;
+            }
+        }
+        Assert.assertEquals("Not all guesses matched the instrumented values. See output for details.", 0, failures);
+    }
+
+    @Test
     public void testRandomClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException
     {
-        final MemoryMeter mm = new MemoryMeter();
-        Assert.assertTrue("MemoryMeter not initialised", mm.isInitialized());
-        final List<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
-        for (int i = 0 ; i < 1000 ; i++)
+        final MemoryMeter instrument = new MemoryMeter();
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
+        Assert.assertTrue("MemoryMeter not initialised", instrument.isInitialized());
+        final List<Future<Integer>> results = new ArrayList<Future<Integer>>();
+        for (int i = 0 ; i < Runtime.getRuntime().availableProcessors() ; i++)
         {
-            results.add(EXEC.submit(new Callable<Boolean>()
+            results.add(EXEC.submit(new Callable<Integer>()
             {
                 @Override
-                public Boolean call() throws Exception
+                public Integer call() throws Exception
                 {
-                    final Def def = generateClassDef();
-                    Object obj = def.clazz.newInstance();
-                    long instrumented = mm.measure(obj);
-                    long guessed = mm.guess(obj);
-                    if (instrumented != guessed)
+                    final List<GeneratedClass> classes = randomClasses(100);
+                    int failures = 0;
+                    for (final GeneratedClass clazz : classes)
                     {
-                        System.err.println(String.format("Guessed %d, instrumented %d", guessed, instrumented));
-                        Class<?> clazz = def.clazz;
-                        while (clazz != null)
+                        Object obj = clazz.clazz.newInstance();
+                        long instrumented = instrument.measure(obj);
+                        long guessed = guess.measure(obj);
+                        if (instrumented != guessed)
                         {
-                            System.err.println(clazz.getName());
-                            for (Field f : clazz.getDeclaredFields())
-                            {
-                                System.err.println(f);
-                            }
-                            clazz = clazz.getSuperclass();
+                            System.err.println(String.format("Guessed %d, instrumented %d for %s", guessed, instrumented, clazz.description));
+                            failures++;
                         }
-                        for (DefPart part : def.parts)
-                        {
-                            System.err.println(part.declaration);
-                        }
-                        return false;
                     }
-                    return true;
+                    return failures;
                 }
             }));
         }
-        for (Future<Boolean> result : results)
-            Assert.assertTrue("Failed test - see output for details", result.get());
+        int failures = 0;
+        for (Future<Integer> result : results)
+            failures += result.get();
+        Assert.assertEquals("Not all guesses matched the instrumented values. See output for details.", 0, failures);
     }
 
     @Test
     public void testRandomArrays() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException
     {
-        final MemoryMeter mm = new MemoryMeter();
-        Assert.assertTrue("MemoryMeter not initialised", mm.isInitialized());
+        final MemoryMeter instrument = new MemoryMeter();
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
+        Assert.assertTrue("MemoryMeter not initialised", instrument.isInitialized());
         final List<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
-        for (int i = 0 ; i < 100000 ; i++)
+        for (int i = 0 ; i < 100 ; i++)
         {
             results.add(EXEC.submit(new Callable<Boolean>()
             {
@@ -256,8 +468,8 @@ public class GuessTest
                 public Boolean call() throws Exception
                 {
                     Object obj = Array.newInstance(TYPES[rnd.nextInt(TYPES.length)].clazz, rnd.nextInt(1000));
-                    long instrumented = mm.measure(obj);
-                    long guessed = mm.guess(obj);
+                    long instrumented = instrument.measure(obj);
+                    long guessed = guess.measure(obj);
                     if (instrumented != guessed)
                     {
                         System.err.println(String.format("%s of length %d. Guessed %d, instrumented %d", obj.getClass(), Array.getLength(obj), guessed, instrumented));

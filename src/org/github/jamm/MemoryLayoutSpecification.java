@@ -1,13 +1,35 @@
 package org.github.jamm;
 
+import sun.misc.Unsafe;
+
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class MemoryLayoutSpecification
 {
+
+    static final Unsafe unsafe;
+    static
+    {
+        Unsafe tryGetUnsafe;
+        try
+        {
+            Field field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+            field.setAccessible(true);
+            tryGetUnsafe = (sun.misc.Unsafe) field.get(null);
+        }
+        catch (Exception e)
+        {
+            tryGetUnsafe = null;
+        }
+        unsafe = tryGetUnsafe;
+    }
 
     public static final MemoryLayoutSpecification SPEC = getEffectiveMemoryLayoutSpecification();
 
@@ -88,13 +110,46 @@ public abstract class MemoryLayoutSpecification
         throw new IllegalStateException();
     }
 
+    public static long getSizeOf(Object obj)
+    {
+        Class<?> type = obj.getClass();
+        if (type.isArray())
+            return getSizeOfArray(type, obj);
+        return getSizeOfInstance(type);
+    }
+
+    public static long getSizeOfWithUnsafe(Object obj)
+    {
+        Class<?> type = obj.getClass();
+        if (type.isArray())
+            return getSizeOfArray(type, obj);
+        return getSizeOfInstanceWithUnsafe(type);
+    }
+
     // TODO : this is very close to accurate, but occasionally yields a slightly incorrect answer
     public static long getSizeOfInstance(Class<?> type)
     {
         long size = SPEC.getObjectHeaderSize() + getSizeOfDeclaredFields(type);
-        while ((type = type.getSuperclass()) != Object.class)
+        while ((type = type.getSuperclass()) != Object.class && type != null)
             size += roundTo(getSizeOfDeclaredFields(type), SPEC.getSuperclassFieldPadding());
         return roundTo(size, SPEC.getObjectPadding());
+    }
+
+    // attemps to use sun.misc.Unsafe to find the maximum object offset, this work around helps deal with long alignment
+    public static long getSizeOfInstanceWithUnsafe(Class<?> type)
+    {
+        if (unsafe == null)
+            return getSizeOfInstance(type);
+        while (type != null)
+        {
+            long size = 0;
+            for (Field f : getDeclaredInstanceFields(type))
+                size = Math.max(size, unsafe.objectFieldOffset(f) + getSizeOf(f));
+            if (size > 0)
+                return roundTo(size, SPEC.getObjectPadding());
+            type = type.getSuperclass();
+        }
+        return roundTo(SPEC.getObjectHeaderSize(), SPEC.getObjectPadding());
     }
 
     public static long getSizeOfArray(Class<?> type, Object instance)
@@ -105,9 +160,20 @@ public abstract class MemoryLayoutSpecification
     private static long getSizeOfDeclaredFields(Class<?> type)
     {
         long size = 0;
-        for (Field f : type.getDeclaredFields())
+        for (Field f : getDeclaredInstanceFields(type))
             size += getSizeOf(f);
         return size;
+    }
+
+    private static Iterable<Field> getDeclaredInstanceFields(Class<?> type)
+    {
+        List<Field> fields = new ArrayList<Field>();
+        for (Field f : type.getDeclaredFields())
+        {
+            if (!Modifier.isStatic(f.getModifiers()))
+                fields.add(f);
+        }
+        return fields;
     }
 
     public static long roundTo(long x, int multiple)

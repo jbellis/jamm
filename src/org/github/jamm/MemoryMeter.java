@@ -1,7 +1,6 @@
 package org.github.jamm;
 
 import java.lang.instrument.Instrumentation;
-import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
@@ -23,9 +22,14 @@ public class MemoryMeter {
         return instrumentation != null;
     }
 
+    public static enum Guess
+    {
+        NEVER, FALLBACK_SAFE, FALLBACK_UNSAFE, ALWAYS_SAFE, ALWAYS_UNSAFE
+    }
+
     private final Callable<Set<Object>> trackerProvider;
     private final boolean includeFullBufferSize;
-    private final boolean permitGuessing;
+    private final Guess guess;
 
     public MemoryMeter() {
         this(new Callable<Set<Object>>() {
@@ -35,17 +39,18 @@ public class MemoryMeter {
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
                 return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
             }
-        }, true, false);
+        }, true, Guess.NEVER);
     }
 
     /**
      * @param trackerProvider returns a Set with which to track seen objects and avoid cycles
      * @param includeFullBufferSize
+     * @param guess
      */
-    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize, boolean permitGuessing) {
+    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize, Guess guess) {
         this.trackerProvider = trackerProvider;
         this.includeFullBufferSize = includeFullBufferSize;
-        this.permitGuessing = permitGuessing;
+        this.guess = guess;
     }
 
     /**
@@ -53,7 +58,7 @@ public class MemoryMeter {
      * @return a MemoryMeter with the given provider
      */
     public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize, permitGuessing);
+        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess);
     }
 
     /**
@@ -62,14 +67,14 @@ public class MemoryMeter {
      * TODO: handle other types of Buffers
      */
     public MemoryMeter omitSharedBufferOverhead() {
-        return new MemoryMeter(trackerProvider, false, permitGuessing);
+        return new MemoryMeter(trackerProvider, false, guess);
     }
 
     /**
      * @return a MemoryMeter that permits guessing the size of objects if instrumentation isn't enabled
      */
-    public MemoryMeter permitGuessing() {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize, true);
+    public MemoryMeter withGuessing(Guess guess) {
+        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess);
     }
 
     /**
@@ -77,22 +82,27 @@ public class MemoryMeter {
      * @throws NullPointerException if object is null
      */
     public long measure(Object object) {
-        if (instrumentation == null) {
-            if (!permitGuessing)
-            {
-                throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
-            }
-            return MemoryLayoutSpecification.getSizeOfInstance(object.getClass());
+        switch (guess)
+        {
+            case ALWAYS_UNSAFE:
+                return MemoryLayoutSpecification.getSizeOfWithUnsafe(object);
+            case ALWAYS_SAFE:
+                return MemoryLayoutSpecification.getSizeOf(object);
+            default:
+                if (instrumentation == null) {
+                    switch (guess)
+                    {
+                        case NEVER:
+                            throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
+                        case FALLBACK_UNSAFE:
+                            return MemoryLayoutSpecification.getSizeOfWithUnsafe(object);
+                        case FALLBACK_SAFE:
+                            return MemoryLayoutSpecification.getSizeOf(object);
+                    }
+                }
+                return instrumentation.getObjectSize(object);
         }
-        return instrumentation.getObjectSize(object);
-    }
 
-    long guess(Object object)
-    {
-        Class<?> type = object.getClass();
-        if (type.isArray())
-            return MemoryLayoutSpecification.getSizeOfArray(type, object);
-        return MemoryLayoutSpecification.getSizeOfInstance(type);
     }
 
     /**
