@@ -18,13 +18,25 @@ public class MemoryMeter {
         MemoryMeter.instrumentation = inst;
     }
 
-    public static boolean isInitialized() {
+    public static boolean hasInstrumentation() {
         return instrumentation != null;
     }
 
     public static enum Guess
     {
-        NEVER, FALLBACK_SAFE, FALLBACK_UNSAFE, ALWAYS_SAFE, ALWAYS_UNSAFE
+        /* If instrumentation is not available, error when measuring */
+        NEVER,
+        /* If instrumentation is available, use it, otherwise guess the size using predefined specifications */
+        FALLBACK_SPEC,
+        /* If instrumentation is available, use it, otherwise guess the size using sun.misc.Unsafe */
+        FALLBACK_UNSAFE,
+        /* If instrumentation is available, use it, otherwise guess the size using sun.misc.Unsafe; if that is unavailable,
+         * guess using predefined specifications.*/
+        FALLBACK_BEST,
+        /* Always guess the size of measured objects using predefined specifications*/
+        ALWAYS_SPEC,
+        /* Always guess the size of measured objects using sun.misc.Unsafe */
+        ALWAYS_UNSAFE
     }
 
     private final Callable<Set<Object>> trackerProvider;
@@ -85,9 +97,9 @@ public class MemoryMeter {
         switch (guess)
         {
             case ALWAYS_UNSAFE:
-                return MemoryLayoutSpecification.getSizeOfWithUnsafe(object);
-            case ALWAYS_SAFE:
-                return MemoryLayoutSpecification.getSizeOf(object);
+                return MemoryLayoutSpecification.sizeOfWithUnsafe(object);
+            case ALWAYS_SPEC:
+                return MemoryLayoutSpecification.sizeOf(object);
             default:
                 if (instrumentation == null) {
                     switch (guess)
@@ -95,9 +107,13 @@ public class MemoryMeter {
                         case NEVER:
                             throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
                         case FALLBACK_UNSAFE:
-                            return MemoryLayoutSpecification.getSizeOfWithUnsafe(object);
-                        case FALLBACK_SAFE:
-                            return MemoryLayoutSpecification.getSizeOf(object);
+                            if (!MemoryLayoutSpecification.hasUnsafe())
+                                throw new IllegalStateException("Instrumentation is not set and sun.misc.Unsafe could not be obtained; Jamm must be set as -javaagent, or the SecurityManager must permit access to sun.misc.Unsafe");
+                        case FALLBACK_BEST:
+                            if (MemoryLayoutSpecification.hasUnsafe())
+                                return MemoryLayoutSpecification.sizeOfWithUnsafe(object);
+                        case FALLBACK_SPEC:
+                            return MemoryLayoutSpecification.sizeOf(object);
                     }
                 }
                 return instrumentation.getObjectSize(object);
@@ -139,7 +155,6 @@ public class MemoryMeter {
             } else if (current instanceof ByteBuffer && !includeFullBufferSize) {
                 total += ((ByteBuffer) current).remaining();
             } else {
-                // TODO does this work correctly with native allocation like DirectByteBuffer?
                 addFieldChildren(current, stack, tracker);
             }
         }
@@ -213,4 +228,5 @@ public class MemoryMeter {
             }
         }
     }
+
 }

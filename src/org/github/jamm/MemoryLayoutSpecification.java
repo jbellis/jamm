@@ -43,59 +43,22 @@ public abstract class MemoryLayoutSpecification
 
     public abstract int getSuperclassFieldPadding();
 
-
-    /**
-     * Describes constant memory overheads for various constructs in a JVM
-     * implementation.
-     */
-
-    /**
-     * Memory a class consumes, including the object header and the size of the fields.
-     * @param fieldsSize Total size of the primitive fields of a class
-     * @return Total in-memory size of the class
-     */
-    public static long getSizeOfFields(long fieldsSize)
+    /* Indicates if UNSAFE object size determination is available */
+    public static boolean hasUnsafe()
     {
-        return roundTo(SPEC.getObjectHeaderSize() + fieldsSize, SPEC.getObjectPadding());
+        return unsafe != null;
+    }
+
+    /** @return sizeOfField(field.getType()) */
+    public static int sizeOf(Field field)
+    {
+        return sizeOfField(field.getType());
     }
 
     /**
-     * Memory a super class consumes, given the primitive field sizes
-     * @param fieldsSize Total size of the primitive fields of the super class
-     * @return Total additional in-memory that the super class takes up
+     * @return The memory size of a field of a class of the provided type; for Objects this is the size of the reference only
      */
-    public static long getSizeOfSuperClassFields(long fieldsSize)
-    {
-        return roundTo(fieldsSize, SPEC.getSuperclassFieldPadding());
-    }
-
-    /**
-     * Memory an array will consume
-     * @param length Number of elements in the array
-     * @param elementSize In-memory size of each element's primitive stored
-     * @return In-memory size of the array
-     */
-    public static long getSizeOfArray(int length, long elementSize)
-    {
-        return roundTo(SPEC.getArrayHeaderSize() + length * elementSize, SPEC.getObjectPadding());
-    }
-
-    /**
-     * Memory a byte array consumes
-     * @param bytes byte array to get memory size
-     * @return In-memory size of the array
-     */
-    public static long getSizeOfArray(byte[] bytes)
-    {
-        return getSizeOfArray(bytes.length, 1);
-    }
-
-    public static int getSizeOf(Field field)
-    {
-        return getSizeOfField(field.getType());
-    }
-
-    public static int getSizeOfField(Class<?> type)
+    public static int sizeOfField(Class<?> type)
     {
         if (!type.isPrimitive())
             return SPEC.getReferenceSize();
@@ -110,41 +73,49 @@ public abstract class MemoryLayoutSpecification
         throw new IllegalStateException();
     }
 
-    public static long getSizeOf(Object obj)
+    /**
+     * @return The size of the provided instance as defined by the detected MemoryLayoutSpecification. For an array this
+     * is dependent on the size of the array, but for an object this is fixed for all instances
+     */
+    public static long sizeOf(Object obj)
     {
         Class<?> type = obj.getClass();
         if (type.isArray())
-            return getSizeOfArray(type, obj);
-        return getSizeOfInstance(type);
+            return sizeOfArray(obj, type);
+        return sizeOfInstance(type);
     }
 
-    public static long getSizeOfWithUnsafe(Object obj)
+    /**
+     * @return this allocated heap size of the instance provided; for arrays this is equivalent to sizeOf(obj),
+     * which uses the memory layout specification, however for objects this method uses
+     */
+    public static long sizeOfWithUnsafe(Object obj)
     {
         Class<?> type = obj.getClass();
         if (type.isArray())
-            return getSizeOfArray(type, obj);
-        return getSizeOfInstanceWithUnsafe(type);
+            return sizeOfArray(obj, type);
+        return sizeOfInstanceWithUnsafe(type);
     }
 
-    // TODO : this is very close to accurate, but occasionally yields a slightly incorrect answer
-    public static long getSizeOfInstance(Class<?> type)
+    // this is very close to accurate, but occasionally yields a slightly incorrect answer (when long fields are used
+    // and cannot be 8-byte aligned, an extra 4-bytes is allocated.
+    // sizeOfInstanceWithUnsafe is safe against this miscounting
+    public static long sizeOfInstance(Class<?> type)
     {
-        long size = SPEC.getObjectHeaderSize() + getSizeOfDeclaredFields(type);
+        long size = SPEC.getObjectHeaderSize() + sizeOfDeclaredFields(type);
         while ((type = type.getSuperclass()) != Object.class && type != null)
-            size += roundTo(getSizeOfDeclaredFields(type), SPEC.getSuperclassFieldPadding());
+            size += roundTo(sizeOfDeclaredFields(type), SPEC.getSuperclassFieldPadding());
         return roundTo(size, SPEC.getObjectPadding());
     }
 
     // attemps to use sun.misc.Unsafe to find the maximum object offset, this work around helps deal with long alignment
-    public static long getSizeOfInstanceWithUnsafe(Class<?> type)
+    public static long sizeOfInstanceWithUnsafe(Class<?> type)
     {
-        if (unsafe == null)
-            return getSizeOfInstance(type);
         while (type != null)
         {
             long size = 0;
-            for (Field f : getDeclaredInstanceFields(type))
-                size = Math.max(size, unsafe.objectFieldOffset(f) + getSizeOf(f));
+            for (Field f : declaredFieldsOf(type))
+                size = Math.max(size, unsafe.objectFieldOffset(f) + sizeOf(f));
             if (size > 0)
                 return roundTo(size, SPEC.getObjectPadding());
             type = type.getSuperclass();
@@ -152,20 +123,42 @@ public abstract class MemoryLayoutSpecification
         return roundTo(SPEC.getObjectHeaderSize(), SPEC.getObjectPadding());
     }
 
-    public static long getSizeOfArray(Class<?> type, Object instance)
+    public static long sizeOfArray(Object instance, Class<?> type)
     {
-        return getSizeOfArray(Array.getLength(instance), getSizeOfField(type.getComponentType()));
+        return sizeOfArray(Array.getLength(instance), sizeOfField(type.getComponentType()));
     }
 
-    private static long getSizeOfDeclaredFields(Class<?> type)
+    /**
+     * Memory an array
+     * @param length Number of elements in the array
+     * @param type the array class type
+     * @return
+     */
+    public static long sizeOfArray(int length, Class<?> type)
+    {
+        return sizeOfArray(length, sizeOfField(type.getComponentType()));
+    }
+
+    /**
+     * Memory an array will consume
+     * @param length Number of elements in the array
+     * @param elementSize In-memory size of each element's primitive stored
+     * @return In-memory size of the array
+     */
+    public static long sizeOfArray(int length, long elementSize)
+    {
+        return roundTo(SPEC.getArrayHeaderSize() + length * elementSize, SPEC.getObjectPadding());
+    }
+
+    private static long sizeOfDeclaredFields(Class<?> type)
     {
         long size = 0;
-        for (Field f : getDeclaredInstanceFields(type))
-            size += getSizeOf(f);
+        for (Field f : declaredFieldsOf(type))
+            size += sizeOf(f);
         return size;
     }
 
-    private static Iterable<Field> getDeclaredInstanceFields(Class<?> type)
+    private static Iterable<Field> declaredFieldsOf(Class<?> type)
     {
         List<Field> fields = new ArrayList<Field>();
         for (Field f : type.getDeclaredFields())
@@ -176,7 +169,7 @@ public abstract class MemoryLayoutSpecification
         return fields;
     }
 
-    public static long roundTo(long x, int multiple)
+    private static long roundTo(long x, int multiple)
     {
         return ((x + multiple - 1) / multiple) * multiple;
     }
@@ -292,6 +285,7 @@ public abstract class MemoryLayoutSpecification
         };
     }
 
+    // check if we have a non-standard object alignment we need to round to
     private static int getAlignment()
     {
         RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();

@@ -29,7 +29,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-// UGLY AS SIN, BUT QUICK TO WRITE AND WORKS
+/**
+ * UGLY AS SIN, BUT QUICK TO WRITE AND WORKS.
+ * We generate java source code for random data classes (with parent hierarchy), write it to a temp dir,
+ * call javac on it, and instrument it.
+ */
 public class GuessTest
 {
 
@@ -365,8 +369,8 @@ public class GuessTest
     public void testDeepNecessaryClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException
     {
         final MemoryMeter instrument = new MemoryMeter().withTrackerProvider(TRACKER_PROVIDER);
-        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SAFE).withTrackerProvider(TRACKER_PROVIDER);
-        Assert.assertTrue("MemoryMeter not initialised", instrument.isInitialized());
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SPEC).withTrackerProvider(TRACKER_PROVIDER);
+        Assert.assertTrue("MemoryMeter not initialised", instrument.hasInstrumentation());
         final List<Object> objects = new ArrayList<Object>();
         {
             final ConcurrentSkipListMap<Long, Long> map = new ConcurrentSkipListMap<Long, Long>();
@@ -393,7 +397,7 @@ public class GuessTest
     {
         final MemoryMeter instrument = new MemoryMeter();
         final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
-        Assert.assertTrue("MemoryMeter not initialised", instrument.isInitialized());
+        Assert.assertTrue("MemoryMeter not initialised", instrument.hasInstrumentation());
         List<Def> defs = new ArrayList<Def>();
         defs.add(Def.parse("{long*1}->{float*1}"));
         defs.add(Def.parse("{long*1}->{byte*4}"));
@@ -421,7 +425,7 @@ public class GuessTest
     {
         final MemoryMeter instrument = new MemoryMeter();
         final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
-        Assert.assertTrue("MemoryMeter not initialised", instrument.isInitialized());
+        Assert.assertTrue("MemoryMeter not initialised", instrument.hasInstrumentation());
         final List<Future<Integer>> results = new ArrayList<Future<Integer>>();
         for (int i = 0 ; i < Runtime.getRuntime().availableProcessors() ; i++)
         {
@@ -458,7 +462,7 @@ public class GuessTest
     {
         final MemoryMeter instrument = new MemoryMeter();
         final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
-        Assert.assertTrue("MemoryMeter not initialised", instrument.isInitialized());
+        Assert.assertTrue("MemoryMeter not initialised", instrument.hasInstrumentation());
         final List<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         for (int i = 0 ; i < 100 ; i++)
         {
