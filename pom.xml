@@ -59,7 +59,7 @@
     </developer>
   </developers>
   <build>
-    <sourceDirectory>${basedir}/src</sourceDirectory>
+    <sourceDirectory>${basedir}/srcfile</sourceDirectory>
     <testSourceDirectory>${basedir}/test</testSourceDirectory>
     <pluginManagement>
       <plugins>

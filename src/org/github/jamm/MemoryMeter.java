@@ -11,18 +11,36 @@ import java.util.Stack;
 import java.util.concurrent.Callable;
 
 public class MemoryMeter {
+
     private static Instrumentation instrumentation;
 
     public static void premain(String options, Instrumentation inst) {
         MemoryMeter.instrumentation = inst;
     }
 
-    public static boolean isInitialized() {
+    public static boolean hasInstrumentation() {
         return instrumentation != null;
+    }
+
+    public static enum Guess {
+        /* If instrumentation is not available, error when measuring */
+        NEVER,
+        /* If instrumentation is available, use it, otherwise guess the size using predefined specifications */
+        FALLBACK_SPEC,
+        /* If instrumentation is available, use it, otherwise guess the size using sun.misc.Unsafe */
+        FALLBACK_UNSAFE,
+        /* If instrumentation is available, use it, otherwise guess the size using sun.misc.Unsafe; if that is unavailable,
+         * guess using predefined specifications.*/
+        FALLBACK_BEST,
+        /* Always guess the size of measured objects using predefined specifications*/
+        ALWAYS_SPEC,
+        /* Always guess the size of measured objects using sun.misc.Unsafe */
+        ALWAYS_UNSAFE
     }
 
     private final Callable<Set<Object>> trackerProvider;
     private final boolean includeFullBufferSize;
+    private final Guess guess;
 
     public MemoryMeter() {
         this(new Callable<Set<Object>>() {
@@ -32,16 +50,18 @@ public class MemoryMeter {
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
                 return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
             }
-        }, true);
+        }, true, Guess.NEVER);
     }
 
     /**
      * @param trackerProvider returns a Set with which to track seen objects and avoid cycles
      * @param includeFullBufferSize
+     * @param guess
      */
-    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize) {
+    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize, Guess guess) {
         this.trackerProvider = trackerProvider;
         this.includeFullBufferSize = includeFullBufferSize;
+        this.guess = guess;
     }
 
     /**
@@ -49,7 +69,7 @@ public class MemoryMeter {
      * @return a MemoryMeter with the given provider
      */
     public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize);
+        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess);
     }
 
     /**
@@ -58,7 +78,14 @@ public class MemoryMeter {
      * TODO: handle other types of Buffers
      */
     public MemoryMeter omitSharedBufferOverhead() {
-        return new MemoryMeter(trackerProvider, false);
+        return new MemoryMeter(trackerProvider, false, guess);
+    }
+
+    /**
+     * @return a MemoryMeter that permits guessing the size of objects if instrumentation isn't enabled
+     */
+    public MemoryMeter withGuessing(Guess guess) {
+        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess);
     }
 
     /**
@@ -66,10 +93,28 @@ public class MemoryMeter {
      * @throws NullPointerException if object is null
      */
     public long measure(Object object) {
-        if (instrumentation == null) {
-            throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
+        switch (guess) {
+            case ALWAYS_UNSAFE:
+                return MemoryLayoutSpecification.sizeOfWithUnsafe(object);
+            case ALWAYS_SPEC:
+                return MemoryLayoutSpecification.sizeOf(object);
+            default:
+                if (instrumentation == null) {
+                    switch (guess) {
+                        case NEVER:
+                            throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
+                        case FALLBACK_UNSAFE:
+                            if (!MemoryLayoutSpecification.hasUnsafe())
+                                throw new IllegalStateException("Instrumentation is not set and sun.misc.Unsafe could not be obtained; Jamm must be set as -javaagent, or the SecurityManager must permit access to sun.misc.Unsafe");
+                        case FALLBACK_BEST:
+                            if (MemoryLayoutSpecification.hasUnsafe())
+                                return MemoryLayoutSpecification.sizeOfWithUnsafe(object);
+                        case FALLBACK_SPEC:
+                            return MemoryLayoutSpecification.sizeOf(object);
+                    }
+                }
+                return instrumentation.getObjectSize(object);
         }
-        return instrumentation.getObjectSize(object);
     }
 
     /**
@@ -106,7 +151,6 @@ public class MemoryMeter {
             } else if (current instanceof ByteBuffer && !includeFullBufferSize) {
                 total += ((ByteBuffer) current).remaining();
             } else {
-                // TODO does this work correctly with native allocation like DirectByteBuffer?
                 addFieldChildren(current, stack, tracker);
             }
         }
@@ -136,8 +180,7 @@ public class MemoryMeter {
 
             if (current instanceof Object[]) {
                 addArrayChildren((Object[]) current, stack, tracker);
-            }
-            else {
+            } else {
                 addFieldChildren(current, stack, tracker);
             }
         }
@@ -157,8 +200,7 @@ public class MemoryMeter {
                 Object child;
                 try {
                     child = field.get(current);
-                }
-                catch (IllegalAccessException e) {
+                } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
 
@@ -180,4 +222,5 @@ public class MemoryMeter {
             }
         }
     }
+
 }

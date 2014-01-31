@@ -1,3 +1,7 @@
+build
+out
+.gitignore
+.idea/
 target
 *.iml
 *.ipr
