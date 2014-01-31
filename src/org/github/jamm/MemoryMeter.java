@@ -22,8 +22,7 @@ public class MemoryMeter {
         return instrumentation != null;
     }
 
-    public static enum Guess
-    {
+    public static enum Guess {
         /* If instrumentation is not available, error when measuring */
         NEVER,
         /* If instrumentation is available, use it, otherwise guess the size using predefined specifications */
@@ -94,16 +93,14 @@ public class MemoryMeter {
      * @throws NullPointerException if object is null
      */
     public long measure(Object object) {
-        switch (guess)
-        {
+        switch (guess) {
             case ALWAYS_UNSAFE:
                 return MemoryLayoutSpecification.sizeOfWithUnsafe(object);
             case ALWAYS_SPEC:
                 return MemoryLayoutSpecification.sizeOf(object);
             default:
                 if (instrumentation == null) {
-                    switch (guess)
-                    {
+                    switch (guess) {
                         case NEVER:
                             throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
                         case FALLBACK_UNSAFE:
@@ -118,7 +115,6 @@ public class MemoryMeter {
                 }
                 return instrumentation.getObjectSize(object);
         }
-
     }
 
     /**
@@ -184,8 +180,7 @@ public class MemoryMeter {
 
             if (current instanceof Object[]) {
                 addArrayChildren((Object[]) current, stack, tracker);
-            }
-            else {
+            } else {
                 addFieldChildren(current, stack, tracker);
             }
         }
@@ -205,8 +200,7 @@ public class MemoryMeter {
                 Object child;
                 try {
                     child = field.get(current);
-                }
-                catch (IllegalAccessException e) {
+                } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
 

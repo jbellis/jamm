@@ -18,14 +18,11 @@ public abstract class MemoryLayoutSpecification
     static
     {
         Unsafe tryGetUnsafe;
-        try
-        {
+        try {
             Field field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
             field.setAccessible(true);
             tryGetUnsafe = (sun.misc.Unsafe) field.get(null);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             tryGetUnsafe = null;
         }
         unsafe = tryGetUnsafe;
@@ -44,22 +41,19 @@ public abstract class MemoryLayoutSpecification
     public abstract int getSuperclassFieldPadding();
 
     /* Indicates if UNSAFE object size determination is available */
-    public static boolean hasUnsafe()
-    {
+    public static boolean hasUnsafe() {
         return unsafe != null;
     }
 
     /** @return sizeOfField(field.getType()) */
-    public static int sizeOf(Field field)
-    {
+    public static int sizeOf(Field field) {
         return sizeOfField(field.getType());
     }
 
     /**
      * @return The memory size of a field of a class of the provided type; for Objects this is the size of the reference only
      */
-    public static int sizeOfField(Class<?> type)
-    {
+    public static int sizeOfField(Class<?> type) {
         if (!type.isPrimitive())
             return SPEC.getReferenceSize();
         if (type == boolean.class || type == byte.class)
@@ -77,8 +71,7 @@ public abstract class MemoryLayoutSpecification
      * @return The size of the provided instance as defined by the detected MemoryLayoutSpecification. For an array this
      * is dependent on the size of the array, but for an object this is fixed for all instances
      */
-    public static long sizeOf(Object obj)
-    {
+    public static long sizeOf(Object obj) {
         Class<?> type = obj.getClass();
         if (type.isArray())
             return sizeOfArray(obj, type);
@@ -89,8 +82,7 @@ public abstract class MemoryLayoutSpecification
      * @return this allocated heap size of the instance provided; for arrays this is equivalent to sizeOf(obj),
      * which uses the memory layout specification, however for objects this method uses
      */
-    public static long sizeOfWithUnsafe(Object obj)
-    {
+    public static long sizeOfWithUnsafe(Object obj) {
         Class<?> type = obj.getClass();
         if (type.isArray())
             return sizeOfArray(obj, type);
@@ -100,8 +92,7 @@ public abstract class MemoryLayoutSpecification
     // this is very close to accurate, but occasionally yields a slightly incorrect answer (when long fields are used
     // and cannot be 8-byte aligned, an extra 4-bytes is allocated.
     // sizeOfInstanceWithUnsafe is safe against this miscounting
-    public static long sizeOfInstance(Class<?> type)
-    {
+    public static long sizeOfInstance(Class<?> type) {
         long size = SPEC.getObjectHeaderSize() + sizeOfDeclaredFields(type);
         while ((type = type.getSuperclass()) != Object.class && type != null)
             size += roundTo(sizeOfDeclaredFields(type), SPEC.getSuperclassFieldPadding());
@@ -109,8 +100,7 @@ public abstract class MemoryLayoutSpecification
     }
 
     // attemps to use sun.misc.Unsafe to find the maximum object offset, this work around helps deal with long alignment
-    public static long sizeOfInstanceWithUnsafe(Class<?> type)
-    {
+    public static long sizeOfInstanceWithUnsafe(Class<?> type) {
         while (type != null)
         {
             long size = 0;
@@ -123,8 +113,7 @@ public abstract class MemoryLayoutSpecification
         return roundTo(SPEC.getObjectHeaderSize(), SPEC.getObjectPadding());
     }
 
-    public static long sizeOfArray(Object instance, Class<?> type)
-    {
+    public static long sizeOfArray(Object instance, Class<?> type) {
         return sizeOfArray(Array.getLength(instance), sizeOfField(type.getComponentType()));
     }
 
@@ -134,8 +123,7 @@ public abstract class MemoryLayoutSpecification
      * @param type the array class type
      * @return
      */
-    public static long sizeOfArray(int length, Class<?> type)
-    {
+    public static long sizeOfArray(int length, Class<?> type) {
         return sizeOfArray(length, sizeOfField(type.getComponentType()));
     }
 
@@ -145,21 +133,18 @@ public abstract class MemoryLayoutSpecification
      * @param elementSize In-memory size of each element's primitive stored
      * @return In-memory size of the array
      */
-    public static long sizeOfArray(int length, long elementSize)
-    {
+    public static long sizeOfArray(int length, long elementSize) {
         return roundTo(SPEC.getArrayHeaderSize() + length * elementSize, SPEC.getObjectPadding());
     }
 
-    private static long sizeOfDeclaredFields(Class<?> type)
-    {
+    private static long sizeOfDeclaredFields(Class<?> type) {
         long size = 0;
         for (Field f : declaredFieldsOf(type))
             size += sizeOf(f);
         return size;
     }
 
-    private static Iterable<Field> declaredFieldsOf(Class<?> type)
-    {
+    private static Iterable<Field> declaredFieldsOf(Class<?> type) {
         List<Field> fields = new ArrayList<Field>();
         for (Field f : type.getDeclaredFields())
         {
@@ -169,41 +154,33 @@ public abstract class MemoryLayoutSpecification
         return fields;
     }
 
-    private static long roundTo(long x, int multiple)
-    {
+    private static long roundTo(long x, int multiple) {
         return ((x + multiple - 1) / multiple) * multiple;
     }
 
-    private static MemoryLayoutSpecification getEffectiveMemoryLayoutSpecification()
-    {
+    private static MemoryLayoutSpecification getEffectiveMemoryLayoutSpecification() {
+
         final String dataModel = System.getProperty("sun.arch.data.model");
-        if ("32".equals(dataModel))
-        {
+        if ("32".equals(dataModel)) {
             // Running with 32-bit data model
-            return new MemoryLayoutSpecification()
-            {
-                public int getArrayHeaderSize()
-                {
+            return new MemoryLayoutSpecification() {
+                public int getArrayHeaderSize() {
                     return 12;
                 }
 
-                public int getObjectHeaderSize()
-                {
+                public int getObjectHeaderSize() {
                     return 8;
                 }
 
-                public int getObjectPadding()
-                {
+                public int getObjectPadding() {
                     return 8;
                 }
 
-                public int getReferenceSize()
-                {
+                public int getReferenceSize() {
                     return 4;
                 }
 
-                public int getSuperclassFieldPadding()
-                {
+                public int getSuperclassFieldPadding() {
                     return 4;
                 }
             };
@@ -212,41 +189,35 @@ public abstract class MemoryLayoutSpecification
         final String strVmVersion = System.getProperty("java.vm.version");
         final int vmVersion = Integer.parseInt(strVmVersion.substring(0, strVmVersion.indexOf('.')));
         final int alignment = getAlignment();
-        if (vmVersion >= 17)
-        {
+        if (vmVersion >= 17) {
+
             long maxMemory = 0;
-            for (MemoryPoolMXBean mp : ManagementFactory.getMemoryPoolMXBeans())
-            {
+            for (MemoryPoolMXBean mp : ManagementFactory.getMemoryPoolMXBeans()) {
                 maxMemory += mp.getUsage().getMax();
             }
-            if (maxMemory < 30L * 1024 * 1024 * 1024)
-            {
+
+            if (maxMemory < 30L * 1024 * 1024 * 1024) {
                 // HotSpot 17.0 and above use compressed OOPs below 30GB of RAM
                 // total for all memory pools (yes, including code cache).
-                return new MemoryLayoutSpecification()
-                {
-                    public int getArrayHeaderSize()
-                    {
+                return new MemoryLayoutSpecification() {
+
+                    public int getArrayHeaderSize() {
                         return 16;
                     }
 
-                    public int getObjectHeaderSize()
-                    {
+                    public int getObjectHeaderSize() {
                         return 12;
                     }
 
-                    public int getObjectPadding()
-                    {
+                    public int getObjectPadding() {
                         return alignment;
                     }
 
-                    public int getReferenceSize()
-                    {
+                    public int getReferenceSize() {
                         return 4;
                     }
 
-                    public int getSuperclassFieldPadding()
-                    {
+                    public int getSuperclassFieldPadding() {
                         return 4;
                     }
                 };
@@ -256,48 +227,38 @@ public abstract class MemoryLayoutSpecification
         /* Worst case we over count. */
 
         // In other cases, it's a 64-bit uncompressed OOPs object model
-        return new MemoryLayoutSpecification()
-        {
-            public int getArrayHeaderSize()
-            {
+        return new MemoryLayoutSpecification() {
+
+            public int getArrayHeaderSize() {
                 return 24;
             }
 
-            public int getObjectHeaderSize()
-            {
+            public int getObjectHeaderSize() {
                 return 16;
             }
 
-            public int getObjectPadding()
-            {
+            public int getObjectPadding() {
                 return alignment;
             }
 
-            public int getReferenceSize()
-            {
+            public int getReferenceSize() {
                 return 8;
             }
 
-            public int getSuperclassFieldPadding()
-            {
+            public int getSuperclassFieldPadding() {
                 return 8;
             }
         };
     }
 
     // check if we have a non-standard object alignment we need to round to
-    private static int getAlignment()
-    {
+    private static int getAlignment() {
         RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-        for (String arg : runtimeMxBean.getInputArguments())
-        {
-            if (arg.startsWith("-XX:ObjectAlignmentInBytes="))
-            {
-                try
-                {
+        for (String arg : runtimeMxBean.getInputArguments()) {
+            if (arg.startsWith("-XX:ObjectAlignmentInBytes=")) {
+                try {
                     return Integer.parseInt(arg.substring("-XX:ObjectAlignmentInBytes=".length()));
-                }
-                catch (Exception _){}
+                } catch (Exception _){}
             }
         }
         return 8;
