@@ -6,3 +6,8 @@ target
 *.iml
 *.ipr
 *.iws
+
+# eclipse
+.classpath
+.project
+.settings/

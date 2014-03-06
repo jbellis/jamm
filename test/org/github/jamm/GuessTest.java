@@ -93,7 +93,6 @@ public class GuessTest {
         final List<Future<Integer>> results = new ArrayList<Future<Integer>>();
         for (int i = 0 ; i < Runtime.getRuntime().availableProcessors() ; i++) {
             results.add(EXEC.submit(new Callable<Integer>() {
-                @Override
                 public Integer call() throws Exception {
                     final List<GeneratedClass> classes = randomClasses(testsPerCPU);
                     int failures = 0;
@@ -124,7 +123,6 @@ public class GuessTest {
         final List<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         for (int i = 0 ; i < 10000 ; i++) {
             results.add(EXEC.submit(new Callable<Boolean>() {
-                @Override
                 public Boolean call() throws Exception {
                     Object obj = Array.newInstance(TYPES[rnd.nextInt(TYPES.length)].clazz, rnd.nextInt(1000));
                     long instrumented = instrument.measure(obj);
@@ -401,7 +399,6 @@ public class GuessTest {
             this.in = new BufferedReader(new InputStreamReader(in));
         }
 
-        @Override
         public String call() throws Exception {
             try {
                 String line;
@@ -417,14 +414,12 @@ public class GuessTest {
     }
 
     private static final class TrackerProvider implements Callable<Set<Object>> {
-        @Override
         public Set<Object> call() throws Exception {
             return new HashSet<Object>();
         }
     };
 
     private static final class DaemonThreadFactory implements ThreadFactory {
-        @Override
         public Thread newThread(Runnable r) {
             Thread t = new Thread(r);
             t.setDaemon(true);
