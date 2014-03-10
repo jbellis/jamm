@@ -38,8 +38,8 @@ public class GuessTest {
 
     @Test
     public void testDeepNecessaryClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException {
-        final MemoryMeter instrument = new MemoryMeter().withTrackerProvider(TRACKER_PROVIDER);
-        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SPEC).withTrackerProvider(TRACKER_PROVIDER);
+        final MemoryMeter instrument = new MemoryMeter();
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SPEC);
         Assert.assertTrue("MemoryMeter not initialised", instrument.hasInstrumentation());
         final List<Object> objects = new ArrayList<Object>(); {
             final ConcurrentSkipListMap<Long, Long> map = new ConcurrentSkipListMap<Long, Long>();
@@ -145,7 +145,6 @@ public class GuessTest {
     private static final MyClassLoader CL = new MyClassLoader();
     private static final File tempDir = new File(System.getProperty("java.io.tmpdir"), "testclasses");
 
-    private static final Callable<Set<Object>> TRACKER_PROVIDER = new TrackerProvider();
     private static final ExecutorService CONSUME_PROCESS_OUTPUT = Executors.newCachedThreadPool(new DaemonThreadFactory());
     private static final ExecutorService EXEC = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -412,12 +411,6 @@ public class GuessTest {
             return sb.toString();
         }
     }
-
-    private static final class TrackerProvider implements Callable<Set<Object>> {
-        public Set<Object> call() throws Exception {
-            return new HashSet<Object>();
-        }
-    };
 
     private static final class DaemonThreadFactory implements ThreadFactory {
         public Thread newThread(Runnable r) {
