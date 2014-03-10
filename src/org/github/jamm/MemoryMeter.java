@@ -5,10 +5,18 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.Callable;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
+import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnel;
+import com.google.common.hash.PrimitiveSink;
 
 public class MemoryMeter {
 
@@ -38,19 +46,52 @@ public class MemoryMeter {
         ALWAYS_UNSAFE
     }
 
-    private final Callable<Set<Object>> trackerProvider;
+    private final Tracker tracker;
     private final boolean includeFullBufferSize;
     private final Guess guess;
+    
+    public interface Tracker {
+        public boolean put(Object object);
+        public Tracker make();
+    }
+      
+    private static class IdentityHashSetTracker implements Tracker {
+        private final Set<Object> data = Sets.newIdentityHashSet();
+        
+        public boolean put(Object object) {
+            return data.add(object);
+        }
+
+        public Tracker make() {
+            return new IdentityHashSetTracker();
+        }
+    }
+    
+    private static class BloomFilterTracker implements Tracker {
+        private final int expectedInstances;
+        private final BloomFilter<Object> bloomFilter;
+        
+        public BloomFilterTracker(int expectedInstances) {
+            this.expectedInstances = expectedInstances;
+            this.bloomFilter = BloomFilter.create(new Funnel<Object>() {
+                public void funnel(Object object, PrimitiveSink sink) {
+                    sink.putInt(System.identityHashCode(object));
+                }
+            }, this.expectedInstances);  
+        }
+
+        public boolean put(Object object) {
+            return bloomFilter.put(object);
+        }
+
+        public Tracker make() {
+            return new BloomFilterTracker(this.expectedInstances);
+        }
+
+    }
 
     public MemoryMeter() {
-        this(new Callable<Set<Object>>() {
-            public Set<Object> call() throws Exception {
-                // using a normal HashSet to track seen objects screws things up in two ways:
-                // - it can undercount objects that are "equal"
-                // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
-                return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
-            }
-        }, true, Guess.NEVER);
+        this(new IdentityHashSetTracker(), true, Guess.NEVER);
     }
 
     /**
@@ -58,8 +99,8 @@ public class MemoryMeter {
      * @param includeFullBufferSize
      * @param guess
      */
-    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize, Guess guess) {
-        this.trackerProvider = trackerProvider;
+    private MemoryMeter(Tracker tracker, boolean includeFullBufferSize, Guess guess) {
+        this.tracker = tracker;
         this.includeFullBufferSize = includeFullBufferSize;
         this.guess = guess;
     }
@@ -68,8 +109,8 @@ public class MemoryMeter {
      * @param trackerProvider
      * @return a MemoryMeter with the given provider
      */
-    public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess);
+    public MemoryMeter withTrackerProvider(Tracker trackerProvider) {
+        return new MemoryMeter(tracker, includeFullBufferSize, guess);
     }
 
     /**
@@ -78,14 +119,14 @@ public class MemoryMeter {
      * TODO: handle other types of Buffers
      */
     public MemoryMeter omitSharedBufferOverhead() {
-        return new MemoryMeter(trackerProvider, false, guess);
+        return new MemoryMeter(tracker, false, guess);
     }
 
     /**
      * @return a MemoryMeter that permits guessing the size of objects if instrumentation isn't enabled
      */
     public MemoryMeter withGuessing(Guess guess) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess);
+        return new MemoryMeter(tracker, includeFullBufferSize, guess);
     }
 
     /**
@@ -126,18 +167,11 @@ public class MemoryMeter {
             throw new NullPointerException(); // match getObjectSize behavior
         }
 
-        Set<Object> tracker;
-        try {
-            tracker = trackerProvider.call();
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        tracker.add(object);
+        Tracker tracker = this.tracker.make();
+        tracker.put(object);
 
         // track stack manually so we can handle deeper heirarchies than recursion
-        Stack<Object> stack = new Stack<Object>();
+        Deque<Object> stack = Queues.newArrayDeque();
         stack.push(object);
 
         long total = 0;
@@ -167,9 +201,9 @@ public class MemoryMeter {
             throw new NullPointerException();
         }
 
-        Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
-        tracker.add(object);
-        Stack<Object> stack = new Stack<Object>();
+        Tracker tracker = new IdentityHashSetTracker();
+        tracker.put(object);
+        Deque<Object> stack = Queues.newArrayDeque();
         stack.push(object);
 
         long total = 0;
@@ -188,8 +222,8 @@ public class MemoryMeter {
         return total;
     }
 
-    private void addFieldChildren(Object current, Stack<Object> stack, Set<Object> tracker) {
-        Class cls = current.getClass();
+    private void addFieldChildren(Object current, Deque<Object> stack, Tracker tracker) {
+        Class<?> cls = current.getClass();
         while (cls != null) {
             for (Field field : cls.getDeclaredFields()) {
                 if (field.getType().isPrimitive() || Modifier.isStatic(field.getModifiers())) {
@@ -204,9 +238,8 @@ public class MemoryMeter {
                     throw new RuntimeException(e);
                 }
 
-                if (child != null && !tracker.contains(child)) {
+                if (child != null && tracker.put(child)) {
                     stack.push(child);
-                    tracker.add(child);
                 }
             }
 
@@ -214,11 +247,10 @@ public class MemoryMeter {
         }
     }
 
-    private void addArrayChildren(Object[] current, Stack<Object> stack, Set<Object> tracker) {
+    private void addArrayChildren(Object[] current, Deque<Object> stack, Tracker tracker) {
         for (Object child : current) {
-            if (child != null && !tracker.contains(child)) {
+            if (child != null && tracker.put(child)) {
                 stack.push(child);
-                tracker.add(child);
             }
         }
     }

@@ -38,8 +38,8 @@ public class GuessTest {
 
     @Test
     public void testDeepNecessaryClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException {
-        final MemoryMeter instrument = new MemoryMeter().withTrackerProvider(TRACKER_PROVIDER);
-        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SPEC).withTrackerProvider(TRACKER_PROVIDER);
+        final MemoryMeter instrument = new MemoryMeter();
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SPEC);
         Assert.assertTrue("MemoryMeter not initialised", instrument.hasInstrumentation());
         final List<Object> objects = new ArrayList<Object>(); {
             final ConcurrentSkipListMap<Long, Long> map = new ConcurrentSkipListMap<Long, Long>();
@@ -93,7 +93,6 @@ public class GuessTest {
         final List<Future<Integer>> results = new ArrayList<Future<Integer>>();
         for (int i = 0 ; i < Runtime.getRuntime().availableProcessors() ; i++) {
             results.add(EXEC.submit(new Callable<Integer>() {
-                @Override
                 public Integer call() throws Exception {
                     final List<GeneratedClass> classes = randomClasses(testsPerCPU);
                     int failures = 0;
@@ -124,7 +123,6 @@ public class GuessTest {
         final List<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         for (int i = 0 ; i < 10000 ; i++) {
             results.add(EXEC.submit(new Callable<Boolean>() {
-                @Override
                 public Boolean call() throws Exception {
                     Object obj = Array.newInstance(TYPES[rnd.nextInt(TYPES.length)].clazz, rnd.nextInt(1000));
                     long instrumented = instrument.measure(obj);
@@ -147,7 +145,6 @@ public class GuessTest {
     private static final MyClassLoader CL = new MyClassLoader();
     private static final File tempDir = new File(System.getProperty("java.io.tmpdir"), "testclasses");
 
-    private static final Callable<Set<Object>> TRACKER_PROVIDER = new TrackerProvider();
     private static final ExecutorService CONSUME_PROCESS_OUTPUT = Executors.newCachedThreadPool(new DaemonThreadFactory());
     private static final ExecutorService EXEC = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -401,7 +398,6 @@ public class GuessTest {
             this.in = new BufferedReader(new InputStreamReader(in));
         }
 
-        @Override
         public String call() throws Exception {
             try {
                 String line;
@@ -416,15 +412,7 @@ public class GuessTest {
         }
     }
 
-    private static final class TrackerProvider implements Callable<Set<Object>> {
-        @Override
-        public Set<Object> call() throws Exception {
-            return new HashSet<Object>();
-        }
-    };
-
     private static final class DaemonThreadFactory implements ThreadFactory {
-        @Override
         public Thread newThread(Runnable r) {
             Thread t = new Thread(r);
             t.setDaemon(true);

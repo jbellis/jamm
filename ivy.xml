@@ -2,6 +2,8 @@
   <info organisation="jamm" module="jamm"/>
 
   <dependencies>
+    <dependency org="com.google.guava" name="guava" rev="16.0.1" />
     <dependency org="junit" name="junit" rev="4.6" />
+    <dependency org="org.hamcrest" name="hamcrest-library" rev="1.3" />
   </dependencies>
 </ivy-module>
