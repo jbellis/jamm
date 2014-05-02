@@ -8,19 +8,19 @@
     <version>5</version>
     <relativePath />
   </parent>
-  <groupId>com.github.stephenc</groupId>
+  <groupId>com.github.jbellis</groupId>
   <artifactId>jamm</artifactId>
   <packaging>jar</packaging>
-  <version>0.2.6-SNAPSHOT</version>
+  <version>0.2.6</version>
   <name>Java Agent for Memory Measurements</name>
   <description>
     Jamm provides MemoryMeter, a java agent to measure actual object memory use including JVM overhead.
   </description>
   <url>https://github.com/jbellis/jamm/</url>
   <scm>
-    <connection>scm:git:git://github.com/stephenc/jamm.git</connection>
-    <developerConnection>scm:git:git@github.com:stephenc/jamm.git</developerConnection>
-    <url>http://github.com/stephenc/jamm/tree/master/</url>
+    <connection>scm:git:git://github.com/jbellis/jamm.git</connection>
+    <developerConnection>scm:git:git@github.com:jbellis/jamm.git</developerConnection>
+    <url>http://github.com/jbellis/jamm/tree/master/</url>
   </scm>
   <issueManagement>
     <system>github</system>
