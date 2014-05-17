@@ -5,11 +5,12 @@
 
   <property name="basedir" value="."/>
   <property name="build.src" value="${basedir}/src"/>
-  <property name="build.dir" value="${basedir}/build"/>
-  <property name="build.lib" value="${basedir}/build/lib"/>
+  <property name="build.dir" value="${basedir}/target"/>
+  <property name="build.lib" value="${build.dir}/lib"/>
   <property name="build.classes" value="${build.dir}/classes"/>
   <property name="build.javadoc" value="${build.dir}/javadoc"/>
   <property name="jar.name" value="jamm-${version}.jar"/>
+  <property name="jar.src.name" value="jamm-src-${version}.jar"/>
 
   <property name="test.src" value="${basedir}/test"/>
   <property name="test.classes" value="${build.dir}/test/classes"/>
@@ -55,11 +56,9 @@
     <mkdir dir="${build.classes}"/>
     <mkdir dir="${test.classes}"/>
   </target>
-  <target name="clean">
-    <delete dir="${build.classes}"/>
-    <delete dir="${build.javadoc}"/>
-    <delete dir="${test.classes}" />
-    <delete dir="${test.out}" />
+	
+  <target name="clean" description="deletes generated artifacts">
+    <delete dir="${build.dir}"/>
   </target>
 
   <target depends="init" name="build">
@@ -70,7 +69,7 @@
     </javac>
   </target>
 
-  <target name="jar" depends="build">
+  <target name="jar" depends="build" description="generates the jamm jar">
     <jar jarfile="${build.dir}/${jar.name}" basedir="${build.classes}">
       <manifest>
         <!-- see http://download.oracle.com/javase/6/docs/api/java/lang/instrument/package-summary.html -->
@@ -90,7 +89,7 @@
     </javac>
   </target>
 
-  <target name="test" depends="build-test">
+  <target name="test" depends="build-test" description="runs unit tests">
     <echo message="running tests"/>
     <mkdir dir="${test.out}"/>
       <echo message="Testing with default Java"/>
@@ -132,6 +131,18 @@
       <javadoc packagenames="*" sourcepath="${build.src}" classpathref="autoivy.classpath" destdir="${build.javadoc}" windowtitle="jamm api">
 	      <doctitle><![CDATA[<h1>jamm javadoc</h1>]]></doctitle>
 	  </javadoc>
+  </target>
+	
+  <target name="srcjar" description="builds the source distribution jar file">
+      <zip destfile="${build.dir}/${jar.src.name}">
+	      <fileset dir="${basedir}">
+		      <include name="**/*.java" />
+			  <include name="**/*.xml" />
+			  <include name="**/*.license" />
+              <include name="**/*.txt" />
+	      	  <exclude name="target"/>
+	      </fileset>
+      </zip>
   </target>
 
 </project>
