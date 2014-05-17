@@ -9,8 +9,11 @@
   <property name="build.lib" value="${build.dir}/lib"/>
   <property name="build.classes" value="${build.dir}/classes"/>
   <property name="build.javadoc" value="${build.dir}/javadoc"/>
+  <property name="build.sonatype" value="${build.dir}/sonatype"/>
   <property name="jar.name" value="jamm-${version}.jar"/>
   <property name="jar.src.name" value="jamm-src-${version}.jar"/>
+  <property name="jar.javadoc.name" value="jamm-javadoc-${version}.jar"/>
+  <property name="jar.pom.name" value="jamm-${version}.pom"/>
 
   <property name="test.src" value="${basedir}/test"/>
   <property name="test.classes" value="${build.dir}/test/classes"/>
@@ -143,6 +146,50 @@
 	      	  <exclude name="target"/>
 	      </fileset>
       </zip>
+  </target>
+	
+  <target name="sonatype" depends="jar,srcjar,javadoc" description="builds a sonatype (maven) bundle">
+      <delete dir="${build.sonatype}"/>
+      <mkdir dir="${build.sonatype}"/>
+      <copy todir="${build.sonatype}" file="${build.dir}/${jar.name}"/>
+      <copy todir="${build.sonatype}" file="${build.dir}/${jar.src.name}"/>
+      <jar destfile="${build.sonatype}/${jar.javadoc.name}" basedir="${build.dir}" includes="javadoc/**"/>
+      <copy tofile="${build.sonatype}/${jar.pom.name}" file="${basedir}/pom.xml"/>
+    
+      <exec executable="gpg">
+          <arg value="-abi" />
+          <arg value="${build.sonatype}/${jar.name}" />
+      </exec>
+      <exec executable="gpg">
+          <arg value="-abi" />
+          <arg value="${build.sonatype}/${jar.src.name}" />
+      </exec>
+      <exec executable="gpg">
+          <arg value="-abi" />
+          <arg value="${build.sonatype}/${jar.javadoc.name}" />
+      </exec>        
+      <exec executable="gpg">
+          <arg value="-abi" />
+          <arg value="${build.sonatype}/${jar.pom.name}" />
+      </exec>
+  	
+      <jar destfile="${build.sonatype}/bundle.jar" basedir="${build.sonatype}" includes="jamm*">
+      </jar>  	
+  </target>
+	
+  <target name="sonatype-help" description="describes steps needed to publish artifact on sonatype">
+      <echo message="To publish a jar to maven thru the sonatype oss repository do the following" />
+  	  <echo message="  Create a gpg key, using, gpg --gen-key" />
+  	  <echo message="  Generate an armored text key, using gpg --armor --export {YOUR_PUBLIC_KEY_ID}"/>
+  	  <echo message="  Upload this key to http://keyserver.ubuntu.com" />
+      <echo message="" />
+  	  <echo message="Run ant sonatype to create an upload bundle in ${build.sonatype}/bundle.jar"/>
+  	  <echo message="  Make sure that the pom.xml is up to date with what you have in ant's build.xml"/>
+      <echo message="" />
+  	  <echo message="upload this jar at https://oss.sonatype.org" />
+      <echo message="" />
+      <echo message="see link for details-> https://docs.sonatype.org/display/Repository/Uploading+3rd-party+Artifacts+to+The+Central+Repository" />
+      <echo message="====================================================================================================================================" />
   </target>
 
 </project>
