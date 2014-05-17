@@ -62,8 +62,9 @@
 
   <target depends="init" name="build">
     <echo message="${ant.project.name}: ${ant.file}"/>
-    <javac debug="true" debuglevel="${debuglevel}" destdir="${build.classes}">
+    <javac debug="true" debuglevel="${debuglevel}" destdir="${build.classes}" includeantruntime="false">
       <src path="${build.src}"/>
+      <compilerarg value="-XDignore.symbol.file"/>
     </javac>
   </target>
 
@@ -77,12 +78,13 @@
   </target>
 
   <target name="build-test" depends="jar" description="Compile test classes">
-    <javac debug="true" debuglevel="${debuglevel}" destdir="${test.classes}">
+    <javac debug="true" debuglevel="${debuglevel}" destdir="${test.classes}" includeantruntime="false">
       <classpath>
         <path refid="autoivy.classpath"/>
         <pathelement location="${build.classes}"/>
       </classpath>
       <src path="${test.src}"/>
+      <compilerarg value="-XDignore.symbol.file"/>
     </javac>
   </target>
 
