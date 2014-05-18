@@ -4,10 +4,11 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 import java.util.concurrent.Callable;
 
 public class MemoryMeter {
@@ -137,12 +138,12 @@ public class MemoryMeter {
         tracker.add(object);
 
         // track stack manually so we can handle deeper heirarchies than recursion
-        Stack<Object> stack = new Stack<Object>();
-        stack.push(object);
+        List<Object> stack = new ArrayList<Object>();
+        stack.add(object);
 
         long total = 0;
         while (!stack.isEmpty()) {
-            Object current = stack.pop();
+            Object current = stack.remove(stack.size() - 1);
             assert current != null;
             total += measure(current);
 
@@ -169,12 +170,12 @@ public class MemoryMeter {
 
         Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
         tracker.add(object);
-        Stack<Object> stack = new Stack<Object>();
-        stack.push(object);
+        List<Object> stack = new ArrayList<Object>();
+        stack.add(object);
 
         long total = 0;
         while (!stack.isEmpty()) {
-            Object current = stack.pop();
+            Object current = stack.remove(stack.size() - 1);
             assert current != null;
             total++;
 
@@ -188,7 +189,7 @@ public class MemoryMeter {
         return total;
     }
 
-    private void addFieldChildren(Object current, Stack<Object> stack, Set<Object> tracker) {
+    private void addFieldChildren(Object current, List<Object> stack, Set<Object> tracker) {
         Class cls = current.getClass();
         while (cls != null) {
             for (Field field : cls.getDeclaredFields()) {
@@ -205,7 +206,7 @@ public class MemoryMeter {
                 }
 
                 if (child != null && !tracker.contains(child)) {
-                    stack.push(child);
+                    stack.add(child);
                     tracker.add(child);
                 }
             }
@@ -214,13 +215,14 @@ public class MemoryMeter {
         }
     }
 
-    private void addArrayChildren(Object[] current, Stack<Object> stack, Set<Object> tracker) {
+    private void addArrayChildren(Object[] current, List<Object> stack, Set<Object> tracker) {
         for (Object child : current) {
             if (child != null && !tracker.contains(child)) {
-                stack.push(child);
+                stack.add(child);
                 tracker.add(child);
             }
         }
     }
 
 }
+
