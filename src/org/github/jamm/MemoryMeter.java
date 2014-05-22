@@ -17,6 +17,10 @@ public class MemoryMeter {
     public static void premain(String options, Instrumentation inst) {
         MemoryMeter.instrumentation = inst;
     }
+    
+    public static void agentmain(String options, Instrumentation inst) {
+    	MemoryMeter.instrumentation = inst;
+    }
 
     public static boolean hasInstrumentation() {
         return instrumentation != null;

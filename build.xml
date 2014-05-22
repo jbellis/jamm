@@ -76,6 +76,7 @@
     <jar jarfile="${build.dir}/${jar.name}" basedir="${build.classes}">
       <manifest>
         <!-- see http://download.oracle.com/javase/6/docs/api/java/lang/instrument/package-summary.html -->
+        <attribute name="Agent-Class" value="org.github.jamm.MemoryMeter"/>
         <attribute name="Premain-Class" value="org.github.jamm.MemoryMeter"/>
       </manifest>
     </jar>
