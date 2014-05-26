@@ -142,7 +142,7 @@ public class MemoryMeter {
 
         tracker.add(object);
 
-        // track stack manually so we can handle deeper heirarchies than recursion
+        // track stack manually so we can handle deeper hierarchies than recursion
         Stack<Object> stack = new Stack<Object>();
         stack.push(object);
 
