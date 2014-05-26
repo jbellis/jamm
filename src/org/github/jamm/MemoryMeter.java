@@ -12,15 +12,26 @@ import java.util.concurrent.Callable;
 
 public class MemoryMeter {
 
+	private static final String IGNORE_OUTER = "ignoreouter";
+	
 	private static final String outerClassReference = "this\\$[0-9]+";
+
+	private static boolean ignoreOuterClassReference = false;
 	
     private static Instrumentation instrumentation;
 
     public static void premain(String options, Instrumentation inst) {
+    	if (IGNORE_OUTER.equalsIgnoreCase(options)){
+    		ignoreOuterClassReference = true;
+    	}
+    		
         MemoryMeter.instrumentation = inst;
     }
     
     public static void agentmain(String options, Instrumentation inst) {
+    	if (IGNORE_OUTER.equalsIgnoreCase(options)){
+    		ignoreOuterClassReference = true;
+    	}
     	MemoryMeter.instrumentation = inst;
     }
 
@@ -202,7 +213,7 @@ public class MemoryMeter {
                     continue;
                 }
                 
-                if (field.getName().matches(outerClassReference)) {
+                if (ignoreOuterClassReference && field.getName().matches(outerClassReference)) {
                 	continue;
                 }
                 
