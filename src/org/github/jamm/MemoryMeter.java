@@ -12,6 +12,8 @@ import java.util.concurrent.Callable;
 
 public class MemoryMeter {
 
+	private static final String outerClassReference = "this\\$[0-9]+";
+	
     private static Instrumentation instrumentation;
 
     public static void premain(String options, Instrumentation inst) {
@@ -199,7 +201,11 @@ public class MemoryMeter {
                 if (field.getType().isPrimitive() || Modifier.isStatic(field.getModifiers())) {
                     continue;
                 }
-
+                
+                if (field.getName().matches(outerClassReference)) {
+                	continue;
+                }
+                
                 field.setAccessible(true);
                 Object child;
                 try {
