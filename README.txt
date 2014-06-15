@@ -24,8 +24,8 @@ You can then use MemoryMeter in your code like this:
     meter.countChildren(object);
     
 By default MemoryMeter.measureDeep measures all references from the root object.
-This includes an outer class, if the current object is of an inner class. If you do not
-want this behavior, specify
+This includes an outer class, if the current object is of an inner class.
+If you do not want this behavior, specify
 
     -javaagent:<path to>/jamm.jar=ignoreouter
 
