@@ -6,5 +6,7 @@ target
 *.iml
 *.ipr
 *.iws
+*.orig
+*.rej
 .classpath
 .project
