@@ -121,7 +121,7 @@ public abstract class MemoryLayoutSpecification
      * Memory an array
      * @param length Number of elements in the array
      * @param type the array class type
-     * @return
+     * @return In-memory size of the array
      */
     public static long sizeOfArray(int length, Class<?> type) {
         return sizeOfArray(length, sizeOfField(type.getComponentType()));
