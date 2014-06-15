@@ -419,10 +419,10 @@ public class MemoryMeterTest
         assertEquals("Shallow size of Integer", objectSize(0, 1, 0, 0, 0), meter.measure(new Integer(0)));
         assertEquals("Deep size of Integer", objectSize(0, 1, 0, 0, 0), meter.measureDeep(new Integer(0)));
 
-        assertEquals("Shallow size of empty String", objectSize(0, 4, 0, 0, 0), meter.measure(""));
-        assertEquals("Deep size of empty String", objectSize(0, 4, 0, 0, 0) + charArraySize(0), meter.measureDeep(""));
-        assertEquals("Shallow size of one-character String", objectSize(0, 4, 0, 0, 0), meter.measure("a"));
-        assertEquals("Deep size of one-character String", objectSize(0, 4, 0, 0, 0) + charArraySize(1), meter.measureDeep("a"));
+        assertEquals("Shallow size of empty String", objectSize(0, 3, 0, 0, 0), meter.measure(""));
+        assertEquals("Deep size of empty String", objectSize(0, 3, 0, 0, 0) + charArraySize(0), meter.measureDeep(""));
+        assertEquals("Shallow size of one-character String", objectSize(0, 3, 0, 0, 0), meter.measure("a"));
+        assertEquals("Deep size of one-character String", objectSize(0, 3, 0, 0, 0) + charArraySize(1), meter.measureDeep("a"));
 
         assertEquals("Shallow size of empty array of objects", arraySize(0), meter.measure(new Object[0]));
         Object[] objects = new Object[100];

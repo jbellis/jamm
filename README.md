@@ -8,7 +8,12 @@ memory use including JVM overhead.
 Building
 ========
 
-"ant jar"; optionally, "ant test"
+
+Jamm can be built with either ant or maven:
+
+- `ant jar`, optionally run with tests `ant test`
+
+- `mvn package`
 
 
 Use
