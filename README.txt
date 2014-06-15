@@ -22,6 +22,19 @@ You can then use MemoryMeter in your code like this:
     meter.measure(object);
     meter.measureDeep(object);
     meter.countChildren(object);
+    
+By default MemoryMeter.measureDeep measures all references from the root object.
+This includes an outer class, if this class is an inner class. If you do not want
+this behavior, specify
+
+    -javaagent:<path to>/jamm.jar=ignoreouter
+
+
+
+If you would like to use MemoryMeter in a web application, make sure
+that you do NOT put this jar in WEB-INF/lib, as that may cause problems
+since your code is accessing a MemoryMeter from a different class loader
+than the one loaded by the -javaagent and won't see it as initialized.
 
 
 The fine print
