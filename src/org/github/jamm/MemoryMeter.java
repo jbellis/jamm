@@ -4,10 +4,11 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Set;
-import java.util.Stack;
 import java.util.concurrent.Callable;
 
 public class MemoryMeter {
@@ -154,7 +155,7 @@ public class MemoryMeter {
         tracker.add(object);
 
         // track stack manually so we can handle deeper hierarchies than recursion
-        Stack<Object> stack = new Stack<Object>();
+        Deque<Object> stack = new ArrayDeque<Object>();
         stack.push(object);
 
         long total = 0;
@@ -186,7 +187,7 @@ public class MemoryMeter {
 
         Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
         tracker.add(object);
-        Stack<Object> stack = new Stack<Object>();
+        Deque<Object> stack = new ArrayDeque<Object>();
         stack.push(object);
 
         long total = 0;
@@ -205,7 +206,7 @@ public class MemoryMeter {
         return total;
     }
 
-    private void addFieldChildren(Object current, Stack<Object> stack, Set<Object> tracker) {
+    private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker) {
         Class cls = current.getClass();
         while (cls != null) {
             for (Field field : cls.getDeclaredFields()) {
@@ -235,7 +236,7 @@ public class MemoryMeter {
         }
     }
 
-    private void addArrayChildren(Object[] current, Stack<Object> stack, Set<Object> tracker) {
+    private void addArrayChildren(Object[] current, Deque<Object> stack, Set<Object> tracker) {
         for (Object child : current) {
             if (child != null && !tracker.contains(child)) {
                 stack.push(child);
