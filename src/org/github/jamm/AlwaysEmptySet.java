@@ -44,8 +44,8 @@ public class AlwaysEmptySet<T> implements Set<T> {
         return new Object[0];
     }
 
-    public <T> T[] toArray(T[] a) {
-        return (T[]) Collections.emptySet().toArray();
+    public <K> K[] toArray(K[] a) {
+        return (K[]) Collections.emptySet().toArray();
     }
 
     public boolean add(T t) {
