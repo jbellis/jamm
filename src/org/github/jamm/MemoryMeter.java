@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.IdentityHashMap;
+import java.util.WeakHashMap;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
@@ -66,7 +66,7 @@ public class MemoryMeter {
                 // using a normal HashSet to track seen objects screws things up in two ways:
                 // - it can undercount objects that are "equal"
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
-                return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+                return Collections.newSetFromMap(new WeakHashMap<Object, Boolean>());
             }
         }, true, Guess.FALLBACK_BEST);
     }
@@ -185,7 +185,7 @@ public class MemoryMeter {
             throw new NullPointerException();
         }
 
-        Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+        Set<Object> tracker = Collections.newSetFromMap(new WeakHashMap<Object, Boolean>());
         tracker.add(object);
         Deque<Object> stack = new ArrayDeque<Object>();
         stack.push(object);
