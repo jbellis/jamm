@@ -14,21 +14,21 @@ import java.util.concurrent.Callable;
 public class MemoryMeter {
 
 	private static final String IGNORE_OUTER = "ignoreouter";
-	
+
 	private static final String outerClassReference = "this\\$[0-9]+";
 
 	private static boolean ignoreOuterClassReference = false;
-	
+
     private static Instrumentation instrumentation;
 
     public static void premain(String options, Instrumentation inst) {
     	if (IGNORE_OUTER.equalsIgnoreCase(options)){
     		ignoreOuterClassReference = true;
     	}
-    		
+
         MemoryMeter.instrumentation = inst;
     }
-    
+
     public static void agentmain(String options, Instrumentation inst) {
     	if (IGNORE_OUTER.equalsIgnoreCase(options)){
     		ignoreOuterClassReference = true;
@@ -68,7 +68,7 @@ public class MemoryMeter {
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
                 return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
             }
-        }, true, Guess.NEVER);
+        }, true, Guess.FALLBACK_BEST);
     }
 
     /**
@@ -213,11 +213,11 @@ public class MemoryMeter {
                 if (field.getType().isPrimitive() || Modifier.isStatic(field.getModifiers())) {
                     continue;
                 }
-                
+
                 if (ignoreOuterClassReference && field.getName().matches(outerClassReference)) {
                 	continue;
                 }
-                
+
                 field.setAccessible(true);
                 Object child;
                 try {
