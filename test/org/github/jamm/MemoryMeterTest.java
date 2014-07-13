@@ -1,7 +1,7 @@
 package org.github.jamm;
 
-import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeThat;
 
 import java.lang.reflect.Field;
@@ -55,7 +55,7 @@ public class MemoryMeterTest
 
         // OK there is strangeness going on... we'll ask some well known sources
         try {
-            Class unsafe = Class.forName("sun.misc.Unsafe");
+            Class<?> unsafe = Class.forName("sun.misc.Unsafe");
             Field unsafeField = unsafe.getDeclaredField("theUnsafe");
             unsafeField.setAccessible(true);
             Object theUnsafe = unsafeField.get(null);
@@ -497,20 +497,20 @@ public class MemoryMeterTest
         assertEquals("sizeOf ArrayList",
                 objectSize(0, 2, 0, 0, 1) // the object itself
                         + arraySize(10), // the backing array's initial load factor
-                meter.measureDeep(new ArrayList()));
+                meter.measureDeep(new ArrayList<Object>()));
         assertEquals("sizeOf HashMap",
                 objectSize(0, 4, 0, 0, 4) // the object itself
                         + arraySize(16), // the backing array
-                meter.measureDeep(new HashMap()));
+                meter.measureDeep(new HashMap<Object, Object>()));
         assertEquals("sizeOf LinkedHashMap",
                 objectSize(0, 4, 0, 1, 5)  // the object itself
                         + arraySize(16) // the inherited backing array
                         + objectSize(0, 1, 0, 0, 5), // the first node
-                meter.measureDeep(new LinkedHashMap()));
+                meter.measureDeep(new LinkedHashMap<Object, Object>()));
 
         // I give up for the ones below!
         assertEquals("sizeOf ReentrantReadWriteLock", 176, meter.measureDeep(new ReentrantReadWriteLock()));
-        assertEquals("sizeOf ConcurrentSkipListMap", 192, meter.measureDeep(new ConcurrentSkipListMap()));
+        assertEquals("sizeOf ConcurrentSkipListMap", 192, meter.measureDeep(new ConcurrentSkipListMap<Object, Object>()));
     }
 
     @Test

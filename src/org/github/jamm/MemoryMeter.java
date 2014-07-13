@@ -207,7 +207,7 @@ public class MemoryMeter {
     }
 
     private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker) {
-        Class cls = current.getClass();
+        Class<?> cls = current.getClass();
         while (cls != null) {
             for (Field field : cls.getDeclaredFields()) {
                 if (field.getType().isPrimitive() || Modifier.isStatic(field.getModifiers())) {

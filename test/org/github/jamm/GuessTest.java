@@ -40,7 +40,7 @@ public class GuessTest {
     public void testDeepNecessaryClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException {
         final MemoryMeter instrument = new MemoryMeter().withTrackerProvider(TRACKER_PROVIDER);
         final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SPEC).withTrackerProvider(TRACKER_PROVIDER);
-        Assert.assertTrue("MemoryMeter not initialised", instrument.hasInstrumentation());
+        Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
         final List<Object> objects = new ArrayList<Object>(); {
             final ConcurrentSkipListMap<Long, Long> map = new ConcurrentSkipListMap<Long, Long>();
             for (long i = 0 ; i < 100 ; i++)
@@ -63,7 +63,7 @@ public class GuessTest {
     public void testProblemClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException {
         final MemoryMeter instrument = new MemoryMeter();
         final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
-        Assert.assertTrue("MemoryMeter not initialised", instrument.hasInstrumentation());
+        Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
         List<Def> defs = new ArrayList<Def>();
         defs.add(Def.parse("{long*1}->{float*1}"));
         defs.add(Def.parse("{long*1}->{byte*4}"));
@@ -89,7 +89,7 @@ public class GuessTest {
         final int testsPerCPU = 100;
         final MemoryMeter instrument = new MemoryMeter();
         final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
-        Assert.assertTrue("MemoryMeter not initialised", instrument.hasInstrumentation());
+        Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
         final List<Future<Integer>> results = new ArrayList<Future<Integer>>();
         for (int i = 0 ; i < Runtime.getRuntime().availableProcessors() ; i++) {
             results.add(EXEC.submit(new Callable<Integer>() {
@@ -120,7 +120,7 @@ public class GuessTest {
     public void testRandomArrays() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException {
         final MemoryMeter instrument = new MemoryMeter();
         final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
-        Assert.assertTrue("MemoryMeter not initialised", instrument.hasInstrumentation());
+        Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
         final List<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         for (int i = 0 ; i < 10000 ; i++) {
             results.add(EXEC.submit(new Callable<Boolean>() {

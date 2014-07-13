@@ -13,7 +13,7 @@ public class AlwaysEmptySet<T> implements Set<T> {
     }
 
     public static <T> Set<T> create() {
-    	return (Set<T>) EMPTY_SET;
+    	return Collections.<T>emptySet();
     }
 
     public static <T> Callable<Set<T>> provider() {
@@ -37,7 +37,7 @@ public class AlwaysEmptySet<T> implements Set<T> {
     }
 
     public Iterator<T> iterator() {
-        return (Iterator<T>) Collections.emptySet().iterator();
+        return Collections.<T>emptySet().iterator();
     }
 
     public Object[] toArray() {
