@@ -122,9 +122,11 @@ public class MemoryMeter {
                         case FALLBACK_UNSAFE:
                             if (!MemoryLayoutSpecification.hasUnsafe())
                                 throw new IllegalStateException("Instrumentation is not set and sun.misc.Unsafe could not be obtained; Jamm must be set as -javaagent, or the SecurityManager must permit access to sun.misc.Unsafe");
+                            //$FALL-THROUGH$
                         case FALLBACK_BEST:
                             if (MemoryLayoutSpecification.hasUnsafe())
                                 return MemoryLayoutSpecification.sizeOfWithUnsafe(object);
+                            //$FALL-THROUGH$
                         case FALLBACK_SPEC:
                             return MemoryLayoutSpecification.sizeOf(object);
                     }
