@@ -22,12 +22,6 @@ You can then use MemoryMeter in your code like this:
     meter.measure(object);
     meter.measureDeep(object);
     meter.countChildren(object);
-    
-By default MemoryMeter.measureDeep measures all references from the root object.
-This includes an outer class, if the current object is of an inner class.
-If you do not want this behavior, specify
-
-    -javaagent:<path to>/jamm.jar=ignoreouter
 
 
 If you would like to use MemoryMeter in a web application, make sure
@@ -50,7 +44,7 @@ Reflection is slow: measuring a one-million object Cassandra Memtable
 about 5 seconds wall clock time.
 
 By default, MemoryMeter keeps track of descendents visited by
-measureDeep with an IdentityHashMap.  This prevents both overcounting
+measureDeep with an IdentityHashMap.  This prevents both over-counting
 and infinite loops due to cycles in the object graph.  Of course, this
 tracking imposes a memory cost of its own.  You can override this by
 passing a different tracker provider to the MemoryMeter constructor.

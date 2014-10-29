@@ -12,27 +12,16 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 public class MemoryMeter {
-
-	private static final String IGNORE_OUTER = "ignoreouter";
 	
 	private static final String outerClassReference = "this\\$[0-9]+";
-
-	private static boolean ignoreOuterClassReference = false;
 	
     private static Instrumentation instrumentation;
 
     public static void premain(String options, Instrumentation inst) {
-    	if (IGNORE_OUTER.equalsIgnoreCase(options)){
-    		ignoreOuterClassReference = true;
-    	}
-    		
         MemoryMeter.instrumentation = inst;
     }
     
     public static void agentmain(String options, Instrumentation inst) {
-    	if (IGNORE_OUTER.equalsIgnoreCase(options)){
-    		ignoreOuterClassReference = true;
-    	}
     	MemoryMeter.instrumentation = inst;
     }
 
@@ -59,6 +48,7 @@ public class MemoryMeter {
     private final Callable<Set<Object>> trackerProvider;
     private final boolean includeFullBufferSize;
     private final Guess guess;
+    private final boolean ignoreOuterClassReference;
 
     public MemoryMeter() {
         this(new Callable<Set<Object>>() {
@@ -68,7 +58,7 @@ public class MemoryMeter {
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
                 return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
             }
-        }, true, Guess.NEVER);
+        }, true, Guess.NEVER, false);
     }
 
     /**
@@ -76,10 +66,11 @@ public class MemoryMeter {
      * @param includeFullBufferSize
      * @param guess
      */
-    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize, Guess guess) {
+    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize, Guess guess, boolean ignoreOuterClassReference) {
         this.trackerProvider = trackerProvider;
         this.includeFullBufferSize = includeFullBufferSize;
         this.guess = guess;
+        this.ignoreOuterClassReference = ignoreOuterClassReference;
     }
 
     /**
@@ -87,7 +78,7 @@ public class MemoryMeter {
      * @return a MemoryMeter with the given provider
      */
     public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess);
+        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, ignoreOuterClassReference);
     }
 
     /**
@@ -96,14 +87,21 @@ public class MemoryMeter {
      * TODO: handle other types of Buffers
      */
     public MemoryMeter omitSharedBufferOverhead() {
-        return new MemoryMeter(trackerProvider, false, guess);
+        return new MemoryMeter(trackerProvider, false, guess, ignoreOuterClassReference);
     }
 
     /**
      * @return a MemoryMeter that permits guessing the size of objects if instrumentation isn't enabled
      */
     public MemoryMeter withGuessing(Guess guess) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess);
+        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, ignoreOuterClassReference);
+    }
+    
+    /**
+     * @return a MemoryMeter that ignores the size of an outer class reference
+     */
+    public MemoryMeter ignoreOuterClassReference() {
+    	return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, true);
     }
 
     /**

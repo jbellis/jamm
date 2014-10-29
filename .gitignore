@@ -10,3 +10,4 @@ target
 *.rej
 .classpath
 .project
+/classes/
