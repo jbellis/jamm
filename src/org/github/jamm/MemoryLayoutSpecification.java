@@ -258,7 +258,7 @@ public abstract class MemoryLayoutSpecification
             if (arg.startsWith("-XX:ObjectAlignmentInBytes=")) {
                 try {
                     return Integer.parseInt(arg.substring("-XX:ObjectAlignmentInBytes=".length()));
-                } catch (Exception _){}
+                } catch (Exception e){}
             }
         }
         return 8;
