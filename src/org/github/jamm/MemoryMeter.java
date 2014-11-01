@@ -49,6 +49,7 @@ public class MemoryMeter {
     private final boolean includeFullBufferSize;
     private final Guess guess;
     private final boolean ignoreOuterClassReference;
+    private final boolean ignoreKnownSingletons;
 
     public MemoryMeter() {
         this(new Callable<Set<Object>>() {
@@ -58,7 +59,7 @@ public class MemoryMeter {
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
                 return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
             }
-        }, true, Guess.NEVER, false);
+        }, true, Guess.NEVER, false, false);
     }
 
     /**
@@ -66,11 +67,12 @@ public class MemoryMeter {
      * @param includeFullBufferSize
      * @param guess
      */
-    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize, Guess guess, boolean ignoreOuterClassReference) {
+    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize, Guess guess, boolean ignoreOuterClassReference, boolean ignoreKnownSingletons) {
         this.trackerProvider = trackerProvider;
         this.includeFullBufferSize = includeFullBufferSize;
         this.guess = guess;
         this.ignoreOuterClassReference = ignoreOuterClassReference;
+        this.ignoreKnownSingletons = ignoreKnownSingletons;
     }
 
     /**
@@ -78,7 +80,7 @@ public class MemoryMeter {
      * @return a MemoryMeter with the given provider
      */
     public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, ignoreOuterClassReference);
+        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, ignoreOuterClassReference, ignoreKnownSingletons);
     }
 
     /**
@@ -87,21 +89,28 @@ public class MemoryMeter {
      * TODO: handle other types of Buffers
      */
     public MemoryMeter omitSharedBufferOverhead() {
-        return new MemoryMeter(trackerProvider, false, guess, ignoreOuterClassReference);
+        return new MemoryMeter(trackerProvider, false, guess, ignoreOuterClassReference, ignoreKnownSingletons);
     }
 
     /**
      * @return a MemoryMeter that permits guessing the size of objects if instrumentation isn't enabled
      */
     public MemoryMeter withGuessing(Guess guess) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, ignoreOuterClassReference);
+        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, ignoreOuterClassReference, ignoreKnownSingletons);
     }
     
     /**
      * @return a MemoryMeter that ignores the size of an outer class reference
      */
     public MemoryMeter ignoreOuterClassReference() {
-    	return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, true);
+    	return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, true, ignoreKnownSingletons);
+    }
+    
+    /**
+     * return a MemoryMeter that ignores space occupied by known singletons such as Class objects and Enums
+     */
+    public MemoryMeter ignoreKnownSingletons() {
+    	return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, ignoreOuterClassReference, true);
     }
 
     /**
@@ -215,6 +224,11 @@ public class MemoryMeter {
                 }
                 
                 if (ignoreOuterClassReference && field.getName().matches(outerClassReference)) {
+                	continue;
+                }
+                
+                Class<?> fieldCls = field.getType();
+                if (ignoreKnownSingletons && fieldCls.equals(Class.class) || (Enum.class.isAssignableFrom(fieldCls))) {
                 	continue;
                 }
                 
