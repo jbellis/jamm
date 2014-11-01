@@ -11,8 +11,8 @@
   <property name="build.javadoc" value="${build.dir}/javadoc"/>
   <property name="build.sonatype" value="${build.dir}/sonatype"/>
   <property name="jar.name" value="jamm-${version}.jar"/>
-  <property name="jar.src.name" value="jamm-src-${version}.jar"/>
-  <property name="jar.javadoc.name" value="jamm-javadoc-${version}.jar"/>
+  <property name="jar.src.name" value="jamm-${version}-sources.jar"/>
+  <property name="jar.javadoc.name" value="jamm-${version}-javadoc.jar"/>
   <property name="jar.pom.name" value="jamm-${version}.pom"/>
 
   <property name="test.src" value="${basedir}/test"/>
