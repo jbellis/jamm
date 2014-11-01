@@ -228,7 +228,7 @@ public class MemoryMeter {
                 }
                 
                 Class<?> fieldCls = field.getType();
-                if (ignoreKnownSingletons && fieldCls.equals(Class.class) || (Enum.class.isAssignableFrom(fieldCls))) {
+                if (ignoreKnownSingletons && (fieldCls.equals(Class.class) || (Enum.class.isAssignableFrom(fieldCls)))) {
                 	continue;
                 }
                 
