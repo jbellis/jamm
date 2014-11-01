@@ -57,6 +57,20 @@
         <role>architect</role>
       </roles>
     </developer>
+    <developer>
+      <id>belliottsmith</id>
+      <name>Benedict Elliott Smith</name>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>mebigfatguy</id>
+      <name>Dave Brosius</name>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
   </developers>
   <build>
     <sourceDirectory>${basedir}/src</sourceDirectory>
