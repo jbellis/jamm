@@ -29,6 +29,12 @@ that you do NOT put this jar in WEB-INF/lib, as that may cause problems
 since your code is accessing a MemoryMeter from a different class loader
 than the one loaded by the -javaagent and won't see it as initialized.
 
+The Maven coordinates for the latest version of Jamm are
+========================================================
+
+groupId:    com.github.jbellis
+artifactId: jamm
+version:    0.2.7
 
 The fine print
 ==============
