@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project basedir="." default="build" name="jamm" xmlns:ivy="antlib:org.apache.ivy.ant">
   <property name="debuglevel" value="source,lines,vars"/>
-  <property name="version" value="0.2.8-SNAPSHOT"/>
+  <property name="version" value="0.2.8"/>
 
   <property name="basedir" value="."/>
   <property name="build.src" value="${basedir}/src"/>
@@ -66,7 +66,7 @@
 
   <target depends="init" name="build">
     <echo message="${ant.project.name}: ${ant.file}"/>
-    <javac debug="true" debuglevel="${debuglevel}" destdir="${build.classes}" includeantruntime="false">
+    <javac source="1.6" target="1.6" debug="true" debuglevel="${debuglevel}" destdir="${build.classes}" includeantruntime="false">
       <src path="${build.src}"/>
       <compilerarg value="-XDignore.symbol.file"/>
     </javac>
@@ -83,7 +83,7 @@
   </target>
 
   <target name="build-test" depends="jar" description="Compile test classes">
-    <javac debug="true" debuglevel="${debuglevel}" destdir="${test.classes}" includeantruntime="false">
+    <javac source="1.6" target="1.6" debug="true" debuglevel="${debuglevel}" destdir="${test.classes}" includeantruntime="false">
       <classpath>
         <path refid="autoivy.classpath"/>
         <pathelement location="${build.classes}"/>

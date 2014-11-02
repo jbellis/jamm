@@ -34,7 +34,7 @@ The Maven coordinates for the latest version of Jamm are
 
 groupId:    com.github.jbellis
 artifactId: jamm
-version:    0.2.7
+version:    0.2.8
 
 The fine print
 ==============
