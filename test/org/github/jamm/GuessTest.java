@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 public class GuessTest {
 
     @Test
-    public void testDeepNecessaryClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException {
+    public void testDeepNecessaryClasses() {
         final MemoryMeter instrument = new MemoryMeter().withTrackerProvider(TRACKER_PROVIDER);
         final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SPEC).withTrackerProvider(TRACKER_PROVIDER);
         Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
@@ -85,7 +85,7 @@ public class GuessTest {
     }
 
     @Test
-    public void testRandomClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException {
+    public void testRandomClasses() throws InterruptedException, ExecutionException {
         final int testsPerCPU = 100;
         final MemoryMeter instrument = new MemoryMeter();
         final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
@@ -117,7 +117,7 @@ public class GuessTest {
     }
 
     @Test
-    public void testRandomArrays() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException {
+    public void testRandomArrays() throws InterruptedException, ExecutionException {
         final MemoryMeter instrument = new MemoryMeter();
         final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
         Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
