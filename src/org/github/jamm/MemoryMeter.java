@@ -253,6 +253,12 @@ public class MemoryMeter {
     private void addArrayChildren(Object[] current, Deque<Object> stack, Set<Object> tracker) {
         for (Object child : current) {
             if (child != null && !tracker.contains(child)) {
+            	
+                Class<?> childCls = child.getClass();
+                if (ignoreKnownSingletons && (childCls.equals(Class.class) || (Enum.class.isAssignableFrom(childCls)))) {
+                	continue;
+                }
+                
                 stack.push(child);
                 tracker.add(child);
             }

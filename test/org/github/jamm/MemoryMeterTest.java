@@ -2,6 +2,7 @@ package org.github.jamm;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assume.assumeThat;
 
 import java.lang.reflect.Field;
@@ -537,5 +538,28 @@ public class MemoryMeterTest
     private static class Recursive {
         int i;
         Recursive child = null;
+    }
+    
+    @Test
+    public void testIgnoreKnownSingletons() {
+    	MemoryMeter meter = new MemoryMeter();
+    	
+    	long classFieldSize = meter.measureDeep(new HasClassField());
+    	long enumFieldSize = meter.measureDeep(new HasEnumField());
+    	
+    	meter = meter.ignoreKnownSingletons();
+    	
+    	assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
+    	assertNotEquals(enumFieldSize, meter.measureDeep(new HasEnumField()));
+    }
+    
+    private static class HasClassField {
+    	private Class<?> cls = String.class;
+    }
+    
+    private static class HasEnumField {
+    	enum Giant {Fee, Fi, Fo, Fum}
+    	
+    	private Giant grunt = Giant.Fee;
     }
 }
