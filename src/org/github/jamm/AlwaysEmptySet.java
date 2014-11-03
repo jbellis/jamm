@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 public class AlwaysEmptySet<T> implements Set<T> {
-    public static final Set EMPTY_SET = new AlwaysEmptySet();
 
     private AlwaysEmptySet() {
     }
