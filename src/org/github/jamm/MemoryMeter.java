@@ -219,7 +219,9 @@ public class MemoryMeter {
         Class<?> cls = current.getClass();
         while (cls != null) {
             for (Field field : cls.getDeclaredFields()) {
-                if (field.getType().isPrimitive() || Modifier.isStatic(field.getModifiers())) {
+                if (field.getType().isPrimitive()
+                        || Modifier.isStatic(field.getModifiers())
+                        || field.isAnnotationPresent(Unmetered.class)) {
                     continue;
                 }
                 

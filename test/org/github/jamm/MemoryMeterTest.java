@@ -562,4 +562,36 @@ public class MemoryMeterTest
     	
     	private Giant grunt = Giant.Fee;
     }
+
+    @Test
+    public void testIgnoreAnnotation() {
+        MemoryMeter meter = new MemoryMeter();
+
+        String s = "test";
+
+        long stringSize = meter.measureDeep(s);
+        long withoutSize = meter.measureDeep(new WithoutAnnotationField(null));
+        assertEquals(stringSize + withoutSize, meter.measureDeep(new WithoutAnnotationField(s)));
+
+        long withSize = meter.measureDeep(new WithAnnotationField(null));
+        assertEquals(withSize, meter.measureDeep(new WithAnnotationField(s)));
+    }
+
+    private static class WithoutAnnotationField {
+        private String s;
+
+        public WithoutAnnotationField(String s) {
+            this.s = s;
+        }
+    }
+
+    private static class WithAnnotationField {
+
+        @org.github.jamm.Unmetered
+        private String s;
+
+        public WithAnnotationField(String s) {
+            this.s = s;
+        }
+    }
 }
