@@ -50,6 +50,7 @@ public class MemoryMeter {
     private final Guess guess;
     private final boolean ignoreOuterClassReference;
     private final boolean ignoreKnownSingletons;
+    private final MemoryMeterListener.Factory listenerFactory;
 
     public MemoryMeter() {
         this(new Callable<Set<Object>>() {
@@ -59,20 +60,28 @@ public class MemoryMeter {
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
                 return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
             }
-        }, true, Guess.NEVER, false, false);
+        }, true, Guess.NEVER, false, false, NoopMemoryMeterListener.FACTORY);
     }
 
     /**
      * @param trackerProvider returns a Set with which to track seen objects and avoid cycles
      * @param includeFullBufferSize
      * @param guess
+     * @param listenerFactory the <code>MemoryMeterListener.Factory</code>
      */
-    private MemoryMeter(Callable<Set<Object>> trackerProvider, boolean includeFullBufferSize, Guess guess, boolean ignoreOuterClassReference, boolean ignoreKnownSingletons) {
+    private MemoryMeter(Callable<Set<Object>> trackerProvider,
+                        boolean includeFullBufferSize,
+                        Guess guess,
+                        boolean ignoreOuterClassReference,
+                        boolean ignoreKnownSingletons,
+                        MemoryMeterListener.Factory listenerFactory) {
+
         this.trackerProvider = trackerProvider;
         this.includeFullBufferSize = includeFullBufferSize;
         this.guess = guess;
         this.ignoreOuterClassReference = ignoreOuterClassReference;
         this.ignoreKnownSingletons = ignoreKnownSingletons;
+        this.listenerFactory = listenerFactory;
     }
 
     /**
@@ -80,7 +89,12 @@ public class MemoryMeter {
      * @return a MemoryMeter with the given provider
      */
     public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, ignoreOuterClassReference, ignoreKnownSingletons);
+        return new MemoryMeter(trackerProvider,
+                               includeFullBufferSize,
+                               guess,
+                               ignoreOuterClassReference,
+                               ignoreKnownSingletons,
+                               listenerFactory);
     }
 
     /**
@@ -89,28 +103,60 @@ public class MemoryMeter {
      * TODO: handle other types of Buffers
      */
     public MemoryMeter omitSharedBufferOverhead() {
-        return new MemoryMeter(trackerProvider, false, guess, ignoreOuterClassReference, ignoreKnownSingletons);
+        return new MemoryMeter(trackerProvider,
+                               false,
+                               guess,
+                               ignoreOuterClassReference,
+                               ignoreKnownSingletons,
+                               listenerFactory);
     }
 
     /**
      * @return a MemoryMeter that permits guessing the size of objects if instrumentation isn't enabled
      */
     public MemoryMeter withGuessing(Guess guess) {
-        return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, ignoreOuterClassReference, ignoreKnownSingletons);
+        return new MemoryMeter(trackerProvider,
+                               includeFullBufferSize,
+                               guess,
+                               ignoreOuterClassReference,
+                               ignoreKnownSingletons,
+                               listenerFactory);
     }
     
     /**
      * @return a MemoryMeter that ignores the size of an outer class reference
      */
     public MemoryMeter ignoreOuterClassReference() {
-    	return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, true, ignoreKnownSingletons);
+        return new MemoryMeter(trackerProvider,
+                               includeFullBufferSize,
+                               guess,
+                               true,
+                               ignoreKnownSingletons,
+                               listenerFactory);
     }
     
     /**
      * return a MemoryMeter that ignores space occupied by known singletons such as Class objects and Enums
      */
     public MemoryMeter ignoreKnownSingletons() {
-    	return new MemoryMeter(trackerProvider, includeFullBufferSize, guess, ignoreOuterClassReference, true);
+        return new MemoryMeter(trackerProvider,
+                               includeFullBufferSize,
+                               guess,
+                               ignoreOuterClassReference,
+                               true,
+                               listenerFactory);
+    }
+
+    /**
+     * Makes this <code>MemoryMeter</code> prints the classes tree to <code>System.out</code> when measuring
+     */
+    public MemoryMeter enableDebug() {
+        return new MemoryMeter(trackerProvider,
+                               includeFullBufferSize,
+                               guess,
+                               ignoreOuterClassReference,
+                               ignoreKnownSingletons,
+                               TreePrinter.FACTORY);
     }
 
     /**
@@ -160,8 +206,10 @@ public class MemoryMeter {
         catch (Exception e) {
             throw new RuntimeException(e);
         }
+        MemoryMeterListener listener = listenerFactory.newInstance();
 
         tracker.add(object);
+        listener.started(object);
 
         // track stack manually so we can handle deeper hierarchies than recursion
         Deque<Object> stack = new ArrayDeque<Object>();
@@ -171,17 +219,20 @@ public class MemoryMeter {
         while (!stack.isEmpty()) {
             Object current = stack.pop();
             assert current != null;
-            total += measure(current);
+            long size = measure(current);
+            listener.objectMeasured(current, size);
+            total += size;
 
             if (current instanceof Object[]) {
-                addArrayChildren((Object[]) current, stack, tracker);
+                addArrayChildren((Object[]) current, stack, tracker, listener);
             } else if (current instanceof ByteBuffer && !includeFullBufferSize) {
                 total += ((ByteBuffer) current).remaining();
             } else {
-                addFieldChildren(current, stack, tracker);
+                addFieldChildren(current, stack, tracker, listener);
             }
         }
 
+        listener.done(total);
         return total;
     }
 
@@ -194,8 +245,10 @@ public class MemoryMeter {
             throw new NullPointerException();
         }
 
+        MemoryMeterListener listener = listenerFactory.newInstance();
         Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
         tracker.add(object);
+        listener.started(object);
         Deque<Object> stack = new ArrayDeque<Object>();
         stack.push(object);
 
@@ -204,18 +257,20 @@ public class MemoryMeter {
             Object current = stack.pop();
             assert current != null;
             total++;
+            listener.objectCounted(current);
 
             if (current instanceof Object[]) {
-                addArrayChildren((Object[]) current, stack, tracker);
+                addArrayChildren((Object[]) current, stack, tracker, listener);
             } else {
-                addFieldChildren(current, stack, tracker);
+                addFieldChildren(current, stack, tracker, listener);
             }
         }
 
+        listener.done(total);
         return total;
     }
 
-    private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker) {
+    private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker, MemoryMeterListener listener) {
         Class<?> cls = current.getClass();
         while (cls != null) {
             for (Field field : cls.getDeclaredFields()) {
@@ -233,7 +288,7 @@ public class MemoryMeter {
                 if (ignoreKnownSingletons && (fieldCls.equals(Class.class) || (Enum.class.isAssignableFrom(fieldCls)))) {
                 	continue;
                 }
-                
+
                 field.setAccessible(true);
                 Object child;
                 try {
@@ -245,6 +300,7 @@ public class MemoryMeter {
                 if (child != null && !tracker.contains(child)) {
                     stack.push(child);
                     tracker.add(child);
+                    listener.fieldAdded(current, field.getName(), child);
                 }
             }
 
@@ -252,8 +308,9 @@ public class MemoryMeter {
         }
     }
 
-    private void addArrayChildren(Object[] current, Deque<Object> stack, Set<Object> tracker) {
-        for (Object child : current) {
+    private void addArrayChildren(Object[] current, Deque<Object> stack, Set<Object> tracker, MemoryMeterListener listener) {
+        for (int i = 0; i < current.length; i++) {
+            Object child = current[i];
             if (child != null && !tracker.contains(child)) {
             	
                 Class<?> childCls = child.getClass();
@@ -263,8 +320,8 @@ public class MemoryMeter {
                 
                 stack.push(child);
                 tracker.add(child);
+                listener.fieldAdded(current, Integer.toString(i) , child);
             }
         }
     }
-
 }
