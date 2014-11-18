@@ -564,7 +564,7 @@ public class MemoryMeterTest
     }
 
     @Test
-    public void testIgnoreAnnotation() {
+    public void testUnmeteredAnnotationOnFields() {
         MemoryMeter meter = new MemoryMeter();
 
         String s = "test";
@@ -575,6 +575,45 @@ public class MemoryMeterTest
 
         long withSize = meter.measureDeep(new WithAnnotationField(null));
         assertEquals(withSize, meter.measureDeep(new WithAnnotationField(s)));
+    }
+
+    @Test
+    public void testUnmeteredTypeAnnotation() {
+        MemoryMeter meter = new MemoryMeter();
+
+        String s = "test";
+        assertEquals(0, meter.measureDeep(new WithTypeAnnotation(s)));
+    }
+
+    @Test
+    public void testUnmeteredAnnotationOnParent() {
+        MemoryMeter meter = new MemoryMeter();
+
+        String s = "test";
+        assertEquals(0, meter.measureDeep(new WithParentWithAnnotation(s)));
+    }
+
+    @Test
+    public void testUnmeteredAnnotationOnFieldParent() {
+        MemoryMeter meter = new MemoryMeter();
+
+        long withoutSize = meter.measureDeep(new WithFieldWithAnnotatedParent(null));
+
+        WithParentWithAnnotation field = new WithParentWithAnnotation("test");
+        long withSize = meter.measureDeep(new WithFieldWithAnnotatedParent(field));
+        assertEquals(withoutSize, withSize);
+    }
+
+    @Test
+    public void testUnmeteredAnnotationOnFieldInterface() {
+        MemoryMeter meter = new MemoryMeter();
+
+        long withoutSize = meter.measureDeep(new WithFieldAnnotatedInterface(null));
+
+        AnnotatedInterface field = new AnnotatedInterface() {
+        };
+        long withSize = meter.measureDeep(new WithFieldAnnotatedInterface(field));
+        assertEquals(withoutSize, withSize);
     }
 
     private static class WithoutAnnotationField {
@@ -592,6 +631,45 @@ public class MemoryMeterTest
 
         public WithAnnotationField(String s) {
             this.s = s;
+        }
+    }
+
+    @Unmetered
+    private static class WithTypeAnnotation {
+        private String s;
+
+        public WithTypeAnnotation(String s) {
+            this.s = s;
+        }
+    }
+
+    private static class WithParentWithAnnotation extends WithTypeAnnotation {
+
+        public WithParentWithAnnotation(String s) {
+            super(s);
+        }
+    }
+
+    private static class WithFieldWithAnnotatedParent {
+
+        private final WithParentWithAnnotation field;
+
+        public WithFieldWithAnnotatedParent(WithParentWithAnnotation field) {
+            this.field = field;
+        }
+    }
+
+    @Unmetered
+    private interface AnnotatedInterface {
+
+    }
+
+    private static class WithFieldAnnotatedInterface {
+
+        private final AnnotatedInterface field;
+
+        public WithFieldAnnotatedInterface(AnnotatedInterface field) {
+            this.field = field;
         }
     }
 }

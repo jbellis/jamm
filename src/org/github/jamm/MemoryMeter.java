@@ -199,6 +199,9 @@ public class MemoryMeter {
             throw new NullPointerException(); // match getObjectSize behavior
         }
 
+        if (ignoreClass(object.getClass()))
+            return 0;
+
         Set<Object> tracker;
         try {
             tracker = trackerProvider.call();
@@ -284,8 +287,7 @@ public class MemoryMeter {
                 	continue;
                 }
                 
-                Class<?> fieldCls = field.getType();
-                if (ignoreKnownSingletons && (fieldCls.equals(Class.class) || (Enum.class.isAssignableFrom(fieldCls)))) {
+                if (ignoreClass(field.getType())) {
                 	continue;
                 }
 
@@ -308,13 +310,35 @@ public class MemoryMeter {
         }
     }
 
+    private boolean ignoreClass(Class<?> cls) {
+        return (ignoreKnownSingletons && (cls.equals(Class.class) || Enum.class.isAssignableFrom(cls)))
+                || isAnnotationPresent(cls);
+    }
+
+    private boolean isAnnotationPresent(Class<?> cls) {
+
+        if (cls == null)
+            return false;
+
+        if (cls.isAnnotationPresent(Unmetered.class))
+            return true;
+
+        Class<?>[] interfaces = cls.getInterfaces();
+        for (int i = 0; i < interfaces.length; i++) {
+            if (isAnnotationPresent(cls.getInterfaces()[i]))
+                return true;
+        }
+
+        return isAnnotationPresent(cls.getSuperclass());
+    }
+
     private void addArrayChildren(Object[] current, Deque<Object> stack, Set<Object> tracker, MemoryMeterListener listener) {
         for (int i = 0; i < current.length; i++) {
             Object child = current[i];
             if (child != null && !tracker.contains(child)) {
             	
                 Class<?> childCls = child.getClass();
-                if (ignoreKnownSingletons && (childCls.equals(Class.class) || (Enum.class.isAssignableFrom(childCls)))) {
+                if (ignoreClass(childCls)) {
                 	continue;
                 }
                 
