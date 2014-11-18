@@ -12,6 +12,10 @@ final class TreePrinter implements MemoryMeterListener {
 
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
+    private static final int ONE_KB = 1024;
+
+    private static final int ONE_MB = 1024 * ONE_KB;
+
     /**
      * The factory for <code>TreePrinter</code> instances.
      */
@@ -175,10 +179,10 @@ final class TreePrinter implements MemoryMeterListener {
                    .append("] ");
 
             if (size != 0) {
-                builder.append(totalSize())
-                       .append(" b (")
-                       .append(size)
-                       .append(" b)");
+                appendSizeTo(builder, totalSize());
+                builder.append(" (");
+                appendSizeTo(builder, size);
+                builder.append(")");
             }
             return appendChildren(childIntentation(indentation, isLast), builder.append(LINE_SEPARATOR));
         }
@@ -222,6 +226,17 @@ final class TreePrinter implements MemoryMeterListener {
                 return clazz.getComponentType().getName() + "[]";
             }
             return clazz.getName();
+        }
+
+        private static void appendSizeTo(StringBuilder builder, long size) {
+
+            if (size >= ONE_MB) {
+                builder.append(String.format("%.2f", (double) size / ONE_MB)).append(" KB");
+            } else if (size >= ONE_KB) {
+                builder.append(String.format("%.2f", (double) size / ONE_KB)).append(" KB");
+            } else {
+                builder.append(size).append(" bytes");
+            }
         }
     }
 }
