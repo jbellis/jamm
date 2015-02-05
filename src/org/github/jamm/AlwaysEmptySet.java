@@ -8,11 +8,13 @@ import java.util.concurrent.Callable;
 
 public class AlwaysEmptySet<T> implements Set<T> {
 
+    public static final Set EMPTY_SET = new AlwaysEmptySet();
+
     private AlwaysEmptySet() {
     }
 
     public static <T> Set<T> create() {
-    	return Collections.<T>emptySet();
+    	return EMPTY_SET;
     }
 
     public static <T> Callable<Set<T>> provider() {
