@@ -1,6 +1,7 @@
 package org.github.jamm;
 
 import java.lang.instrument.Instrumentation;
+import java.lang.ref.Reference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
@@ -50,6 +51,7 @@ public class MemoryMeter {
     private final Guess guess;
     private final boolean ignoreOuterClassReference;
     private final boolean ignoreKnownSingletons;
+    private final boolean ignoreNonStrongReferences;
     private final MemoryMeterListener.Factory listenerFactory;
 
     public MemoryMeter() {
@@ -60,7 +62,7 @@ public class MemoryMeter {
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
                 return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
             }
-        }, true, Guess.NEVER, false, false, NoopMemoryMeterListener.FACTORY);
+        }, true, Guess.NEVER, false, false, false, NoopMemoryMeterListener.FACTORY);
     }
 
     /**
@@ -74,6 +76,7 @@ public class MemoryMeter {
                         Guess guess,
                         boolean ignoreOuterClassReference,
                         boolean ignoreKnownSingletons,
+                        boolean ignoreNonStrongReferences,
                         MemoryMeterListener.Factory listenerFactory) {
 
         this.trackerProvider = trackerProvider;
@@ -81,6 +84,7 @@ public class MemoryMeter {
         this.guess = guess;
         this.ignoreOuterClassReference = ignoreOuterClassReference;
         this.ignoreKnownSingletons = ignoreKnownSingletons;
+        this.ignoreNonStrongReferences = ignoreNonStrongReferences;
         this.listenerFactory = listenerFactory;
     }
 
@@ -94,6 +98,7 @@ public class MemoryMeter {
                                guess,
                                ignoreOuterClassReference,
                                ignoreKnownSingletons,
+                               ignoreNonStrongReferences,
                                listenerFactory);
     }
 
@@ -108,6 +113,7 @@ public class MemoryMeter {
                                guess,
                                ignoreOuterClassReference,
                                ignoreKnownSingletons,
+                               ignoreNonStrongReferences,
                                listenerFactory);
     }
 
@@ -120,6 +126,7 @@ public class MemoryMeter {
                                guess,
                                ignoreOuterClassReference,
                                ignoreKnownSingletons,
+                               ignoreNonStrongReferences,
                                listenerFactory);
     }
     
@@ -132,6 +139,7 @@ public class MemoryMeter {
                                guess,
                                true,
                                ignoreKnownSingletons,
+                               ignoreNonStrongReferences,
                                listenerFactory);
     }
     
@@ -143,6 +151,20 @@ public class MemoryMeter {
                                includeFullBufferSize,
                                guess,
                                ignoreOuterClassReference,
+                               true,
+                               ignoreNonStrongReferences,
+                               listenerFactory);
+    }
+    
+    /**
+     * return a MemoryMeter that ignores space occupied by known singletons such as Class objects and Enums
+     */
+    public MemoryMeter ignoreNonStrongReferences() {
+        return new MemoryMeter(trackerProvider,
+                               includeFullBufferSize,
+                               guess,
+                               ignoreOuterClassReference,
+                               ignoreKnownSingletons,
                                true,
                                listenerFactory);
     }
@@ -156,6 +178,7 @@ public class MemoryMeter {
                                guess,
                                ignoreOuterClassReference,
                                ignoreKnownSingletons,
+                               ignoreNonStrongReferences,
                                TreePrinter.FACTORY);
     }
 
@@ -231,7 +254,8 @@ public class MemoryMeter {
             } else if (current instanceof ByteBuffer && !includeFullBufferSize) {
                 total += ((ByteBuffer) current).remaining();
             } else {
-                addFieldChildren(current, stack, tracker, listener);
+            	Object referent = (ignoreNonStrongReferences && (current instanceof Reference)) ? ((Reference)current).get() : null;
+                addFieldChildren(current, stack, tracker, referent, listener);
             }
         }
 
@@ -265,7 +289,8 @@ public class MemoryMeter {
             if (current instanceof Object[]) {
                 addArrayChildren((Object[]) current, stack, tracker, listener);
             } else {
-                addFieldChildren(current, stack, tracker, listener);
+            	Object referent = (ignoreNonStrongReferences && (current instanceof Reference)) ? ((Reference)current).get() : null;
+                addFieldChildren(current, stack, tracker, referent, listener);
             }
         }
 
@@ -273,7 +298,7 @@ public class MemoryMeter {
         return total;
     }
 
-    private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker, MemoryMeterListener listener) {
+    private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker, Object ignorableChild, MemoryMeterListener listener) {
         Class<?> cls = current.getClass();
         while (cls != null) {
             for (Field field : cls.getDeclaredFields()) {
@@ -298,11 +323,13 @@ public class MemoryMeter {
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
-
-                if (child != null && !tracker.contains(child)) {
-                    stack.push(child);
-                    tracker.add(child);
-                    listener.fieldAdded(current, field.getName(), child);
+                
+                if (child != ignorableChild) {
+	                if (child != null && !tracker.contains(child)) {
+	                    stack.push(child);
+	                    tracker.add(child);
+	                    listener.fieldAdded(current, field.getName(), child);
+	                }
                 }
             }
 

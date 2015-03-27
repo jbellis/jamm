@@ -8,8 +8,10 @@ import static org.junit.Assume.assumeThat;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -553,6 +555,17 @@ public class MemoryMeterTest
     	assertNotEquals(enumFieldSize, meter.measureDeep(new HasEnumField()));
     }
     
+    @Test
+    public void testIgnoreNonStrongReferences() {
+    	MemoryMeter meter = new MemoryMeter();
+    	
+    	long classFieldSize = meter.measureDeep(new HasReferenceField());
+    	
+    	meter = meter.ignoreNonStrongReferences();
+    	
+    	assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
+    }
+    
     private static class HasClassField {
     	private Class<?> cls = String.class;
     }
@@ -561,6 +574,10 @@ public class MemoryMeterTest
     	enum Giant {Fee, Fi, Fo, Fum}
     	
     	private Giant grunt = Giant.Fee;
+    }
+    
+    private static class HasReferenceField {
+    	private SoftReference<Date> ref = new SoftReference<Date>(new Date());
     }
 
     @Test
