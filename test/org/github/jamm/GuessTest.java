@@ -131,9 +131,9 @@ public class GuessTest {
                     long guessed = guess.measure(obj);
                     if (instrumented != guessed) {
                         System.err.println(String.format("%s of length %d. Guessed %d, instrumented %d", obj.getClass(), Array.getLength(obj), guessed, instrumented));
-                        return false;
+                        return Boolean.FALSE;
                     }
-                    return true;
+                    return Boolean.TRUE;
                 }
             }));
         }
@@ -317,6 +317,7 @@ public class GuessTest {
 
     // translate a def into a concrete declaration with source files
     private static final class Decl {
+    	@SuppressWarnings("unused")
         private static final class ClassDecl {
             final File srcfile;
             final File binfile;

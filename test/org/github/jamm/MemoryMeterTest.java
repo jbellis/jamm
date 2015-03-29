@@ -103,21 +103,25 @@ public class MemoryMeterTest
         return 4;
     }
 
+    @SuppressWarnings("unused")
     static class ByteHolder {
         private byte value;
     }
 
+    @SuppressWarnings("unused")
     static class TwoByteHolder {
         private byte value;
         private byte overflow;
     }
 
+    @SuppressWarnings("unused")
     static class ThreeByteHolder {
         private byte value;
         private byte other1;
         private byte overflow;
     }
 
+    @SuppressWarnings("unused")
     static class FourByteHolder {
         private byte value;
         private byte other1;
@@ -125,6 +129,7 @@ public class MemoryMeterTest
         private byte overflow;
     }
 
+    @SuppressWarnings("unused")
     static class FiveByteHolder {
         private byte value;
         private byte other1;
@@ -133,6 +138,7 @@ public class MemoryMeterTest
         private byte overflow;
     }
 
+    @SuppressWarnings("unused")
     static class SixByteHolder {
         private byte value;
         private byte other1;
@@ -141,6 +147,7 @@ public class MemoryMeterTest
         private byte overflow;
     }
 
+    @SuppressWarnings("unused")
     static class SevenByteHolder {
         private byte value;
         private byte other1;
@@ -151,6 +158,7 @@ public class MemoryMeterTest
         private byte overflow;
     }
 
+    @SuppressWarnings("unused")
     static class EightByteHolder {
         private byte value;
         private byte other1;
@@ -162,6 +170,7 @@ public class MemoryMeterTest
         private byte overflow;
     }
 
+    @SuppressWarnings("unused")
     static class NineByteHolder {
         private byte value;
         private byte other1;
@@ -332,39 +341,47 @@ public class MemoryMeterTest
         assertEquals("Shallow size of long[256]", longArraySize(256), meter.measure(new long[256]));
     }
 
+    @SuppressWarnings("unused")
     static class LongHolder {
         private long value;
     }
 
+    @SuppressWarnings("unused")
     static class IntHolder {
         private int value;
     }
 
+    @SuppressWarnings("unused")
     static class CharHolder {
         private char value;
     }
 
+    @SuppressWarnings("unused")
     static class TwoCharHolder {
         private char value;
         private char other;
     }
 
+    @SuppressWarnings("unused")
     static class ThreeCharHolder {
         private char value;
         private char other;
         private char overflow;
     }
 
+    @SuppressWarnings("unused")
     static class IntCharHolder {
         private int value;
         private char other;
     }
 
+    @SuppressWarnings("unused")
     static class LongIntHolder {
         private long value;
         private int other;
     }
 
+    @SuppressWarnings("unused")
     static class LongIntHolder2 extends LongHolder {
         private int other;
     }
@@ -529,14 +546,17 @@ public class MemoryMeterTest
         assertEquals(objectSize(0, 1, 0, 0, 1) * 100001, meter.measureDeep(root));
     }
 
+    @SuppressWarnings("unused")
     private static class Parent {
         private int i;
     }
 
+    @SuppressWarnings("unused")
     private static class Child extends Parent {
         private int j;
     }
 
+    @SuppressWarnings("unused")
     private static class Recursive {
         int i;
         Recursive child = null;
@@ -566,16 +586,19 @@ public class MemoryMeterTest
     	assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
     }
     
+    @SuppressWarnings("unused")
     private static class HasClassField {
     	private Class<?> cls = String.class;
     }
     
+    @SuppressWarnings("unused")
     private static class HasEnumField {
     	enum Giant {Fee, Fi, Fo, Fum}
     	
     	private Giant grunt = Giant.Fee;
     }
     
+    @SuppressWarnings("unused")
     private static class HasReferenceField {
     	private SoftReference<Date> ref = new SoftReference<Date>(new Date());
     }
@@ -633,6 +656,7 @@ public class MemoryMeterTest
         assertEquals(withoutSize, withSize);
     }
 
+    @SuppressWarnings("unused")
     private static class WithoutAnnotationField {
         private String s;
 
@@ -652,6 +676,7 @@ public class MemoryMeterTest
     }
 
     @Unmetered
+    @SuppressWarnings("unused")
     private static class WithTypeAnnotation {
         private String s;
 
@@ -667,6 +692,7 @@ public class MemoryMeterTest
         }
     }
 
+    @SuppressWarnings("unused")
     private static class WithFieldWithAnnotatedParent {
 
         private final WithParentWithAnnotation field;
@@ -681,6 +707,7 @@ public class MemoryMeterTest
 
     }
 
+    @SuppressWarnings("unused")
     private static class WithFieldAnnotatedInterface {
 
         private final AnnotatedInterface field;

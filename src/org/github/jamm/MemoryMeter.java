@@ -265,7 +265,7 @@ public class MemoryMeter {
             } else if (current instanceof ByteBuffer && !includeFullBufferSize) {
                 total += ((ByteBuffer) current).remaining();
             } else {
-            	Object referent = (ignoreNonStrongReferences && (current instanceof Reference)) ? ((Reference)current).get() : null;
+            	Object referent = (ignoreNonStrongReferences && (current instanceof Reference)) ? ((Reference<?>)current).get() : null;
                 addFieldChildren(current, stack, tracker, referent, listener);
             }
         }
@@ -300,7 +300,7 @@ public class MemoryMeter {
             if (current instanceof Object[]) {
                 addArrayChildren((Object[]) current, stack, tracker, listener);
             } else {
-            	Object referent = (ignoreNonStrongReferences && (current instanceof Reference)) ? ((Reference)current).get() : null;
+            	Object referent = (ignoreNonStrongReferences && (current instanceof Reference)) ? ((Reference<?>)current).get() : null;
                 addFieldChildren(current, stack, tracker, referent, listener);
             }
         }
