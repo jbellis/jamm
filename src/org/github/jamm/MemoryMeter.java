@@ -173,13 +173,24 @@ public class MemoryMeter {
      * Makes this <code>MemoryMeter</code> prints the classes tree to <code>System.out</code> when measuring
      */
     public MemoryMeter enableDebug() {
+        return enableDebug(Integer.MAX_VALUE);
+    }
+
+    /**
+     * Makes this <code>MemoryMeter</code> prints the classes tree to <code>System.out</code> up to the specified depth
+     * when measuring
+     * @param depth the maximum depth for which the class tree must be printed
+     */
+    public MemoryMeter enableDebug(int depth) {
+        if (depth <= 0)
+            throw new IllegalArgumentException(String.format("the depth must be greater than zero (was %s).", depth));
         return new MemoryMeter(trackerProvider,
                                includeFullBufferSize,
                                guess,
                                ignoreOuterClassReference,
                                ignoreKnownSingletons,
                                ignoreNonStrongReferences,
-                               TreePrinter.FACTORY);
+                               new TreePrinter.Factory(depth));
     }
 
     /**

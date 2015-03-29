@@ -1,6 +1,7 @@
 package org.github.jamm;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,25 +18,28 @@ final class TreePrinter implements MemoryMeterListener {
     private static final int ONE_MB = 1024 * ONE_KB;
 
     /**
-     * The factory for <code>TreePrinter</code> instances.
-     */
-    public static MemoryMeterListener.Factory FACTORY = new MemoryMeterListener.Factory() {
-
-        @Override
-        public MemoryMeterListener newInstance() {
-            return new TreePrinter();
-        }
-    };
-
-    /**
      * Mapping between objects and their information
      */
-    private Map<Object, ObjectInfo> mapping = new IdentityHashMap<Object, ObjectInfo>();
+    private final Map<Object, ObjectInfo> mapping = new IdentityHashMap<Object, ObjectInfo>();
+
+    /**
+     * The maximum depth of the trees to be printed
+     */
+    private final int maxDepth;
+
+    /**
+     * Specifies is some element will not be printed due to the depth limit.
+     */
+    private boolean hasMissingElements;
 
     /**
      * The root object
      */
     private Object root;
+
+    public TreePrinter(int maxDepth) {
+        this.maxDepth = maxDepth;
+    }
 
     @Override
     public void started(Object obj) {
@@ -45,17 +49,21 @@ final class TreePrinter implements MemoryMeterListener {
 
     @Override
     public void fieldAdded(Object obj, String fieldName, Object fieldValue) {
-        ObjectInfo field = new ObjectInfo(fieldName, fieldValue.getClass());
         ObjectInfo parent = mapping.get(obj);
-        parent.addChild(field);
-
-        mapping.put(fieldValue, field);
+        if (parent != null && parent.depth <= maxDepth - 1) {
+            ObjectInfo field = parent.addChild(fieldName, fieldValue.getClass());
+            mapping.put(fieldValue, field);
+        } else {
+            hasMissingElements = true;
+        }
     }
 
     @Override
     public void objectMeasured(Object current, long size) {
         ObjectInfo field = mapping.get(current);
-        field.size = size;
+        if (field != null) {
+            field.size = size;
+        }
     }
 
     @Override
@@ -64,7 +72,7 @@ final class TreePrinter implements MemoryMeterListener {
 
     @Override
     public void done(long size) {
-        System.out.println(mapping.get(root).toString());
+        System.out.println(mapping.get(root).toString(!hasMissingElements));
     }
 
     /**
@@ -88,9 +96,14 @@ final class TreePrinter implements MemoryMeterListener {
         private final String className;
 
         /**
+         * The object maxDepth.
+         */
+        private final int depth;
+
+        /**
          * The field children
          */
-        private final List<ObjectInfo> children = new ArrayList<ObjectInfo>();
+        private List<ObjectInfo> children = Collections.emptyList();
 
         /**
          * The object size.
@@ -102,9 +115,10 @@ final class TreePrinter implements MemoryMeterListener {
          */
         private long totalSize = -1;
 
-        public ObjectInfo(String name, Class<?> clazz) {
+        public ObjectInfo(String name, Class<?> clazz, int depth) {
             this.name = name;
             this.className = className(clazz);
+            this.depth = depth;
         }
 
         /**
@@ -114,15 +128,22 @@ final class TreePrinter implements MemoryMeterListener {
          * @return a new root <code>ObjectInfo</code>
          */
         public static ObjectInfo newRoot(Class<?> clazz) {
-            return new ObjectInfo(ROOT_NAME, clazz);
+            return new ObjectInfo(ROOT_NAME, clazz, 0);
         }
 
         /**
          * Adds the specified child
-         * @param child the child to add
+         * @param childName the name of the child
+         * @param childClass the class of the child
+         * @return the child information
          */
-        public void addChild(ObjectInfo child) {
+        public ObjectInfo addChild(String childName, Class<?> childClass) {
+            ObjectInfo child = new ObjectInfo(childName, childClass, depth + 1);
+            if (children.isEmpty()) {
+                children = new ArrayList<TreePrinter.ObjectInfo>();
+            }
             children.add(child);
+            return child;
         }
 
         /**
@@ -152,7 +173,14 @@ final class TreePrinter implements MemoryMeterListener {
         @Override
         public String toString()
         {
-            return append("", true, new StringBuilder().append(LINE_SEPARATOR).append(LINE_SEPARATOR)).toString();
+            return toString(false);
+        }
+
+        public String toString(boolean printTotalSize) {
+            return append("",
+                          true,
+                          printTotalSize,
+                          new StringBuilder().append(LINE_SEPARATOR).append(LINE_SEPARATOR)).toString();
         }
 
         /**
@@ -160,10 +188,14 @@ final class TreePrinter implements MemoryMeterListener {
          *
          * @param indentation the indentation to use
          * @param isLast <code>true</code> if this object is the last child from is parent
+         * @param printTotalSize <code>true</code> if the total size must be printed, <code>false</code> otherwise
          * @param builder the <code>StringBuilder</code> to append to
          * @return the <code>StringBuilder</code>
          */
-        private StringBuilder append(String indentation, boolean isLast, StringBuilder builder)
+        private StringBuilder append(String indentation,
+                                     boolean isLast,
+                                     boolean printTotalSize,
+                                     StringBuilder builder)
         {
             if (!name.equals(ROOT_NAME)) {
                 builder.append(indentation)
@@ -179,25 +211,31 @@ final class TreePrinter implements MemoryMeterListener {
                    .append("] ");
 
             if (size != 0) {
-                appendSizeTo(builder, totalSize());
-                builder.append(" (");
+                if (printTotalSize) {
+                    appendSizeTo(builder, totalSize());
+                    builder.append(' ');
+                }
+                builder.append('(');
                 appendSizeTo(builder, size);
-                builder.append(")");
+                builder.append(')');
             }
-            return appendChildren(childIntentation(indentation, isLast), builder.append(LINE_SEPARATOR));
+            return appendChildren(childIntentation(indentation, isLast),
+                                  printTotalSize,
+                                  builder.append(LINE_SEPARATOR));
         }
 
         /**
          * Appends to the specified <code>StringBuilder</code> the String representation of the children
          *
          * @param indentation the indentation
+         * @param printTotalSize <code>true</code> if the total size must be printed, <code>false</code> otherwise
          * @param builder the builder to append to
          */
-        private StringBuilder appendChildren(String indentation, StringBuilder builder) {
+        private StringBuilder appendChildren(String indentation, boolean printTotalSize, StringBuilder builder) {
             for (int i = 0, m = children.size(); i < m; i++) {
                 ObjectInfo child = children.get(i);
                 boolean isLast = i == m - 1;
-                child.append(indentation, isLast, builder);
+                child.append(indentation, isLast, printTotalSize, builder);
             }
             return builder;
         }
@@ -239,4 +277,29 @@ final class TreePrinter implements MemoryMeterListener {
             }
         }
     }
+
+    /**
+     * Factory for <code>TreePrinter</code> instances.
+     */
+    public static class Factory implements MemoryMeterListener.Factory {
+
+        /**
+         * The maximum depth of the trees to be printed
+         */
+        private final int depth;
+
+        /**
+         * Creates a new <code>Factory</code> instance which create <code>TreePrinter</code> that will print the 
+         * visited trees up to the specified maxDepth.
+         * @param maxDepth the maximum depth of the trees to be printed
+         */
+        public Factory(int depth) {
+            this.depth = depth;
+        }
+
+        @Override
+        public MemoryMeterListener newInstance() {
+            return new TreePrinter(depth);
+        }
+    };
 }
