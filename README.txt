@@ -59,7 +59,7 @@ Reflection is slow: measuring a one-million object Cassandra Memtable
 (that is, 1 million children from MemoryMeter.countChildren) took
 about 5 seconds wall clock time.
 
-By default, MemoryMeter keeps track of descendents visited by
+By default, MemoryMeter keeps track of descendants visited by
 measureDeep with an IdentityHashMap.  This prevents both over-counting
 and infinite loops due to cycles in the object graph.  Of course, this
 tracking imposes a memory cost of its own.  You can override this by
