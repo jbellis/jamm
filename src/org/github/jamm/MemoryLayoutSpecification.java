@@ -15,6 +15,10 @@ public abstract class MemoryLayoutSpecification
 {
 
     static final Unsafe unsafe;
+
+    // use java 8 build number
+    private static final int JAVA8_BUILD_VERSION = 25;
+
     static
     {
         Unsafe tryGetUnsafe;
@@ -186,8 +190,7 @@ public abstract class MemoryLayoutSpecification
             };
         }
 
-        final String strVmVersion = System.getProperty("java.vm.version");
-        final int vmVersion = Integer.parseInt(strVmVersion.substring(0, strVmVersion.indexOf('.')));
+        final int vmVersion = getVmVersion();
         final int alignment = getAlignment();
         if (vmVersion >= 17) {
 
@@ -249,6 +252,26 @@ public abstract class MemoryLayoutSpecification
                 return 8;
             }
         };
+    }
+
+    public static int getVmVersion() {
+        final String strVmVersion = System.getProperty("java.vm.version");
+        return getVmVersion(strVmVersion);
+    }
+
+    public static int getVmVersion(String strVmVersion) {
+        int indexOfDot = strVmVersion.indexOf('.');
+        if (indexOfDot != -1) {
+            return Integer.parseInt(strVmVersion.substring(0, indexOfDot));
+        }
+        // early access
+        int indexOfDash = strVmVersion.indexOf("-ea");
+        if (indexOfDash != -1) {
+            int eaVersion = Integer.parseInt(strVmVersion.substring(0, indexOfDash));
+            return JAVA8_BUILD_VERSION + eaVersion - 8;
+        }
+
+        return -1;
     }
 
     // check if we have a non-standard object alignment we need to round to
