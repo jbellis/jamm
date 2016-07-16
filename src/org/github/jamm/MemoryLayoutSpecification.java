@@ -186,10 +186,21 @@ public abstract class MemoryLayoutSpecification
             };
         }
 
-        final String strVmVersion = System.getProperty("java.vm.version");
-        final int vmVersion = Integer.parseInt(strVmVersion.substring(0, strVmVersion.indexOf('.')));
+        boolean modernJvm = true;
+
+        final String strSpecVersion = System.getProperty("java.specification.version");
+        final boolean hasDot = strSpecVersion.indexOf('.') != -1;
+        if (hasDot) {
+            if ("1".equals(strSpecVersion.substring(0, strSpecVersion.indexOf('.')))) {
+                // Java 1.6, 1.7, 1.8
+                final String strVmVersion = System.getProperty("java.vm.version");
+                final int vmVersion = Integer.parseInt(strVmVersion.substring(0, strVmVersion.indexOf('.')));
+                modernJvm = vmVersion >= 17;
+            }
+        }
+
         final int alignment = getAlignment();
-        if (vmVersion >= 17) {
+        if (modernJvm) {
 
             long maxMemory = 0;
             for (MemoryPoolMXBean mp : ManagementFactory.getMemoryPoolMXBeans()) {
