@@ -311,7 +311,7 @@ public class MemoryMeter {
 
     private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker, Object ignorableChild, MemoryMeterListener listener) {
         Class<?> cls = current.getClass();
-        while (cls != null) {
+        while (!skipClass(cls)) {
             for (Field field : cls.getDeclaredFields()) {
                 if (field.getType().isPrimitive()
                         || Modifier.isStatic(field.getModifiers())
@@ -322,7 +322,7 @@ public class MemoryMeter {
                 if (ignoreOuterClassReference && field.getName().matches(outerClassReference)) {
                 	continue;
                 }
-                
+
                 if (ignoreClass(field.getType())) {
                 	continue;
                 }
@@ -346,6 +346,38 @@ public class MemoryMeter {
 
             cls = cls.getSuperclass();
         }
+    }
+
+    private static final Class clsJLRModule;
+    private static final Class clsJLRAccessibleObject;
+    private static final Class clsSRAAnnotationInvocationHandler;
+    private static final Class clsSRAAnnotationType;
+    private static final Class clsJIRUnsafeFieldAccessorImpl;
+    private static final Class clsJIRDelegatingMethodAccessorImpl;
+    static
+    {
+        clsJLRModule = maybeGetClass("java.lang.reflect.Module");
+        clsJLRAccessibleObject = maybeGetClass("java.lang.reflect.AccessibleObject");
+        clsSRAAnnotationInvocationHandler = maybeGetClass("sun.reflect.annotation.AnnotationInvocationHandler");
+        clsSRAAnnotationType = maybeGetClass("sun.reflect.annotation.AnnotationType");
+        clsJIRUnsafeFieldAccessorImpl = maybeGetClass("jdk.internal.reflect.UnsafeFieldAccessorImpl");
+        clsJIRDelegatingMethodAccessorImpl = maybeGetClass("jdk.internal.reflect.DelegatingMethodAccessorImpl");
+    }
+
+    private static Class<?> maybeGetClass(String name)
+    {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+
+    private boolean skipClass(Class<?> cls) {
+        return cls == null
+               || cls == clsJLRModule || cls == clsJLRAccessibleObject
+               || cls == clsSRAAnnotationInvocationHandler || cls == clsSRAAnnotationType
+               || cls == clsJIRUnsafeFieldAccessorImpl || cls == clsJIRDelegatingMethodAccessorImpl;
     }
 
     private boolean ignoreClass(Class<?> cls) {
