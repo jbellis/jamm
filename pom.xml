@@ -11,7 +11,7 @@
   <groupId>com.github.jbellis</groupId>
   <artifactId>jamm</artifactId>
   <packaging>jar</packaging>
-  <version>0.3.2-SNAPSHOT</version>
+  <version>0.3.2</version>
   <name>Java Agent for Memory Measurements</name>
   <description>
     Jamm provides MemoryMeter, a java agent to measure actual object memory use including JVM overhead.
@@ -67,6 +67,13 @@
     <developer>
       <id>mebigfatguy</id>
       <name>Dave Brosius</name>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>mshuler</id>
+      <name>Michael Shuler</name>
       <roles>
         <role>developer</role>
       </roles>
