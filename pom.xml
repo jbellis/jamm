@@ -71,6 +71,13 @@
         <role>developer</role>
       </roles>
     </developer>
+    <developer>
+      <id>mshuler</id>
+      <name>Michael Shuler</name>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
   </developers>
   <build>
     <sourceDirectory>${basedir}/src</sourceDirectory>

@@ -198,7 +198,7 @@
       <echo message="" />
   	  <echo message="upload this jar at https://oss.sonatype.org" />
       <echo message="" />
-      <echo message="see link for details-> https://docs.sonatype.org/display/Repository/Uploading+3rd-party+Artifacts+to+The+Central+Repository" />
+      <echo message="see link for details-> http://central.sonatype.org/pages/releasing-the-deployment.html" />
       <echo message="====================================================================================================================================" />
   </target>
 
