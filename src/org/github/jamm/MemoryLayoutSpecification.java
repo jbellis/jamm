@@ -204,7 +204,19 @@ public abstract class MemoryLayoutSpecification
 
             long maxMemory = 0;
             for (MemoryPoolMXBean mp : ManagementFactory.getMemoryPoolMXBeans()) {
-                maxMemory += mp.getUsage().getMax();
+                try
+                {
+                    maxMemory += mp.getUsage().getMax();
+                }
+                catch (InternalError e)
+                {
+                    if ("Shenandoah".equals(mp.getName()))
+                    {
+                        maxMemory = Long.MAX_VALUE;
+                        break;
+                    }
+                    throw e;
+                }
             }
 
             if (maxMemory < 30L * 1024 * 1024 * 1024) {
