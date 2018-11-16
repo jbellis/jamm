@@ -194,8 +194,15 @@ public abstract class MemoryLayoutSpecification
             if ("1".equals(strSpecVersion.substring(0, strSpecVersion.indexOf('.')))) {
                 // Java 1.6, 1.7, 1.8
                 final String strVmVersion = System.getProperty("java.vm.version");
-                final int vmVersion = Integer.parseInt(strVmVersion.substring(0, strVmVersion.indexOf('.')));
-                modernJvm = vmVersion >= 17;
+                if (strVmVersion.startsWith("openj9"))
+                {
+                    modernJvm = true;
+                }
+                else
+                {
+                    final int vmVersion = Integer.parseInt(strVmVersion.substring(0, strVmVersion.indexOf('.')));
+                    modernJvm = vmVersion >= 17;
+                }
             }
         }
 
