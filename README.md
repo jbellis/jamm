@@ -8,7 +8,12 @@ memory use including JVM overhead.
 Building
 ========
 
-"ant jar"; optionally, "ant test"
+```
+$ brew install ant  # If no ant
+$ vi build.xml  # If using a different java version. default 1.8
+$ ant jar
+$ ant test  # optionally
+```
 
 
 Use
@@ -71,3 +76,46 @@ alternative, but out of Jamm's scope, would be a tracker using a Bloom
 filter to implement a probabilistic set interface -- this would have
 the potential of _undercounting_ due to false positives, but it would
 guarantee not to loop over cycles.
+
+Scala
+=====
+
+```
+❯ scala -J-javaagent:<path to jamm jar>
+Welcome to Scala 2.13.1 (OpenJDK 64-Bit Server VM, Java 1.8.0_192).
+Type in expressions for evaluation. Or try :help.
+
+scala> import org.github.jamm
+import org.github.jamm
+
+scala> val mm = new jamm.MemoryMeter()
+mm: org.github.jamm.MemoryMeter = org.github.jamm.MemoryMeter@6baf25d7
+
+scala> val bytes = Array[Byte]('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j')
+bytes: Array[Byte] = Array(97, 98, 99, 100, 101, 102, 103, 104, 105, 106)
+
+scala> val s = (bytes.map(_.toChar)).mkString
+s: String = abcdefghij
+
+scala> mm.measure(bytes)
+res5: Long = 32
+
+scala> mm.measure(s)
+res6: Long = 24
+
+scala> mm.measureDeep(bytes)
+res8: Long = 32
+
+scala> mm.measureDeep(s)
+res9: Long = 64
+
+scala> mm.countChildren(bytes)
+res10: Long = 1
+
+scala> mm.countChildren(s)
+res11: Long = 2
+```
+
+Ref
+===
+https://stackoverflow.com/questions/31474626/how-much-memory-does-arraybyte-occupy-in-scala
