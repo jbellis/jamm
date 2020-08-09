@@ -122,6 +122,7 @@
   </target>
 	
   <target name="test-mac" depends="checkos" if="isMac">
+    <mkdir dir="${test.out}"/>
     <echo message="Testing with modified object alignment"/>
     <junit fork="on" failureproperty="testfailed">
         <formatter type="xml" usefile="true"/>
