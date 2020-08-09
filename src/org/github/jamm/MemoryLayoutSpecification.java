@@ -30,6 +30,18 @@ public abstract class MemoryLayoutSpecification
 
     public static final MemoryLayoutSpecification SPEC = getEffectiveMemoryLayoutSpecification();
 
+    private static final ClassValue<Long> sizeOfInstance = new ClassValue<Long>() {
+        @Override protected Long computeValue(Class<?> type) {
+            return computeSizeOfInstance(type);
+        }
+    };
+
+    private static final ClassValue<Long> sizeOfInstanceWithUnsafe = new ClassValue<Long>() {
+        @Override protected Long computeValue(Class<?> type) {
+            return computeSizeOfInstanceWithUnsafe(type);
+        }
+    };
+
     public abstract int getArrayHeaderSize();
 
     public abstract int getObjectHeaderSize();
@@ -93,6 +105,10 @@ public abstract class MemoryLayoutSpecification
     // and cannot be 8-byte aligned, an extra 4-bytes is allocated.
     // sizeOfInstanceWithUnsafe is safe against this miscounting
     public static long sizeOfInstance(Class<?> type) {
+        return sizeOfInstance.get(type);
+    }
+
+    private static long computeSizeOfInstance(Class<?> type) {
         long size = SPEC.getObjectHeaderSize() + sizeOfDeclaredFields(type);
         while ((type = type.getSuperclass()) != Object.class && type != null)
             size += roundTo(sizeOfDeclaredFields(type), SPEC.getSuperclassFieldPadding());
@@ -101,6 +117,10 @@ public abstract class MemoryLayoutSpecification
 
     // attemps to use sun.misc.Unsafe to find the maximum object offset, this work around helps deal with long alignment
     public static long sizeOfInstanceWithUnsafe(Class<?> type) {
+        return sizeOfInstanceWithUnsafe.get(type);
+    }
+
+    private static long computeSizeOfInstanceWithUnsafe(Class<?> type) {
         while (type != null)
         {
             long size = 0;
