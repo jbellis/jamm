@@ -5,15 +5,25 @@ import java.lang.ref.Reference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
 public class MemoryMeter {
-	
+
+    private static ClassValue<Field[]> refFields = new ClassValue<Field[]>() {
+        @Override protected Field[] computeValue(Class<?> type) {
+            return getReferenceFields(type);
+        }
+    };
+
 	private static final String outerClassReference = "this\\$[0-9]+";
 	
     private static Instrumentation instrumentation;
@@ -309,8 +319,16 @@ public class MemoryMeter {
         return total;
     }
 
-    private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker, Object ignorableChild, MemoryMeterListener listener) {
-        Class<?> cls = current.getClass();
+    private static Field[] getReferenceFields(final Class<?> type) {
+        return AccessController.doPrivileged(new PrivilegedAction<Field[]>() {
+            @Override public Field[] run() {
+                return getReferenceFieldsPrivileged(type);
+            }
+        });
+    }
+
+    private static Field[] getReferenceFieldsPrivileged(Class<?> cls) {
+        List<Field> fields = new ArrayList<Field>();
         while (!skipClass(cls)) {
             for (Field field : cls.getDeclaredFields()) {
                 if (field.getType().isPrimitive()
@@ -318,33 +336,40 @@ public class MemoryMeter {
                         || field.isAnnotationPresent(Unmetered.class)) {
                     continue;
                 }
-                
-                if (ignoreOuterClassReference && field.getName().matches(outerClassReference)) {
-                	continue;
-                }
-
-                if (ignoreClass(field.getType())) {
-                	continue;
-                }
 
                 field.setAccessible(true);
-                Object child;
-                try {
-                    child = field.get(current);
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
-                
-                if (child != ignorableChild) {
-	                if (child != null && !tracker.contains(child)) {
-	                    stack.push(child);
-	                    tracker.add(child);
-	                    listener.fieldAdded(current, field.getName(), child);
-	                }
-                }
+                fields.add(field);
             }
 
             cls = cls.getSuperclass();
+        }
+        return fields.toArray(new Field[0]);
+    }
+
+    private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker, Object ignorableChild, MemoryMeterListener listener) {
+        for (Field field : refFields.get(current.getClass())) {
+            if (ignoreOuterClassReference && field.getName().matches(outerClassReference)) {
+                continue;
+            }
+
+            if (ignoreClass(field.getType())) {
+                continue;
+            }
+
+            Object child;
+            try {
+                child = field.get(current);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+
+            if (child != ignorableChild) {
+                if (child != null && !tracker.contains(child)) {
+                    stack.push(child);
+                    tracker.add(child);
+                    listener.fieldAdded(current, field.getName(), child);
+                }
+            }
         }
     }
 
@@ -373,7 +398,7 @@ public class MemoryMeter {
         }
     }
 
-    private boolean skipClass(Class<?> cls) {
+    private static boolean skipClass(Class<?> cls) {
         return cls == null
                || cls == clsJLRModule || cls == clsJLRAccessibleObject
                || cls == clsSRAAnnotationInvocationHandler || cls == clsSRAAnnotationType
