@@ -22,7 +22,7 @@
 
   <property name="ivy.version" value="2.1.0" />
   <property name="ivy.url"
-            value="http://repo2.maven.org/maven2/org/apache/ivy/ivy" />
+            value="https://repo1.maven.org/maven2/org/apache/ivy/ivy" />
 
   <condition property="ivy.jar.exists">
     <available file="${build.dir}/ivy-${ivy.version}.jar" />
