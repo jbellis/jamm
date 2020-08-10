@@ -22,7 +22,6 @@ import org.openjdk.jmh.infra.Blackhole;
 
 @Threads(3)
 @Fork(value = 1, jvmArgsPrepend = {
-        "-javaagent:target/jamm-0.4.0-SNAPSHOT.jar",
         "-Xms16g", "-Xmx16g",
         "-XX:+UseG1GC",
         "-XX:+AlwaysPreTouch"

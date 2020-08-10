@@ -8,13 +8,31 @@ measure actual object memory use including JVM overhead.
 Building
 ========
 
-"mvn package"; optionally, "mvn install"
+Build + test:
 
+    ./gradlew jar test
+
+To run the microbenchmark:
+
+    ./gradlew microbench
+    build/microbench <JMH options...>
+
+Public to local Maven repo (in case you need that)
+
+    ./gradlew publishToMavenLocal
+
+IDEs
+====
+
+You can just open the project in IntelliJ. If you've opened the Maven-ish branch(es) in IntelliJ before,
+you'll have to remove the `.idea` folder.
 
 Benchmarks
 ==========
 
-See [`Microbench.java`](./src/org/github/jamm/jmh/Microbench.java)
+See [`Microbench.java`](./microbench/org/github/jamm/jmh/Microbench.java)
+
+To run the microbenchmarks, execute `./gradlew microbench` and run `build/microbench` from the command line.
 
 Some microbenchmark results
 (JVM options: `-Xms16g -Xmx16g -XX:+UseG1GC -XX:+AlwaysPreTouch`):
