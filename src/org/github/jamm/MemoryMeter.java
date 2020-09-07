@@ -349,6 +349,7 @@ public class MemoryMeter {
     }
 
     private static final Class clsJLRModule;
+    private static final Class clsJLMModuleDescriptor;
     private static final Class clsJLRAccessibleObject;
     private static final Class clsSRAAnnotationInvocationHandler;
     private static final Class clsSRAAnnotationType;
@@ -357,6 +358,7 @@ public class MemoryMeter {
     static
     {
         clsJLRModule = maybeGetClass("java.lang.reflect.Module");
+        clsJLMModuleDescriptor = maybeGetClass("java.lang.module.ModuleDescriptor");
         clsJLRAccessibleObject = maybeGetClass("java.lang.reflect.AccessibleObject");
         clsSRAAnnotationInvocationHandler = maybeGetClass("sun.reflect.annotation.AnnotationInvocationHandler");
         clsSRAAnnotationType = maybeGetClass("sun.reflect.annotation.AnnotationType");
@@ -374,8 +376,8 @@ public class MemoryMeter {
     }
 
     private boolean skipClass(Class<?> cls) {
-        return cls == null
-               || cls == clsJLRModule || cls == clsJLRAccessibleObject
+        return cls == null || cls == Class.class
+               || cls == clsJLRModule || cls == clsJLMModuleDescriptor || cls == clsJLRAccessibleObject
                || cls == clsSRAAnnotationInvocationHandler || cls == clsSRAAnnotationType
                || cls == clsJIRUnsafeFieldAccessorImpl || cls == clsJIRDelegatingMethodAccessorImpl;
     }
