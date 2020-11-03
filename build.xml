@@ -20,7 +20,7 @@
   <property name="test.out" value="${build.dir}/test/output"/>
   <property name="test.name" value="*Test"/>
 
-  <property name="ivy.version" value="2.1.0" />
+  <property name="ivy.version" value="2.5.0" />
   <property name="ivy.url"
             value="https://repo1.maven.org/maven2/org/apache/ivy/ivy" />
 
@@ -66,7 +66,7 @@
 
   <target depends="init" name="build">
     <echo message="${ant.project.name}: ${ant.file}"/>
-    <javac source="1.6" target="1.6" debug="true" debuglevel="${debuglevel}" destdir="${build.classes}" includeantruntime="false">
+    <javac source="1.8" target="1.8" debug="true" debuglevel="${debuglevel}" destdir="${build.classes}" includeantruntime="false">
       <src path="${build.src}"/>
       <compilerarg value="-XDignore.symbol.file"/>
     </javac>

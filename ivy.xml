@@ -2,6 +2,6 @@
   <info organisation="jamm" module="jamm"/>
 
   <dependencies>
-    <dependency org="junit" name="junit" rev="4.12" />
+    <dependency org="junit" name="junit" rev="4.13.1" />
   </dependencies>
 </ivy-module>
