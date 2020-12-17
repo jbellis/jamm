@@ -241,6 +241,11 @@ abstract class MemoryMeterBase extends MemoryMeter
                             f.setAccessible(true);
                         mhs.add(lookup.unreflectGetter(f));
                     }
+                    catch (java.lang.reflect.InaccessibleObjectException inaccessibleObjectException) {
+                        //do nothing thing
+                        //fix: Caused by: java.lang.reflect.InaccessibleObjectException: Unable to make field jdk.internal.ref.PhantomCleanable jdk.internal.ref.PhantomCleanable.prev accessible: module java.base does not "opens jdk.internal.ref" to unnamed module @1ce92674
+
+                    }
                     catch (Exception e)
                     {
                         throw new RuntimeException(e);
