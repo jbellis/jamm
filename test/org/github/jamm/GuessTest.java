@@ -1,9 +1,6 @@
 package org.github.jamm;
 
 import org.junit.*;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -15,14 +12,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
@@ -34,51 +29,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assume.assumeThat;
-
 /**
  * UGLY AS SIN, BUT QUICK TO WRITE AND WORKS.
  * We generate java source code for random data classes (with parent hierarchy), write it to a temp dir,
  * call javac on it, and instrument it.
  */
-@RunWith(Parameterized.class)
 public class GuessTest {
 
-    @SuppressWarnings("deprecation")
-    @Parameterized.Parameters
-    public static Collection<MemoryMeter.Guess> guesses() {
-        List<MemoryMeter.Guess> guesses = new ArrayList<>();
-        // Ignoring "unsafe" here, as it is extremely unreliable and often wrong:
-        // Depends on both the information on j.l.r.Field and Unsafe.objectFieldOffset,
-        // which just returns a "cookie" and not a meaningful value that can be used
-        // for arithmetics. See javadoc for Unsafe.objectFieldOffset():
-        // "Do not expect to perform any sort of arithmetic on this offset;
-        // it is just a cookie which is passed to the unsafe heap memory accessors."
-        //
-        // if (MemoryMeterUnsafe.hasUnsafe())
-        //     guesses.add(MemoryMeter.Guess.ALWAYS_UNSAFE);
-        guesses.add(MemoryMeter.Guess.ALWAYS_SPEC);
-        return guesses;
-    }
-
-    private final MemoryMeter.Guess guess;
-
-    public GuessTest(MemoryMeter.Guess guess)
-    {
-        this.guess = guess;
-    }
-
     @Test
-    @SuppressWarnings("deprecation")
     public void testDeepNecessaryClasses() {
-        assumeThat(guess, not(is(MemoryMeter.Guess.ALWAYS_SPEC)));
-        Assert.assertTrue("MemoryMeter not initialised " + guess, MemoryMeterInstrumentation.hasInstrumentation());
-        final MemoryMeter instrument = MemoryMeter.builder().withGuessing(MemoryMeter.Guess.ALWAYS_INSTRUMENTATION).build();
-        final MemoryMeter guess = MemoryMeter.builder().withGuessing(this.guess).build();
-        final List<Object> objects = new ArrayList<>(); {
-            final ConcurrentSkipListMap<Long, Long> map = new ConcurrentSkipListMap<>();
+        final MemoryMeter instrument = new MemoryMeter().withTrackerProvider(TRACKER_PROVIDER);
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SPEC).withTrackerProvider(TRACKER_PROVIDER);
+        Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
+        final List<Object> objects = new ArrayList<Object>(); {
+            final ConcurrentSkipListMap<Long, Long> map = new ConcurrentSkipListMap<Long, Long>();
             for (long i = 0 ; i < 100 ; i++)
                 map.put(i, i);
             objects.add(map);
@@ -87,19 +51,20 @@ public class GuessTest {
         for (final Object obj : objects) {
             long instrumented = instrument.measureDeep(obj);
             long guessed = guess.measureDeep(obj);
-            // SPEC is allowed to overcount (aka: better safe than sorry)
-            if (!verify(instrumented, guessed, "Deep necessary / Guessed %d, instrumented %d for %s for %s", guessed, instrumented, obj.getClass().getName(), guess))
+            if (instrumented != guessed) {
+                System.err.println(String.format("Guessed %d, instrumented %d for %s", guessed, instrumented, obj.getClass().getName()));
                 failures++;
+            }
         }
-        Assert.assertEquals("Not all guesses matched the instrumented values. See output for details. " + guess, 0, failures);
+        Assert.assertEquals("Not all guesses matched the instrumented values. See output for details.", 0, failures);
     }
 
     @Test
     public void testProblemClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException {
-        Assert.assertTrue("MemoryMeter not initialised " + guess, MemoryMeterInstrumentation.hasInstrumentation());
-        final MemoryMeter instrument = MemoryMeter.builder().withGuessing(MemoryMeter.Guess.ALWAYS_INSTRUMENTATION).build();
-        final MemoryMeter guess = MemoryMeter.builder().withGuessing(this.guess).build();
-        List<Def> defs = new ArrayList<>();
+        final MemoryMeter instrument = new MemoryMeter();
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
+        Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
+        List<Def> defs = new ArrayList<Def>();
         defs.add(Def.parse("{long*1}->{float*1}"));
         defs.add(Def.parse("{long*1}->{byte*4}"));
         defs.add(Def.parse("{long*1}->{byte*7}"));
@@ -111,102 +76,92 @@ public class GuessTest {
             Object obj = clazz.clazz.newInstance();
             long instrumented = instrument.measure(obj);
             long guessed = guess.measure(obj);
-            // SPEC is allowed to overcount (aka: better safe than sorry)
-            if (!verify(instrumented, guessed, "Problem class / Guessed %d, instrumented %d for %s for %s", guessed, instrumented, clazz.description, guess))
+            if (instrumented != guessed) {
+                System.err.println(String.format("Guessed %d, instrumented %d for %s", guessed, instrumented, clazz.description));
                 failures++;
+            }
         }
-        Assert.assertEquals("Not all guesses matched the instrumented values. See output for details. " + guess, 0, failures);
+        Assert.assertEquals("Not all guesses matched the instrumented values. See output for details.", 0, failures);
     }
 
     @Test
     public void testRandomClasses() throws InterruptedException, ExecutionException {
-        Assert.assertTrue("MemoryMeter not initialised " + guess, MemoryMeterInstrumentation.hasInstrumentation());
         final int testsPerCPU = 100;
-        final MemoryMeter instrument = MemoryMeter.builder().withGuessing(MemoryMeter.Guess.ALWAYS_INSTRUMENTATION).build();
-        final MemoryMeter guess = MemoryMeter.builder().withGuessing(this.guess).build();
-        final List<Future<Integer>> results = new ArrayList<>();
+        final MemoryMeter instrument = new MemoryMeter();
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
+        Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
+        final List<Future<Integer>> results = new ArrayList<Future<Integer>>();
         for (int i = 0 ; i < Runtime.getRuntime().availableProcessors() ; i++) {
-            results.add(EXEC.submit(() -> {
-                final List<GeneratedClass> classes = randomClasses(testsPerCPU);
-                int failures = 0;
-                for (final GeneratedClass clazz : classes) {
-                    Object obj = clazz.clazz.newInstance();
-                    long instrumented = instrument.measure(obj);
-                    long guessed = guess.measure(obj);
-                    // SPEC is allowed to overcount (aka: better safe than sorry)
-                    if (!verify(instrumented, guessed, "Random / Guessed %d, instrumented %d for %s for %s", guessed, instrumented, clazz.description, guess))
-                        failures++;
+            results.add(EXEC.submit(new Callable<Integer>() {
+                @Override
+                public Integer call() throws Exception {
+                    final List<GeneratedClass> classes = randomClasses(testsPerCPU);
+                    int failures = 0;
+                    for (final GeneratedClass clazz : classes) {
+                        Object obj = clazz.clazz.newInstance();
+                        long instrumented = instrument.measure(obj);
+                        long guessed = guess.measure(obj);
+                        if (instrumented != guessed) {
+                            System.err.println(String.format("Guessed %d, instrumented %d for %s", guessed, instrumented, clazz.description));
+                            failures++;
+                        }
+                    }
+                    return failures;
                 }
-                return failures;
             }));
         }
         int failures = 0;
         for (Future<Integer> result : results)
             failures += result.get();
-        Assert.assertEquals("Not all guesses matched the instrumented values. See output for details. " + guess, 0, failures);
+        Assert.assertEquals("Not all guesses matched the instrumented values. See output for details.", 0, failures);
     }
 
     @Test
     public void testRandomArrays() throws InterruptedException, ExecutionException {
-        Assert.assertTrue("MemoryMeter not initialised " + guess, MemoryMeterInstrumentation.hasInstrumentation());
-        final MemoryMeter instrument = MemoryMeter.builder().withGuessing(MemoryMeter.Guess.ALWAYS_INSTRUMENTATION).build();
-        final MemoryMeter guess = MemoryMeter.builder().withGuessing(this.guess).build();
-        final List<Future<Boolean>> results = new ArrayList<>();
+        final MemoryMeter instrument = new MemoryMeter();
+        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
+        Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
+        final List<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         for (int i = 0 ; i < 10000 ; i++) {
-            results.add(EXEC.submit(() -> {
-                Object obj = Array.newInstance(TYPES[rnd.nextInt(TYPES.length)].clazz, rnd.nextInt(1000));
-                long instrumented = instrument.measure(obj);
-                long guessed = guess.measure(obj);
-                if (!verify(instrumented, guessed, "%s of length %d. Guessed %d, instrumented %d for %s", obj.getClass(), Array.getLength(obj), guessed, instrumented, guess))
-                    return Boolean.FALSE;
-                return Boolean.TRUE;
+            results.add(EXEC.submit(new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws Exception {
+                    Object obj = Array.newInstance(TYPES[rnd.nextInt(TYPES.length)].clazz, rnd.nextInt(1000));
+                    long instrumented = instrument.measure(obj);
+                    long guessed = guess.measure(obj);
+                    if (instrumented != guessed) {
+                        System.err.println(String.format("%s of length %d. Guessed %d, instrumented %d", obj.getClass(), Array.getLength(obj), guessed, instrumented));
+                        return Boolean.FALSE;
+                    }
+                    return Boolean.TRUE;
+                }
             }));
         }
         for (Future<Boolean> result : results)
-            Assert.assertTrue("Failed test - see output for details " + guess, result.get());
-    }
-
-    @SuppressWarnings("deprecation")
-    private boolean verify(long instrumented, long guessed, String format, Object... args) {
-        if (GuessTest.this.guess == MemoryMeter.Guess.ALWAYS_SPEC) {
-            long allowed = Math.max(instrumented / 10, 16);
-            long min = instrumented - allowed;
-            long max = instrumented + allowed;
-            // SPEC is allowed to under/overcount (aka: better safe than sorry)
-            if (guessed >= min && guessed <= max)
-                return true;
-        }
-        else if (instrumented == guessed)
-            return true;
-
-        System.err.println(String.format(format, args));
-        return false;
+            Assert.assertTrue("Failed test - see output for details", result.get());
     }
 
     private static final Types[] TYPES = Types.values();
     private static final Random rnd = new Random();
     private static final AtomicInteger id = new AtomicInteger();
     private static final MyClassLoader CL = new MyClassLoader();
-    private static File tempDir;
-    private static String javac;
-    @ClassRule
-    public static TemporaryFolder tempFolder = new TemporaryFolder();
+    private static final File tempDir = new File(System.getProperty("java.io.tmpdir"), "testclasses");
+
+    private static final Callable<Set<Object>> TRACKER_PROVIDER = new TrackerProvider();
     private static final ExecutorService CONSUME_PROCESS_OUTPUT = Executors.newCachedThreadPool(new DaemonThreadFactory());
     private static final ExecutorService EXEC = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-    @BeforeClass
-    public static void setupTempDir() throws IOException {
-        tempDir = tempFolder.newFolder();
-
-        Path javaHome = Paths.get(System.getProperty("java.home"));
-        Path javac = javaHome.resolve("bin").resolve("javac");
-        if (!Files.exists(javac))
-            javac = javaHome.resolve("..").resolve("bin").resolve("javac");
-        GuessTest.javac = javac.toString();
+    static {
+        // clear out the temp dir
+        tempDir.mkdirs();
+        for (File file : tempDir.listFiles()) {
+            if (!file.delete() || file.exists())
+                throw new IllegalStateException();
+        }
     }
 
     // declare all the primitive types
-    private enum Types {
+    private static enum Types {
         BOOLEAN(boolean.class), BYTE(byte.class), CHAR(char.class), SHORT(short.class), INT(int.class),
         FLOAT(float.class), LONG(long.class), DOUBLE(double.class), OBJECT(Object.class);
 
@@ -266,7 +221,7 @@ public class GuessTest {
         private static Def random() {
             ClassDef[] classdefs = new ClassDef[1 + rnd.nextInt(4)];
             for (int d = 0 ; d != classdefs.length ; d++) {
-                final List<TypeDef> typedefs = new ArrayList<>();
+                final List<TypeDef> typedefs = new ArrayList<TypeDef>();
                 int fieldCount = rnd.nextInt(100);
                 int f = 0;
                 while (f < fieldCount) {
@@ -286,10 +241,10 @@ public class GuessTest {
             final Pattern clazz = Pattern.compile("\\{([a-zO]+\\*[0-9]+ ?)+\\}");
             final Pattern type = Pattern.compile("([a-zO]+)\\*([0-9]+)");
             Matcher cm = clazz.matcher(description);
-            List<ClassDef> classdefs = new ArrayList<>();
+            List<ClassDef> classdefs = new ArrayList<ClassDef>();
             while (cm.find()) {
                 Matcher tm = type.matcher(cm.group());
-                List<TypeDef> typedefs = new ArrayList<>();
+                List<TypeDef> typedefs = new ArrayList<TypeDef>();
                 while (tm.find()) {
                     typedefs.add(new TypeDef(
                             Types.valueOf(tm.group(1).toUpperCase()),
@@ -303,7 +258,7 @@ public class GuessTest {
         // transform the definition into a Java declaration, with associated files on disk
         Decl declare() throws IOException {
             String prev = null;
-            List<Decl.ClassDecl> parts = new ArrayList<>();
+            List<Decl.ClassDecl> parts = new ArrayList<Decl.ClassDecl>();
             for (ClassDef classdef : classdefs) {
                 String name = "Test" + id.incrementAndGet();
                 StringBuilder decl = new StringBuilder("public class ");
@@ -386,8 +341,9 @@ public class GuessTest {
 
     // compile the provided defs by declaring them in source files and calling javac
     private static List<GeneratedClass> compile(List<Def> defs) throws IOException, ExecutionException, InterruptedException {
-        final List<String> args = new ArrayList<>(Arrays.asList(javac, "-d", tempDir.getAbsolutePath()));
-        final List<Decl> decls = new ArrayList<>();
+        final List<String> args = new ArrayList<String>();
+        args.addAll(Arrays.asList("javac", "-d", tempDir.getAbsolutePath()));
+        final List<Decl> decls = new ArrayList<Decl>();
         for (Def def : defs)
             decls.add(def.declare());
         for (Decl decl : decls)
@@ -404,7 +360,7 @@ public class GuessTest {
             throw new IllegalStateException();
         }
 
-        final List<GeneratedClass> generated = new ArrayList<>();
+        final List<GeneratedClass> generated = new ArrayList<GeneratedClass>();
         // load
         for (Decl decl : decls) {
             Class<?> loaded = null;
@@ -430,7 +386,7 @@ public class GuessTest {
     // generate some random classes
     private static List<GeneratedClass> randomClasses(int count) throws IOException, ExecutionException, InterruptedException {
         // define
-        final List<Def> defs = new ArrayList<>();
+        final List<Def> defs = new ArrayList<Def>();
         while (defs.size() < count)
             defs.add(Def.random());
         return compile(defs);
@@ -447,7 +403,7 @@ public class GuessTest {
         }
 
         @Override
-        public String call() {
+        public String call() throws Exception {
             try {
                 String line;
                 while (null != (line = in.readLine())) {
@@ -460,6 +416,13 @@ public class GuessTest {
             return sb.toString();
         }
     }
+
+    private static final class TrackerProvider implements Callable<Set<Object>> {
+        @Override
+        public Set<Object> call() throws Exception {
+            return new HashSet<Object>();
+        }
+    };
 
     private static final class DaemonThreadFactory implements ThreadFactory {
         @Override
