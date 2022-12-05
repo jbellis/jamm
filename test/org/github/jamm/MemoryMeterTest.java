@@ -11,18 +11,23 @@ import java.lang.reflect.Method;
 import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
-* Numbers here are for 64-bit Sun JVM.  Good luck with anything else.
-*/
+ * Numbers here are for 64-bit Sun JVM.  Good luck with anything else.
+ */
+@RunWith(Parameterized.class)
 public class MemoryMeterTest
 {
     // JVM memory structure is like follows
@@ -44,6 +49,25 @@ public class MemoryMeterTest
     static final int REFERENCE_SIZE = sizeOfReference();
     static final int HEADER_SIZE = sizeOfHeader();
     static final int OBJECT_SIZE = pad(HEADER_SIZE + REFERENCE_SIZE);
+
+    @SuppressWarnings("deprecation")
+    @Parameterized.Parameters
+    public static Collection<MemoryMeter.Guess> guesses() {
+
+        List<MemoryMeter.Guess> guesses = new ArrayList<>();
+
+        guesses.add(MemoryMeter.Guess.NEVER);
+        guesses.add(MemoryMeter.Guess.ALWAYS_UNSAFE);
+        guesses.add(MemoryMeter.Guess.ALWAYS_SPEC);
+        return guesses;
+    }
+
+    private final MemoryMeter.Guess guess;
+
+    public MemoryMeterTest(MemoryMeter.Guess guess)
+    {
+        this.guess = guess;
+    }
 
     public static int sizeOfReference() {
         MemoryMeter meter = new MemoryMeter();
@@ -229,11 +253,11 @@ public class MemoryMeterTest
     public static int arraySize(int numElements) {
         int size = REFERENCE_SIZE + HEADER_SIZE + 4;
         if (numElements > 0) {
-        // now pad to ref-size boundary
-        if (size % REFERENCE_SIZE != 0) {
-            size = (size | (REFERENCE_SIZE - 1)) + 1;
-        }
-        size += numElements * REFERENCE_SIZE;
+            // now pad to ref-size boundary
+            if (size % REFERENCE_SIZE != 0) {
+                size = (size | (REFERENCE_SIZE - 1)) + 1;
+            }
+            size += numElements * REFERENCE_SIZE;
         }
         return pad(size);
     }
@@ -241,11 +265,11 @@ public class MemoryMeterTest
     public static int byteArraySize(int numElements) {
         int size = REFERENCE_SIZE + HEADER_SIZE + 4;
         if (numElements > 0) {
-        // now pad to ref-size boundary
-        if (size % REFERENCE_SIZE != 0) {
-            size = (size | (REFERENCE_SIZE - 1)) + 1;
-        }
-        size += numElements;
+            // now pad to ref-size boundary
+            if (size % REFERENCE_SIZE != 0) {
+                size = (size | (REFERENCE_SIZE - 1)) + 1;
+            }
+            size += numElements;
         }
         return pad(size);
     }
@@ -253,11 +277,11 @@ public class MemoryMeterTest
     public static int charArraySize(int numElements) {
         int size = REFERENCE_SIZE + HEADER_SIZE + 4;
         if (numElements > 0) {
-        // now pad to ref-size boundary
-        if (size % REFERENCE_SIZE != 0) {
-            size = (size | (REFERENCE_SIZE - 1)) + 1;
-        }
-        size += numElements * 2;
+            // now pad to ref-size boundary
+            if (size % REFERENCE_SIZE != 0) {
+                size = (size | (REFERENCE_SIZE - 1)) + 1;
+            }
+            size += numElements * 2;
         }
         return pad(size);
     }
@@ -265,11 +289,11 @@ public class MemoryMeterTest
     public static int intArraySize(int numElements) {
         int size = REFERENCE_SIZE + HEADER_SIZE + 4;
         if (numElements > 0) {
-        // now pad to ref-size boundary
-        if (size % REFERENCE_SIZE != 0) {
-            size = (size | (REFERENCE_SIZE - 1)) + 1;
-        }
-        size += numElements * 4;
+            // now pad to ref-size boundary
+            if (size % REFERENCE_SIZE != 0) {
+                size = (size | (REFERENCE_SIZE - 1)) + 1;
+            }
+            size += numElements * 4;
         }
         return pad(size);
     }
@@ -277,18 +301,18 @@ public class MemoryMeterTest
     public static int longArraySize(int numElements) {
         int size = REFERENCE_SIZE + HEADER_SIZE + 4;
         if (numElements > 0) {
-        // now pad to ref-size boundary
-        if (size % REFERENCE_SIZE != 0) {
-            size = (size | (REFERENCE_SIZE - 1)) + 1;
-        }
-        size += numElements * 8;
+            // now pad to ref-size boundary
+            if (size % REFERENCE_SIZE != 0) {
+                size = (size | (REFERENCE_SIZE - 1)) + 1;
+            }
+            size += numElements * 8;
         }
         return pad(size);
     }
 
     @Test
     public void testObjectArraySizes() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);
 
         assertEquals("Shallow size of Object[0]", arraySize(0), meter.measure(new Object[0]));
 
@@ -299,7 +323,7 @@ public class MemoryMeterTest
 
     @Test
     public void testByteArraySizes() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         assertEquals("Shallow size of byte[0]", byteArraySize(0), meter.measure(new byte[0]));
 
@@ -310,7 +334,7 @@ public class MemoryMeterTest
 
     @Test
     public void testCharArraySizes() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         assertEquals("Shallow size of char[0]", charArraySize(0), meter.measure(new char[0]));
 
@@ -321,7 +345,7 @@ public class MemoryMeterTest
 
     @Test
     public void testIntArraySizes() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         assertEquals("Shallow size of int[0]", intArraySize(0), meter.measure(new int[0]));
 
@@ -332,7 +356,7 @@ public class MemoryMeterTest
 
     @Test
     public void testLongArraySizes() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         assertEquals("Shallow size of long[0]", longArraySize(0), meter.measure(new long[0]));
 
@@ -389,7 +413,7 @@ public class MemoryMeterTest
     @Test
     public void testMacOSX_x86_64() {
         // Mac OS X seems to have a way to stash 4 bytes away in a plain object
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
         assumeThat(System.getProperty("os.name"), is("Mac OS X"));
         assumeThat(System.getProperty("os.arch"), is("x86_64"));
         assertEquals("no embedded long field", 24, meter.measure(new LongHolder()));
@@ -407,7 +431,7 @@ public class MemoryMeterTest
     @Test
     public void testMacOSX_i386() {
         // Mac OS X seems to have a way to stash 4 bytes away in a plain object
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
         assumeThat(System.getProperty("os.name"), is("Mac OS X"));
         assumeThat(System.getProperty("os.arch"), is("i386"));
         assertEquals("Room for 1 long", 16, meter.measure(new LongHolder()));
@@ -428,7 +452,7 @@ public class MemoryMeterTest
     @Test
     public void testPrimitives() {
 
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         assertEquals("Shallow size of Object", OBJECT_SIZE, meter.measure(new Object()));
         assertEquals("Deep size of Object", OBJECT_SIZE, meter.measureDeep(new Object()));
@@ -460,7 +484,7 @@ public class MemoryMeterTest
         ByteBuffer one = ByteBuffer.allocate(1);
         ByteBuffer emptyOne = (ByteBuffer) one.duplicate().position(1);
 
-        MemoryMeter m1 = new MemoryMeter();
+        MemoryMeter m1 = new MemoryMeter().withGuessing(guess);;
         MemoryMeter m2 = m1.omitSharedBufferOverhead();
 
         // from Object
@@ -490,7 +514,7 @@ public class MemoryMeterTest
 
     @Test
     public void testCycle() throws Exception {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         Recursive dummy = new Recursive();
         assertEquals("Shallow size of Recursive object", objectSize(0, 1, 0, 0, 1), meter.measure(dummy));
@@ -501,7 +525,7 @@ public class MemoryMeterTest
 
     @Test
     public void testInheritance() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         assertEquals("Shallow size of Parent", objectSize(0, 1, 0, 0, 0), meter.measure(new Parent()));
         assertEquals("Deep size of Parent", objectSize(0, 1, 0, 0, 0), meter.measureDeep(new Parent()));
@@ -512,20 +536,20 @@ public class MemoryMeterTest
     @Test
     @Ignore("These vary quite radically depending on the JVM.")
     public void testCollections() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         assertEquals("sizeOf ArrayList",
                 objectSize(0, 2, 0, 0, 1) // the object itself
-                        + arraySize(10), // the backing array's initial load factor
+                + arraySize(10), // the backing array's initial load factor
                 meter.measureDeep(new ArrayList<Object>()));
         assertEquals("sizeOf HashMap",
                 objectSize(0, 4, 0, 0, 4) // the object itself
-                        + arraySize(16), // the backing array
+                + arraySize(16), // the backing array
                 meter.measureDeep(new HashMap<Object, Object>()));
         assertEquals("sizeOf LinkedHashMap",
                 objectSize(0, 4, 0, 1, 5)  // the object itself
-                        + arraySize(16) // the inherited backing array
-                        + objectSize(0, 1, 0, 0, 5), // the first node
+                + arraySize(16) // the inherited backing array
+                + objectSize(0, 1, 0, 0, 5), // the first node
                 meter.measureDeep(new LinkedHashMap<Object, Object>()));
 
         // I give up for the ones below!
@@ -535,7 +559,7 @@ public class MemoryMeterTest
 
     @Test
     public void testDeep() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);
 
         Recursive root = new Recursive();
         Recursive recursive = root;
@@ -561,51 +585,51 @@ public class MemoryMeterTest
         int i;
         Recursive child = null;
     }
-    
+
     @Test
     public void testIgnoreKnownSingletons() {
-    	MemoryMeter meter = new MemoryMeter();
-    	
-    	long classFieldSize = meter.measureDeep(new HasClassField());
-    	long enumFieldSize = meter.measureDeep(new HasEnumField());
-    	
-    	meter = meter.ignoreKnownSingletons();
-    	
-    	assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
-    	assertNotEquals(enumFieldSize, meter.measureDeep(new HasEnumField()));
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+
+        long classFieldSize = meter.measureDeep(new HasClassField());
+        long enumFieldSize = meter.measureDeep(new HasEnumField());
+
+        meter = meter.ignoreKnownSingletons();
+
+        assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
+        assertNotEquals(enumFieldSize, meter.measureDeep(new HasEnumField()));
     }
-    
+
     @Test
     public void testIgnoreNonStrongReferences() {
-    	MemoryMeter meter = new MemoryMeter();
-    	
-    	long classFieldSize = meter.measureDeep(new HasReferenceField());
-    	
-    	meter = meter.ignoreNonStrongReferences();
-    	
-    	assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+
+        long classFieldSize = meter.measureDeep(new HasReferenceField());
+
+        meter = meter.ignoreNonStrongReferences();
+
+        assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
     }
-    
+
     @SuppressWarnings("unused")
     private static class HasClassField {
-    	private Class<?> cls = String.class;
+        private Class<?> cls = String.class;
     }
-    
+
     @SuppressWarnings("unused")
     private static class HasEnumField {
-    	enum Giant {Fee, Fi, Fo, Fum}
-    	
-    	private Giant grunt = Giant.Fee;
+        enum Giant {Fee, Fi, Fo, Fum}
+
+        private Giant grunt = Giant.Fee;
     }
-    
+
     @SuppressWarnings("unused")
     private static class HasReferenceField {
-    	private SoftReference<Date> ref = new SoftReference<Date>(new Date());
+        private SoftReference<Date> ref = new SoftReference<Date>(new Date());
     }
 
     @Test
     public void testUnmeteredAnnotationOnFields() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         String s = "test";
 
@@ -619,7 +643,7 @@ public class MemoryMeterTest
 
     @Test
     public void testUnmeteredTypeAnnotation() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         String s = "test";
         assertEquals(0, meter.measureDeep(new WithTypeAnnotation(s)));
@@ -627,7 +651,7 @@ public class MemoryMeterTest
 
     @Test
     public void testUnmeteredAnnotationOnParent() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         String s = "test";
         assertEquals(0, meter.measureDeep(new WithParentWithAnnotation(s)));
@@ -635,7 +659,7 @@ public class MemoryMeterTest
 
     @Test
     public void testUnmeteredAnnotationOnFieldParent() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         long withoutSize = meter.measureDeep(new WithFieldWithAnnotatedParent(null));
 
@@ -646,7 +670,7 @@ public class MemoryMeterTest
 
     @Test
     public void testUnmeteredAnnotationOnFieldInterface() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
 
         long withoutSize = meter.measureDeep(new WithFieldAnnotatedInterface(null));
 
