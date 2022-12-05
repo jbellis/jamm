@@ -12,25 +12,30 @@ import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.github.jamm.strategies.MemoryMeterStrategies;
+
 public class MemoryMeter {
-	
-	private static final String outerClassReference = "this\\$[0-9]+";
-	
-    private static Instrumentation instrumentation;
+
+    private static final String outerClassReference = "this\\$[0-9]+";
 
     public static void premain(String options, Instrumentation inst) {
-        MemoryMeter.instrumentation = inst;
+        MemoryMeterStrategies.instrumentation = inst;
     }
     
     public static void agentmain(String options, Instrumentation inst) {
-    	MemoryMeter.instrumentation = inst;
+        MemoryMeterStrategies.instrumentation = inst;
     }
 
     public static boolean hasInstrumentation() {
-        return instrumentation != null;
+        return MemoryMeterStrategies.getInstance().hasInstrumentation();
+    }
+
+    public static boolean hasUnsafe() {
+        return MemoryMeterStrategies.getInstance().hasUnsafe();
     }
 
     public static enum Guess {
+
         /* If instrumentation is not available, error when measuring */
         NEVER,
         /* If instrumentation is available, use it, otherwise guess the size using predefined specifications */
@@ -43,9 +48,14 @@ public class MemoryMeter {
         /* Always guess the size of measured objects using predefined specifications*/
         ALWAYS_SPEC,
         /* Always guess the size of measured objects using sun.misc.Unsafe */
-        ALWAYS_UNSAFE
+        ALWAYS_UNSAFE;
     }
 
+    /**
+     * The strategy used to measure the objects.
+     */
+    private final MemoryMeterStrategy strategy;
+    
     private final Callable<Set<Object>> trackerProvider;
     private final boolean includeFullBufferSize;
     private final Guess guess;
@@ -79,6 +89,7 @@ public class MemoryMeter {
                         boolean ignoreNonStrongReferences,
                         MemoryMeterListener.Factory listenerFactory) {
 
+        this.strategy = MemoryMeterStrategies.getInstance().getStrategy(guess);
         this.trackerProvider = trackerProvider;
         this.includeFullBufferSize = includeFullBufferSize;
         this.guess = guess;
@@ -198,30 +209,7 @@ public class MemoryMeter {
      * @throws NullPointerException if object is null
      */
     public long measure(Object object) {
-        switch (guess) {
-            case ALWAYS_UNSAFE:
-                return MemoryLayoutSpecification.sizeOfWithUnsafe(object);
-            case ALWAYS_SPEC:
-                return MemoryLayoutSpecification.sizeOf(object);
-            default:
-                if (instrumentation == null) {
-                    switch (guess) {
-                        case NEVER:
-                            throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
-                        case FALLBACK_UNSAFE:
-                            if (!MemoryLayoutSpecification.hasUnsafe())
-                                throw new IllegalStateException("Instrumentation is not set and sun.misc.Unsafe could not be obtained; Jamm must be set as -javaagent, or the SecurityManager must permit access to sun.misc.Unsafe");
-                            //$FALL-THROUGH$
-                        case FALLBACK_BEST:
-                            if (MemoryLayoutSpecification.hasUnsafe())
-                                return MemoryLayoutSpecification.sizeOfWithUnsafe(object);
-                            //$FALL-THROUGH$
-                        case FALLBACK_SPEC:
-                            return MemoryLayoutSpecification.sizeOf(object);
-                    }
-                }
-                return instrumentation.getObjectSize(object);
-        }
+        return strategy.measure(object);
     }
 
     /**
