@@ -586,6 +586,30 @@ public class MemoryMeterTest
         Recursive child = null;
     }
 
+    public static class Outer {
+        public int[] somethingHeavy = new int[100];
+        public Inner inner = new Inner();
+
+        private class Inner {
+            public int integer = 1;
+        }
+    }
+
+    @Test
+    public void testWithInnerClass () {
+        Outer outer = new Outer();
+        MemoryMeter meter = new MemoryMeter().enableDebug(100);
+
+        long outerSize = meter.measure(outer);
+        long innerSize = meter.measure(outer.inner);
+        long somethingHeavySize = meter.measure(outer.somethingHeavy);
+
+        long size = outerSize + innerSize + somethingHeavySize;
+
+        assertEquals(size, meter.measureDeep(outer));
+        assertEquals(innerSize, meter.ignoreOuterClassReference().measureDeep(outer.inner));
+    }
+
     @Test
     public void testIgnoreKnownSingletons() {
         MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
