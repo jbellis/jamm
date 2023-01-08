@@ -160,5 +160,3 @@ class Cls3 extends Cls2
 {
     Object more = new Cls2();
 }
-
-
