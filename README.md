@@ -37,7 +37,7 @@ mark the classes (or interfaces) using the `Unmetered` annotation.
 ```
   <groupId>com.github.jbellis</groupId>
   <artifactId>jamm</artifactId>
-  <version>0.3.4-SNAPSHOT</version>
+  <version>0.4.0-SNAPSHOT</version>
 ```
 
 # The fine print
