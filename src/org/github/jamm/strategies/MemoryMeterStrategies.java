@@ -118,7 +118,7 @@ public final class MemoryMeterStrategies
             default:
                 if (!hasInstrumentation()) {
                     switch (guess) {
-                        case NEVER:
+                        case ALWAYS_INSTRUMENTATION:
                             throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
                         case FALLBACK_UNSAFE:
                             if (!hasUnsafe())

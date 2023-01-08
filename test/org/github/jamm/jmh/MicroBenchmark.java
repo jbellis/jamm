@@ -34,7 +34,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class MicroBenchmark
 {
-    @Param({ "ALWAYS_SPEC", "ALWAYS_UNSAFE", "NEVER" })
+    @Param({ "ALWAYS_SPEC", "ALWAYS_UNSAFE", "ALWAYS_INSTRUMENTATION" })
     private String guess;
 
     private MemoryMeter meter;
