@@ -37,7 +37,7 @@ public class MemoryMeter {
     public static enum Guess {
 
         /* If instrumentation is not available, error when measuring */
-        NEVER,
+        ALWAYS_INSTRUMENTATION,
         /* If instrumentation is available, use it, otherwise guess the size using predefined specifications */
         FALLBACK_SPEC,
         /* If instrumentation is available, use it, otherwise guess the size using sun.misc.Unsafe */
@@ -72,7 +72,7 @@ public class MemoryMeter {
                 // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
                 return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
             }
-        }, true, Guess.NEVER, false, false, false, NoopMemoryMeterListener.FACTORY);
+        }, true, Guess.ALWAYS_INSTRUMENTATION, false, false, false, NoopMemoryMeterListener.FACTORY);
     }
 
     /**

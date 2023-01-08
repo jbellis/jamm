@@ -56,7 +56,7 @@ public class MemoryMeterTest
 
         List<MemoryMeter.Guess> guesses = new ArrayList<>();
 
-        guesses.add(MemoryMeter.Guess.NEVER);
+        guesses.add(MemoryMeter.Guess.ALWAYS_INSTRUMENTATION);
         guesses.add(MemoryMeter.Guess.ALWAYS_UNSAFE);
         guesses.add(MemoryMeter.Guess.ALWAYS_SPEC);
         return guesses;
