@@ -14,10 +14,8 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
@@ -38,8 +36,8 @@ public class GuessTest {
 
     @Test
     public void testDeepNecessaryClasses() {
-        final MemoryMeter instrument = new MemoryMeter().withTrackerProvider(TRACKER_PROVIDER);
-        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_SPEC).withTrackerProvider(TRACKER_PROVIDER);
+        final MemoryMeter instrument = MemoryMeter.builder().build();
+        final MemoryMeter guess = MemoryMeter.builder().withGuessing(MemoryMeter.Guess.ALWAYS_SPEC).build();
         Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
         final List<Object> objects = new ArrayList<Object>(); {
             final ConcurrentSkipListMap<Long, Long> map = new ConcurrentSkipListMap<Long, Long>();
@@ -61,8 +59,8 @@ public class GuessTest {
 
     @Test
     public void testProblemClasses() throws InterruptedException, ExecutionException, IOException, IllegalAccessException, InstantiationException {
-        final MemoryMeter instrument = new MemoryMeter();
-        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
+        final MemoryMeter instrument = MemoryMeter.builder().build();
+        final MemoryMeter guess = MemoryMeter.builder().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE).build();
         Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
         List<Def> defs = new ArrayList<Def>();
         defs.add(Def.parse("{long*1}->{float*1}"));
@@ -87,8 +85,8 @@ public class GuessTest {
     @Test
     public void testRandomClasses() throws InterruptedException, ExecutionException {
         final int testsPerCPU = 100;
-        final MemoryMeter instrument = new MemoryMeter();
-        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
+        final MemoryMeter instrument = MemoryMeter.builder().build();
+        final MemoryMeter guess = MemoryMeter.builder().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE).build();
         Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
         final List<Future<Integer>> results = new ArrayList<Future<Integer>>();
         for (int i = 0 ; i < Runtime.getRuntime().availableProcessors() ; i++) {
@@ -118,8 +116,8 @@ public class GuessTest {
 
     @Test
     public void testRandomArrays() throws InterruptedException, ExecutionException {
-        final MemoryMeter instrument = new MemoryMeter();
-        final MemoryMeter guess = new MemoryMeter().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE);
+        final MemoryMeter instrument = MemoryMeter.builder().build();
+        final MemoryMeter guess = MemoryMeter.builder().withGuessing(MemoryMeter.Guess.ALWAYS_UNSAFE).build();
         Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
         final List<Future<Boolean>> results = new ArrayList<Future<Boolean>>();
         for (int i = 0 ; i < 10000 ; i++) {
@@ -147,7 +145,6 @@ public class GuessTest {
     private static final MyClassLoader CL = new MyClassLoader();
     private static final File tempDir = new File(System.getProperty("java.io.tmpdir"), "testclasses");
 
-    private static final Callable<Set<Object>> TRACKER_PROVIDER = new TrackerProvider();
     private static final ExecutorService CONSUME_PROCESS_OUTPUT = Executors.newCachedThreadPool(new DaemonThreadFactory());
     private static final ExecutorService EXEC = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -416,13 +413,6 @@ public class GuessTest {
             return sb.toString();
         }
     }
-
-    private static final class TrackerProvider implements Callable<Set<Object>> {
-        @Override
-        public Set<Object> call() throws Exception {
-            return new HashSet<Object>();
-        }
-    };
 
     private static final class DaemonThreadFactory implements ThreadFactory {
         @Override

@@ -10,8 +10,8 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
+import org.github.jamm.MemoryMeterListener.Factory;
 import org.github.jamm.strategies.MemoryMeterStrategies;
 
 public class MemoryMeter {
@@ -55,153 +55,38 @@ public class MemoryMeter {
      * The strategy used to measure the objects.
      */
     private final MemoryMeterStrategy strategy;
-    
-    private final Callable<Set<Object>> trackerProvider;
-    private final boolean includeFullBufferSize;
+
     private final Guess guess;
+    private final boolean omitSharedBufferOverhead;
     private final boolean ignoreOuterClassReference;
     private final boolean ignoreKnownSingletons;
     private final boolean ignoreNonStrongReferences;
     private final MemoryMeterListener.Factory listenerFactory;
 
-    public MemoryMeter() {
-        this(new Callable<Set<Object>>() {
-            public Set<Object> call() throws Exception {
-                // using a normal HashSet to track seen objects screws things up in two ways:
-                // - it can undercount objects that are "equal"
-                // - calling equals() can actually change object state (e.g. creating entrySet in HashMap)
-                return Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
-            }
-        }, true, Guess.ALWAYS_INSTRUMENTATION, false, false, false, NoopMemoryMeterListener.FACTORY);
+    private MemoryMeter(Builder builder) {
+
+        this.strategy = MemoryMeterStrategies.getInstance().getStrategy(builder.guess);
+        this.guess = builder.guess;
+        this.omitSharedBufferOverhead = builder.omitSharedBufferOverhead;
+        this.ignoreOuterClassReference = builder.ignoreOuterClassReference;
+        this.ignoreKnownSingletons = builder.ignoreKnownSingletons;
+        this.ignoreNonStrongReferences = builder.ignoreNonStrongReferences;
+        this.listenerFactory = builder.listenerFactory;
     }
 
-    /**
-     * @param trackerProvider returns a Set with which to track seen objects and avoid cycles
-     * @param includeFullBufferSize
-     * @param guess
-     * @param listenerFactory the <code>MemoryMeterListener.Factory</code>
-     */
-    private MemoryMeter(Callable<Set<Object>> trackerProvider,
-                        boolean includeFullBufferSize,
-                        Guess guess,
-                        boolean ignoreOuterClassReference,
-                        boolean ignoreKnownSingletons,
-                        boolean ignoreNonStrongReferences,
-                        MemoryMeterListener.Factory listenerFactory) {
-
-        this.strategy = MemoryMeterStrategies.getInstance().getStrategy(guess);
-        this.trackerProvider = trackerProvider;
-        this.includeFullBufferSize = includeFullBufferSize;
-        this.guess = guess;
-        this.ignoreOuterClassReference = ignoreOuterClassReference;
-        this.ignoreKnownSingletons = ignoreKnownSingletons;
-        this.ignoreNonStrongReferences = ignoreNonStrongReferences;
-        this.listenerFactory = listenerFactory;
+    public static Builder builder()
+    {
+        return new Builder();
     }
 
-    /**
-     * @param trackerProvider
-     * @return a MemoryMeter with the given provider
-     */
-    public MemoryMeter withTrackerProvider(Callable<Set<Object>> trackerProvider) {
-        return new MemoryMeter(trackerProvider,
-                               includeFullBufferSize,
-                               guess,
-                               ignoreOuterClassReference,
-                               ignoreKnownSingletons,
-                               ignoreNonStrongReferences,
-                               listenerFactory);
-    }
-
-    /**
-     * @return a MemoryMeter that only counts the bytes remaining in a ByteBuffer
-     * in measureDeep, rather than the full size of the backing array.
-     * TODO: handle other types of Buffers
-     */
-    public MemoryMeter omitSharedBufferOverhead() {
-        return new MemoryMeter(trackerProvider,
-                               false,
-                               guess,
-                               ignoreOuterClassReference,
-                               ignoreKnownSingletons,
-                               ignoreNonStrongReferences,
-                               listenerFactory);
-    }
-
-    /**
-     * @return a MemoryMeter that permits guessing the size of objects if instrumentation isn't enabled
-     */
-    public MemoryMeter withGuessing(Guess guess) {
-        return new MemoryMeter(trackerProvider,
-                               includeFullBufferSize,
-                               guess,
-                               ignoreOuterClassReference,
-                               ignoreKnownSingletons,
-                               ignoreNonStrongReferences,
-                               listenerFactory);
-    }
-    
-    /**
-     * @return a MemoryMeter that ignores the size of an outer class reference
-     */
-    public MemoryMeter ignoreOuterClassReference() {
-        return new MemoryMeter(trackerProvider,
-                               includeFullBufferSize,
-                               guess,
-                               true,
-                               ignoreKnownSingletons,
-                               ignoreNonStrongReferences,
-                               listenerFactory);
-    }
-    
-    /**
-     * return a MemoryMeter that ignores space occupied by known singletons such as Class objects and Enums
-     */
-    public MemoryMeter ignoreKnownSingletons() {
-        return new MemoryMeter(trackerProvider,
-                               includeFullBufferSize,
-                               guess,
-                               ignoreOuterClassReference,
-                               true,
-                               ignoreNonStrongReferences,
-                               listenerFactory);
-    }
-    
-    /**
-     * return a MemoryMeter that ignores space occupied by known singletons such as Class objects and Enums
-     */
-    public MemoryMeter ignoreNonStrongReferences() {
-        return new MemoryMeter(trackerProvider,
-                               includeFullBufferSize,
-                               guess,
-                               ignoreOuterClassReference,
-                               ignoreKnownSingletons,
-                               true,
-                               listenerFactory);
-    }
-
-    /**
-     * Makes this <code>MemoryMeter</code> prints the classes tree to <code>System.out</code> when measuring
-     */
-    public MemoryMeter enableDebug() {
-        return enableDebug(Integer.MAX_VALUE);
-    }
-
-    /**
-     * Makes this <code>MemoryMeter</code> prints the classes tree to <code>System.out</code> up to the specified depth
-     * when measuring
-     * @param depth the maximum depth for which the class tree must be printed
-     */
-    public MemoryMeter enableDebug(int depth) {
-        if (depth <= 0)
-            throw new IllegalArgumentException(String.format("the depth must be greater than zero (was %s).", depth));
-        return new MemoryMeter(trackerProvider,
-                               includeFullBufferSize,
-                               guess,
-                               ignoreOuterClassReference,
-                               ignoreKnownSingletons,
-                               ignoreNonStrongReferences,
-                               new TreePrinter.Factory(depth));
+    public Builder unbuild()
+    {
+        return new Builder(this.guess,
+                           this.ignoreOuterClassReference,
+                           this.ignoreKnownSingletons,
+                           this.ignoreNonStrongReferences,
+                           this.omitSharedBufferOverhead,
+                           this.listenerFactory);
     }
 
     /**
@@ -224,13 +109,7 @@ public class MemoryMeter {
         if (ignoreClass(object.getClass()))
             return 0;
 
-        Set<Object> tracker;
-        try {
-            tracker = trackerProvider.call();
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
         MemoryMeterListener listener = listenerFactory.newInstance();
 
         tracker.add(object);
@@ -250,7 +129,7 @@ public class MemoryMeter {
 
             if (current instanceof Object[]) {
                 addArrayChildren((Object[]) current, stack, tracker, listener);
-            } else if (current instanceof ByteBuffer && !includeFullBufferSize) {
+            } else if (current instanceof ByteBuffer && omitSharedBufferOverhead) {
                 total += ((ByteBuffer) current).remaining();
             } else {
             	Object referent = (ignoreNonStrongReferences && (current instanceof Reference)) ? ((Reference<?>)current).get() : null;
@@ -406,6 +285,96 @@ public class MemoryMeter {
                 tracker.add(child);
                 listener.fieldAdded(current, Integer.toString(i) , child);
             }
+        }
+    }
+
+    public static final class Builder {
+
+        private Guess guess = Guess.ALWAYS_INSTRUMENTATION;
+        private boolean ignoreOuterClassReference;
+        private boolean ignoreKnownSingletons;
+        private boolean ignoreNonStrongReferences;
+        private boolean omitSharedBufferOverhead;
+        private MemoryMeterListener.Factory listenerFactory = NoopMemoryMeterListener.FACTORY;
+
+        private Builder() {
+
+        }
+
+        private Builder(Guess guess,
+                       boolean ignoreOuterClassReference,
+                       boolean ignoreKnownSingletons,
+                       boolean ignoreNonStrongReferences,
+                       boolean omitSharedBufferOverhead,
+                       Factory listenerFactory)
+        {
+            this.guess = guess;
+            this.ignoreOuterClassReference = ignoreOuterClassReference;
+            this.ignoreKnownSingletons = ignoreKnownSingletons;
+            this.ignoreNonStrongReferences = ignoreNonStrongReferences;
+            this.omitSharedBufferOverhead = omitSharedBufferOverhead;
+            this.listenerFactory = listenerFactory;
+        }
+
+        public MemoryMeter build() {
+            return new MemoryMeter(this);
+        }
+
+        /**
+         * See {@link Guess} for possible guess-modes.
+         */
+        public Builder withGuessing(Guess guess) {
+            this.guess = guess;
+            return this;
+        }
+
+        public Builder ignoreOuterClassReference() {
+            this.ignoreOuterClassReference = true;
+            return this;
+        }
+
+        /**
+         * ignores space occupied by known singletons such as {@link Class} objects and {@code enum}s
+         */
+        public Builder ignoreKnownSingletons() {
+            this.ignoreKnownSingletons = true;
+            return this;
+        }
+
+        /**
+         * Ignores the references from a {@link java.lang.ref.Reference} (like weak/soft/phantom references).
+         */
+        public Builder ignoreNonStrongReferences() {
+            ignoreNonStrongReferences = true;
+            return this;
+        }
+
+
+        /**
+         * Counts only the bytes remaining in a ByteBuffer
+         * in measureDeep, rather than the full size of the backing array.
+         */
+        public Builder omitSharedBufferOverhead() {
+            omitSharedBufferOverhead = true;
+            return this;
+        }
+        
+        /**
+         * Prints the classes tree to {@ code System.out} when measuring through {@code measureDeep}.
+         */
+        public Builder printVisitedTree() {
+            return printVisitedTreeUpTo(Integer.MAX_VALUE);
+        }
+
+        /**
+         * Prints the classes tree to {@ code System.out} up to the specified depth when measuring through {@code measureDeep}.
+         */
+        public Builder printVisitedTreeUpTo(int depth) {
+            if (depth <= 0)
+                throw new IllegalArgumentException(String.format("the depth must be greater than zero (was %s).", depth));
+
+            listenerFactory = new TreePrinter.Factory(depth);
+            return this;
         }
     }
 }

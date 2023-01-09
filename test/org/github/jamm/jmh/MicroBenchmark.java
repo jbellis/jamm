@@ -58,7 +58,7 @@ public class MicroBenchmark
     public void setup()
     {
         MemoryMeter.Guess guess = MemoryMeter.Guess.valueOf(this.guess);
-        this.meter = new MemoryMeter().withGuessing(guess);
+        this.meter = MemoryMeter.builder().withGuessing(guess).build();
 
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 300; i++)

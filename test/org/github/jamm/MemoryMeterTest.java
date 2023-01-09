@@ -70,7 +70,7 @@ public class MemoryMeterTest
     }
 
     public static int sizeOfReference() {
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = MemoryMeter.builder().build();
 
         // this is probably the safest way to get the reference size
         // does imply that we are testing non-pure
@@ -209,7 +209,7 @@ public class MemoryMeterTest
 
     public static int sizeOfHeader() {
         // The Mac seems to pack things right in!
-        MemoryMeter meter = new MemoryMeter();
+        MemoryMeter meter = MemoryMeter.builder().build();
         long b0 = meter.measure(new Object()) - REFERENCE_SIZE;
         long b1 = meter.measure(new ByteHolder()) - REFERENCE_SIZE;
         long b2 = meter.measure(new TwoByteHolder()) - REFERENCE_SIZE;
@@ -312,7 +312,7 @@ public class MemoryMeterTest
 
     @Test
     public void testObjectArraySizes() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertEquals("Shallow size of Object[0]", arraySize(0), meter.measure(new Object[0]));
 
@@ -323,7 +323,7 @@ public class MemoryMeterTest
 
     @Test
     public void testByteArraySizes() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertEquals("Shallow size of byte[0]", byteArraySize(0), meter.measure(new byte[0]));
 
@@ -334,7 +334,7 @@ public class MemoryMeterTest
 
     @Test
     public void testCharArraySizes() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertEquals("Shallow size of char[0]", charArraySize(0), meter.measure(new char[0]));
 
@@ -345,7 +345,7 @@ public class MemoryMeterTest
 
     @Test
     public void testIntArraySizes() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertEquals("Shallow size of int[0]", intArraySize(0), meter.measure(new int[0]));
 
@@ -356,7 +356,7 @@ public class MemoryMeterTest
 
     @Test
     public void testLongArraySizes() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertEquals("Shallow size of long[0]", longArraySize(0), meter.measure(new long[0]));
 
@@ -413,7 +413,7 @@ public class MemoryMeterTest
     @Test
     public void testMacOSX_x86_64() {
         // Mac OS X seems to have a way to stash 4 bytes away in a plain object
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
         assumeThat(System.getProperty("os.name"), is("Mac OS X"));
         assumeThat(System.getProperty("os.arch"), is("x86_64"));
         assertEquals("no embedded long field", 24, meter.measure(new LongHolder()));
@@ -431,7 +431,7 @@ public class MemoryMeterTest
     @Test
     public void testMacOSX_i386() {
         // Mac OS X seems to have a way to stash 4 bytes away in a plain object
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
         assumeThat(System.getProperty("os.name"), is("Mac OS X"));
         assumeThat(System.getProperty("os.arch"), is("i386"));
         assertEquals("Room for 1 long", 16, meter.measure(new LongHolder()));
@@ -452,7 +452,7 @@ public class MemoryMeterTest
     @Test
     public void testPrimitives() {
 
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertEquals("Shallow size of Object", OBJECT_SIZE, meter.measure(new Object()));
         assertEquals("Deep size of Object", OBJECT_SIZE, meter.measureDeep(new Object()));
@@ -484,8 +484,8 @@ public class MemoryMeterTest
         ByteBuffer one = ByteBuffer.allocate(1);
         ByteBuffer emptyOne = (ByteBuffer) one.duplicate().position(1);
 
-        MemoryMeter m1 = new MemoryMeter().withGuessing(guess);;
-        MemoryMeter m2 = m1.omitSharedBufferOverhead();
+        MemoryMeter m1 = MemoryMeter.builder().withGuessing(guess).build();
+        MemoryMeter m2 = m1.unbuild().omitSharedBufferOverhead().build();
 
         // from Object
         // ref*2
@@ -514,7 +514,7 @@ public class MemoryMeterTest
 
     @Test
     public void testCycle() throws Exception {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         Recursive dummy = new Recursive();
         assertEquals("Shallow size of Recursive object", objectSize(0, 1, 0, 0, 1), meter.measure(dummy));
@@ -525,7 +525,7 @@ public class MemoryMeterTest
 
     @Test
     public void testInheritance() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertEquals("Shallow size of Parent", objectSize(0, 1, 0, 0, 0), meter.measure(new Parent()));
         assertEquals("Deep size of Parent", objectSize(0, 1, 0, 0, 0), meter.measureDeep(new Parent()));
@@ -536,7 +536,7 @@ public class MemoryMeterTest
     @Test
     @Ignore("These vary quite radically depending on the JVM.")
     public void testCollections() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertEquals("sizeOf ArrayList",
                 objectSize(0, 2, 0, 0, 1) // the object itself
@@ -559,7 +559,7 @@ public class MemoryMeterTest
 
     @Test
     public void testDeep() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         Recursive root = new Recursive();
         Recursive recursive = root;
@@ -598,7 +598,7 @@ public class MemoryMeterTest
     @Test
     public void testWithInnerClass () {
         Outer outer = new Outer();
-        MemoryMeter meter = new MemoryMeter().enableDebug(100);
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         long outerSize = meter.measure(outer);
         long innerSize = meter.measure(outer.inner);
@@ -607,17 +607,20 @@ public class MemoryMeterTest
         long size = outerSize + innerSize + somethingHeavySize;
 
         assertEquals(size, meter.measureDeep(outer));
-        assertEquals(innerSize, meter.ignoreOuterClassReference().measureDeep(outer.inner));
+
+        meter = meter.unbuild().ignoreOuterClassReference().build();
+
+        assertEquals(innerSize, meter.measureDeep(outer.inner));
     }
 
     @Test
     public void testIgnoreKnownSingletons() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         long classFieldSize = meter.measureDeep(new HasClassField());
         long enumFieldSize = meter.measureDeep(new HasEnumField());
 
-        meter = meter.ignoreKnownSingletons();
+        meter = meter.unbuild().ignoreKnownSingletons().build();
 
         assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
         assertNotEquals(enumFieldSize, meter.measureDeep(new HasEnumField()));
@@ -625,11 +628,11 @@ public class MemoryMeterTest
 
     @Test
     public void testIgnoreNonStrongReferences() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         long classFieldSize = meter.measureDeep(new HasReferenceField());
 
-        meter = meter.ignoreNonStrongReferences();
+        meter = meter.unbuild().ignoreNonStrongReferences().build();
 
         assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
     }
@@ -653,7 +656,7 @@ public class MemoryMeterTest
 
     @Test
     public void testUnmeteredAnnotationOnFields() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         String s = "test";
 
@@ -667,7 +670,7 @@ public class MemoryMeterTest
 
     @Test
     public void testUnmeteredTypeAnnotation() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         String s = "test";
         assertEquals(0, meter.measureDeep(new WithTypeAnnotation(s)));
@@ -675,7 +678,7 @@ public class MemoryMeterTest
 
     @Test
     public void testUnmeteredAnnotationOnParent() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         String s = "test";
         assertEquals(0, meter.measureDeep(new WithParentWithAnnotation(s)));
@@ -683,7 +686,7 @@ public class MemoryMeterTest
 
     @Test
     public void testUnmeteredAnnotationOnFieldParent() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         long withoutSize = meter.measureDeep(new WithFieldWithAnnotatedParent(null));
 
@@ -694,7 +697,7 @@ public class MemoryMeterTest
 
     @Test
     public void testUnmeteredAnnotationOnFieldInterface() {
-        MemoryMeter meter = new MemoryMeter().withGuessing(guess);;
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         long withoutSize = meter.measureDeep(new WithFieldAnnotatedInterface(null));
 
