@@ -40,7 +40,7 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
     protected final long measureArray(Object instance, Class<?> type) {
         int length = Array.getLength(instance);
         int elementSize = measureField(type.getComponentType());
-        return roundTo(memoryLayout.getArrayHeaderSize() + length * (long) elementSize, memoryLayout.getObjectPadding());
+        return roundTo(memoryLayout.getArrayHeaderSize() + length * (long) elementSize, memoryLayout.getObjectAlignment());
     }
 
     /**
