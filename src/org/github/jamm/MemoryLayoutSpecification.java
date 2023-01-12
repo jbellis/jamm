@@ -1,144 +1,126 @@
 package org.github.jamm;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryPoolMXBean;
-import java.lang.management.RuntimeMXBean;
-
-public abstract class MemoryLayoutSpecification
+/**
+ * Information about the memory layout used by the JVM running the code.
+ * This code assume that the JVM is an HotSpot JVM.
+ * 
+ * <p>The memory layout for normal Java objects start with an object header which consists of mark and class words plus
+ *  possible alignment paddings. After the object header, there may be zero or more references to instance fields.</p>
+ * <p>For arrays, the header contains a 4-byte array length in addition to mark, class, and paddings.</p> 
+ *  
+ * <p>Object are aligned: they always start at some multiple of the alignment.</p>
+ *
+ */
+public interface MemoryLayoutSpecification
 {
-    public abstract int getArrayHeaderSize();
+    /**
+     * Returns the size of the array header.
+     * <p>The array header is composed of the object header + the array length.
+     * Its size in bytes is equal to {@code getObjectHeaderSize()} + 4</p>
+     * 
+     * @return the size of the array header.
+     */
+    int getArrayHeaderSize();
 
-    public abstract int getObjectHeaderSize();
+    /**
+     * Returns the size of the object header (mark word + class word).
+     * @return the size of the object header
+     */
+    int getObjectHeaderSize();
 
-    public abstract int getObjectPadding();
+    /**
+     * Returns the object alignment (padding) in bytes.
+     * <p>The alignment is always a power of 2.</p>
+     *
+     * @return the object alignment in bytes.
+     */
+    int getObjectAlignment();
 
-    public abstract int getReferenceSize();
-
-    public abstract int getSuperclassFieldPadding();
+    /**
+     * Returns the size of the reference to java objects (also called <i>oops</i> for <i>ordinary object pointers</i>)
+     *
+     * @return the java object reference size
+     */
+    int getReferenceSize();
 
     public static MemoryLayoutSpecification getEffectiveMemoryLayoutSpecification() {
 
-        final String dataModel = System.getProperty("sun.arch.data.model");
-        if ("32".equals(dataModel)) {
+        int objectAlignment = VM.getObjectAlignmentInBytes();
+
+        if (VM.is32Bits()) {
             // Running with 32-bit data model
             return new MemoryLayoutSpecification() {
+
+                @Override
                 public int getArrayHeaderSize() {
-                    return 12;
+                    return 12; // object header (8 bytes) + array length (4 bytes)
                 }
 
+                @Override
                 public int getObjectHeaderSize() {
-                    return 8;
+                    return 8; // mark word (4 bytes) + class word (4 bytes)
                 }
 
-                public int getObjectPadding() {
-                    return 8;
+                @Override
+                public int getObjectAlignment() {
+                    return objectAlignment;
                 }
 
+                @Override
                 public int getReferenceSize() {
-                    return 4;
+                    return 4; // reference size for 32 bit
+                }
+            };
+        }
+
+        if (VM.useCompressedOops()) {
+
+            return new MemoryLayoutSpecification() {
+
+                @Override
+                public int getArrayHeaderSize() {
+                    return 16; // object header (12 bytes) + array length (4 bytes)
                 }
 
-                public int getSuperclassFieldPadding() {
+                @Override
+                public int getObjectHeaderSize() {
+                    return 12; // mark word (8 bytes) + class word (4 bytes)
+                }
+
+                @Override
+                public int getObjectAlignment() {
+                    return objectAlignment;
+                }
+
+                @Override
+                public int getReferenceSize() {
                     return 4;
                 }
             };
         }
 
-        boolean modernJvm = true;
-
-        final String strSpecVersion = System.getProperty("java.specification.version");
-        final boolean hasDot = strSpecVersion.indexOf('.') != -1;
-        if (hasDot) {
-            if ("1".equals(strSpecVersion.substring(0, strSpecVersion.indexOf('.')))) {
-                // Java 1.6, 1.7, 1.8
-                final String strVmVersion = System.getProperty("java.vm.version");
-                if (strVmVersion.startsWith("openj9"))
-                {
-                    modernJvm = true;
-                }
-                else
-                {
-                    final int vmVersion = Integer.parseInt(strVmVersion.substring(0, strVmVersion.indexOf('.')));
-                    modernJvm = vmVersion >= 17;
-                }
-            }
-        }
-
-        final int alignment = getAlignment();
-        if (modernJvm) {
-
-            long maxMemory = 0;
-            for (MemoryPoolMXBean mp : ManagementFactory.getMemoryPoolMXBeans()) {
-                maxMemory += mp.getUsage().getMax();
-            }
-
-            if (maxMemory < 30L * 1024 * 1024 * 1024) {
-                // HotSpot 17.0 and above use compressed OOPs below 30GB of RAM
-                // total for all memory pools (yes, including code cache).
-                return new MemoryLayoutSpecification() {
-
-                    public int getArrayHeaderSize() {
-                        return 16;
-                    }
-
-                    public int getObjectHeaderSize() {
-                        return 12;
-                    }
-
-                    public int getObjectPadding() {
-                        return alignment;
-                    }
-
-                    public int getReferenceSize() {
-                        return 4;
-                    }
-
-                    public int getSuperclassFieldPadding() {
-                        return 4;
-                    }
-                };
-            }
-        }
-
-        /* Worst case we over count. */
-
         // In other cases, it's a 64-bit uncompressed OOPs object model
         return new MemoryLayoutSpecification() {
 
+            @Override
             public int getArrayHeaderSize() {
-                return 24;
+                return 20; // object header (16 bytes) + array length (4 bytes)
             }
 
+            @Override
             public int getObjectHeaderSize() {
-                return 16;
+                return 16; // mark word (8 bytes) + class word (8 bytes)
             }
 
-            public int getObjectPadding() {
-                return alignment;
+            @Override
+            public int getObjectAlignment() {
+                return objectAlignment;
             }
 
+            @Override
             public int getReferenceSize() {
-                return 8;
-            }
-
-            public int getSuperclassFieldPadding() {
                 return 8;
             }
         };
     }
-
-    // check if we have a non-standard object alignment we need to round to
-    private static int getAlignment() {
-        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-        for (String arg : runtimeMxBean.getInputArguments()) {
-            if (arg.startsWith("-XX:ObjectAlignmentInBytes=")) {
-                try {
-                    return Integer.parseInt(arg.substring("-XX:ObjectAlignmentInBytes=".length()));
-                } catch (Exception e){}
-            }
-        }
-        return 8;
-    }
-
-
 }

@@ -33,10 +33,10 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
             }
 
             if (size > 0)
-                return roundTo(size, memoryLayout.getObjectPadding());
+                return roundTo(size, memoryLayout.getObjectAlignment());
 
             type = type.getSuperclass();
         }
-        return roundTo(memoryLayout.getObjectHeaderSize(), memoryLayout.getObjectPadding());
+        return roundTo(memoryLayout.getObjectHeaderSize(), memoryLayout.getObjectAlignment());
     }
 }

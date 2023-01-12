@@ -19,9 +19,9 @@ public final class SpecStrategy extends MemoryLayoutBasedStrategy
         long size = memoryLayout.getObjectHeaderSize() + sizeOfDeclaredFields(type);
 
         while ((type = type.getSuperclass()) != Object.class && type != null)
-            size += roundTo(sizeOfDeclaredFields(type), memoryLayout.getSuperclassFieldPadding());
+            size += sizeOfDeclaredFields(type);
 
-        return roundTo(size, memoryLayout.getObjectPadding());
+        return roundTo(size, memoryLayout.getObjectAlignment());
     }
 
     private long sizeOfDeclaredFields(Class<?> type) {
