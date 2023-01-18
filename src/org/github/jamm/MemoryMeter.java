@@ -141,41 +141,6 @@ public class MemoryMeter {
         return total;
     }
 
-    /**
-     * @return the number of child objects referenced by @param object
-     * @throws NullPointerException if object is null
-     */
-    public long countChildren(Object object) {
-        if (object == null) {
-            throw new NullPointerException();
-        }
-
-        MemoryMeterListener listener = listenerFactory.newInstance();
-        Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
-        tracker.add(object);
-        listener.started(object);
-        Deque<Object> stack = new ArrayDeque<Object>();
-        stack.push(object);
-
-        long total = 0;
-        while (!stack.isEmpty()) {
-            Object current = stack.pop();
-            assert current != null;
-            total++;
-            listener.objectCounted(current);
-
-            if (current instanceof Object[]) {
-                addArrayChildren((Object[]) current, stack, tracker, listener);
-            } else {
-            	Object referent = (ignoreNonStrongReferences && (current instanceof Reference)) ? ((Reference<?>)current).get() : null;
-                addFieldChildren(current, stack, tracker, referent, listener);
-            }
-        }
-
-        listener.done(total);
-        return total;
-    }
-
     private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker, Object ignorableChild, MemoryMeterListener listener) {
         Class<?> cls = current.getClass();
         while (!skipClass(cls)) {
