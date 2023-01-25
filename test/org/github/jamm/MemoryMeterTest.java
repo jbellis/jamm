@@ -50,7 +50,6 @@ public class MemoryMeterTest
     static final int HEADER_SIZE = sizeOfHeader();
     static final int OBJECT_SIZE = pad(HEADER_SIZE + REFERENCE_SIZE);
 
-    @SuppressWarnings("deprecation")
     @Parameterized.Parameters
     public static Collection<MemoryMeter.Guess> guesses() {
 
@@ -485,7 +484,7 @@ public class MemoryMeterTest
         ByteBuffer emptyOne = (ByteBuffer) one.duplicate().position(1);
 
         MemoryMeter m1 = MemoryMeter.builder().withGuessing(guess).build();
-        MemoryMeter m2 = m1.unbuild().omitSharedBufferOverhead().build();
+        MemoryMeter m2 = MemoryMeter.builder().withGuessing(guess).omitSharedBufferOverhead().build();
 
         // from Object
         // ref*2
@@ -608,7 +607,7 @@ public class MemoryMeterTest
 
         assertEquals(size, meter.measureDeep(outer));
 
-        meter = meter.unbuild().ignoreOuterClassReference().build();
+        meter = MemoryMeter.builder().withGuessing(guess).ignoreOuterClassReference().build();
 
         assertEquals(innerSize, meter.measureDeep(outer.inner));
     }
@@ -620,7 +619,7 @@ public class MemoryMeterTest
         long classFieldSize = meter.measureDeep(new HasClassField());
         long enumFieldSize = meter.measureDeep(new HasEnumField());
 
-        meter = meter.unbuild().ignoreKnownSingletons().build();
+        meter = MemoryMeter.builder().withGuessing(guess).ignoreKnownSingletons().build();
 
         assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
         assertNotEquals(enumFieldSize, meter.measureDeep(new HasEnumField()));
@@ -632,7 +631,7 @@ public class MemoryMeterTest
 
         long classFieldSize = meter.measureDeep(new HasReferenceField());
 
-        meter = meter.unbuild().ignoreNonStrongReferences().build();
+        meter = MemoryMeter.builder().withGuessing(guess).ignoreNonStrongReferences().build();
 
         assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
     }
