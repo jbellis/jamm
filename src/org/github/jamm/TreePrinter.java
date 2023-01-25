@@ -59,6 +59,11 @@ final class TreePrinter implements MemoryMeterListener {
     }
 
     @Override
+    public void arrayElementAdded(Object[] array, int index, Object elementValue) {
+        fieldAdded(array, Integer.toString(index) , elementValue);
+    }
+
+    @Override
     public void objectMeasured(Object current, long size) {
         ObjectInfo field = mapping.get(current);
         if (field != null) {

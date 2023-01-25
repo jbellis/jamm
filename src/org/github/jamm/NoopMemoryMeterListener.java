@@ -27,6 +27,10 @@ public final class NoopMemoryMeterListener implements MemoryMeterListener {
     }
 
     @Override
+    public void arrayElementAdded(Object[] array, int index, Object elementValue) {
+    }
+
+    @Override
     public void done(long size) {
     }
 

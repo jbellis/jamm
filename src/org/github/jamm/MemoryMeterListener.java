@@ -29,6 +29,15 @@ interface MemoryMeterListener {
     void fieldAdded(Object obj, String fieldName, Object fieldValue);
 
     /**
+     * Notification that the element from the specified array has been added.
+     *
+     * @param array the array for which a element has been added
+     * @param index the element index
+     * @param elementValue the element value
+     */
+    void arrayElementAdded(Object[] array, int index, Object elementValue);
+
+    /**
      * Notification that the size of the specified object has been measured.
      *
      * @param current the object that has been measured
