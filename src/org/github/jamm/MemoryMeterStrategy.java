@@ -1,9 +1,15 @@
 package org.github.jamm;
 
+/**
+ * Represents a strategy to measure the shallow memory used by a Java object. 
+ */
+@FunctionalInterface
 public interface MemoryMeterStrategy
 {
     /**
-     * @return the shallow memory usage of @param object
+     * Measures the shallow memory used by the specified object.
+     *
+     * @return the shallow memory usage of the @param object
      * @throws NullPointerException if object is null
      */
     long measure(Object object);
