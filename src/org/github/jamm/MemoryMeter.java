@@ -198,7 +198,7 @@ public final class MemoryMeter {
 
                 stack.push(child);
                 tracker.add(child);
-                listener.fieldAdded(current, Integer.toString(i) , child);
+                listener.arrayElementAdded(current, i , child);
             }
         }
     }
