@@ -1,9 +1,7 @@
 package org.github.jamm;
 
 import java.lang.instrument.Instrumentation;
-import java.lang.ref.Reference;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -15,8 +13,6 @@ import org.github.jamm.MemoryMeterListener.Factory;
 import org.github.jamm.strategies.MemoryMeterStrategies;
 
 public class MemoryMeter {
-
-    private static final String outerClassReference = "this\\$[0-9]+";
 
     public static void premain(String options, Instrumentation inst) {
         MemoryMeterStrategies.instrumentation = inst;
@@ -56,37 +52,25 @@ public class MemoryMeter {
      */
     private final MemoryMeterStrategy strategy;
 
-    private final Guess guess;
+    private final FieldAndClassFilter classFilters;
+
+    private final FieldFilter fieldFilters;
+
     private final boolean omitSharedBufferOverhead;
-    private final boolean ignoreOuterClassReference;
-    private final boolean ignoreKnownSingletons;
-    private final boolean ignoreNonStrongReferences;
     private final MemoryMeterListener.Factory listenerFactory;
 
     private MemoryMeter(Builder builder) {
 
         this.strategy = MemoryMeterStrategies.getInstance().getStrategy(builder.guess);
-        this.guess = builder.guess;
         this.omitSharedBufferOverhead = builder.omitSharedBufferOverhead;
-        this.ignoreOuterClassReference = builder.ignoreOuterClassReference;
-        this.ignoreKnownSingletons = builder.ignoreKnownSingletons;
-        this.ignoreNonStrongReferences = builder.ignoreNonStrongReferences;
+        this.classFilters = Filters.getClassFilters(builder.ignoreKnownSingletons);
+        this.fieldFilters = Filters.getFieldFilters(builder.ignoreKnownSingletons, builder.ignoreOuterClassReference, builder.ignoreNonStrongReferences);
         this.listenerFactory = builder.listenerFactory;
     }
 
     public static Builder builder()
     {
         return new Builder();
-    }
-
-    public Builder unbuild()
-    {
-        return new Builder(this.guess,
-                           this.ignoreOuterClassReference,
-                           this.ignoreKnownSingletons,
-                           this.ignoreNonStrongReferences,
-                           this.omitSharedBufferOverhead,
-                           this.listenerFactory);
     }
 
     /**
@@ -106,7 +90,7 @@ public class MemoryMeter {
             throw new NullPointerException(); // match getObjectSize behavior
         }
 
-        if (ignoreClass(object.getClass()))
+        if (classFilters.ignore(object.getClass()))
             return 0;
 
         Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
@@ -132,8 +116,7 @@ public class MemoryMeter {
             } else if (current instanceof ByteBuffer && omitSharedBufferOverhead) {
                 total += ((ByteBuffer) current).remaining();
             } else {
-            	Object referent = (ignoreNonStrongReferences && (current instanceof Reference)) ? ((Reference<?>)current).get() : null;
-                addFieldChildren(current, stack, tracker, referent, listener);
+                addFieldChildren(current, stack, tracker, listener);
             }
         }
 
@@ -141,22 +124,12 @@ public class MemoryMeter {
         return total;
     }
 
-    private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker, Object ignorableChild, MemoryMeterListener listener) {
+    private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker, MemoryMeterListener listener) {
         Class<?> cls = current.getClass();
-        while (!skipClass(cls)) {
+        while (cls != null) {
             for (Field field : cls.getDeclaredFields()) {
-                if (field.getType().isPrimitive()
-                        || Modifier.isStatic(field.getModifiers())
-                        || field.isAnnotationPresent(Unmetered.class)) {
+                if (fieldFilters.ignore(field)) {
                     continue;
-                }
-                
-                if (ignoreOuterClassReference && field.getName().matches(outerClassReference)) {
-                	continue;
-                }
-
-                if (ignoreClass(field.getType())) {
-                	continue;
                 }
 
                 field.setAccessible(true);
@@ -166,13 +139,11 @@ public class MemoryMeter {
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
-                
-                if (child != ignorableChild) {
-	                if (child != null && !tracker.contains(child)) {
-	                    stack.push(child);
-	                    tracker.add(child);
-	                    listener.fieldAdded(current, field.getName(), child);
-	                }
+
+                if (child != null && !tracker.contains(child)) {
+                    stack.push(child);
+                    tracker.add(child);
+                    listener.fieldAdded(current, field.getName(), child);
                 }
             }
 
@@ -180,72 +151,16 @@ public class MemoryMeter {
         }
     }
 
-    private static final Class clsJLRModule;
-    private static final Class clsJLMModuleDescriptor;
-    private static final Class clsJLRAccessibleObject;
-    private static final Class clsSRAAnnotationInvocationHandler;
-    private static final Class clsSRAAnnotationType;
-    private static final Class clsJIRUnsafeFieldAccessorImpl;
-    private static final Class clsJIRDelegatingMethodAccessorImpl;
-    static
-    {
-        clsJLRModule = maybeGetClass("java.lang.reflect.Module");
-        clsJLMModuleDescriptor = maybeGetClass("java.lang.module.ModuleDescriptor");
-        clsJLRAccessibleObject = maybeGetClass("java.lang.reflect.AccessibleObject");
-        clsSRAAnnotationInvocationHandler = maybeGetClass("sun.reflect.annotation.AnnotationInvocationHandler");
-        clsSRAAnnotationType = maybeGetClass("sun.reflect.annotation.AnnotationType");
-        clsJIRUnsafeFieldAccessorImpl = maybeGetClass("jdk.internal.reflect.UnsafeFieldAccessorImpl");
-        clsJIRDelegatingMethodAccessorImpl = maybeGetClass("jdk.internal.reflect.DelegatingMethodAccessorImpl");
-    }
-
-    private static Class<?> maybeGetClass(String name)
-    {
-        try {
-            return Class.forName(name);
-        } catch (ClassNotFoundException e) {
-            return null;
-        }
-    }
-
-    private boolean skipClass(Class<?> cls) {
-        return cls == null || cls == Class.class
-               || cls == clsJLRModule || cls == clsJLMModuleDescriptor || cls == clsJLRAccessibleObject
-               || cls == clsSRAAnnotationInvocationHandler || cls == clsSRAAnnotationType
-               || cls == clsJIRUnsafeFieldAccessorImpl || cls == clsJIRDelegatingMethodAccessorImpl;
-    }
-
-    private boolean ignoreClass(Class<?> cls) {
-        return (ignoreKnownSingletons && (cls.equals(Class.class) || Enum.class.isAssignableFrom(cls)))
-                || isAnnotationPresent(cls);
-    }
-
-    private boolean isAnnotationPresent(Class<?> cls) {
-
-        if (cls == null)
-            return false;
-
-        if (cls.isAnnotationPresent(Unmetered.class))
-            return true;
-
-        Class<?>[] interfaces = cls.getInterfaces();
-        for (int i = 0; i < interfaces.length; i++) {
-            if (isAnnotationPresent(cls.getInterfaces()[i]))
-                return true;
-        }
-
-        return isAnnotationPresent(cls.getSuperclass());
-    }
-
     private void addArrayChildren(Object[] current, Deque<Object> stack, Set<Object> tracker, MemoryMeterListener listener) {
         for (int i = 0; i < current.length; i++) {
             Object child = current[i];
             if (child != null && !tracker.contains(child)) {
-            	
+
                 Class<?> childCls = child.getClass();
-                if (ignoreClass(childCls)) {
-                	continue;
+                if (classFilters.ignore(childCls)) {
+                    continue;
                 }
-                
+
                 stack.push(child);
                 tracker.add(child);
                 listener.fieldAdded(current, Integer.toString(i) , child);
