@@ -12,7 +12,7 @@ import java.util.Set;
 import org.github.jamm.MemoryMeterListener.Factory;
 import org.github.jamm.strategies.MemoryMeterStrategies;
 
-public class MemoryMeter {
+public final class MemoryMeter {
 
     public static void premain(String options, Instrumentation inst) {
         MemoryMeterStrategies.instrumentation = inst;
@@ -52,20 +52,55 @@ public class MemoryMeter {
      */
     private final MemoryMeterStrategy strategy;
 
-    private final FieldAndClassFilter classFilters;
+    /**
+     * Filter used to determine which classes should be ignored.
+     */
+    private final FieldAndClassFilter classFilter;
 
+    /**
+     * Filter used to determine which field should be ignored.
+     */
     private final FieldFilter fieldFilters;
 
     private final boolean omitSharedBufferOverhead;
+
+    /**
+     * The factory used to create the listener listening to the object graph traversal.
+     */
     private final MemoryMeterListener.Factory listenerFactory;
 
     private MemoryMeter(Builder builder) {
 
-        this.strategy = MemoryMeterStrategies.getInstance().getStrategy(builder.guess);
-        this.omitSharedBufferOverhead = builder.omitSharedBufferOverhead;
-        this.classFilters = Filters.getClassFilters(builder.ignoreKnownSingletons);
-        this.fieldFilters = Filters.getFieldFilters(builder.ignoreKnownSingletons, builder.ignoreOuterClassReference, builder.ignoreNonStrongReferences);
-        this.listenerFactory = builder.listenerFactory;
+        this(MemoryMeterStrategies.getInstance().getStrategy(builder.guess),
+             Filters.getClassFilters(builder.ignoreKnownSingletons),
+             Filters.getFieldFilters(builder.ignoreKnownSingletons, builder.ignoreOuterClassReference, builder.ignoreNonStrongReferences),
+             builder.omitSharedBufferOverhead,
+             builder.listenerFactory);
+    }
+
+    /**
+     * Create a new {@link MemoryMeter} instance from the different component it needs to measure object graph.
+     * <p>Unless there is a specific need to override some of the {@code MemoryMeter} logic people should only create 
+     * {@MemoryMeter} instances through {@code MemoryMeter.builder()}. This constructor provide a way to modify part of the 
+     * logic being used by allowing to use specific implementations for the strategy or filters.</p>
+     * 
+     * @param strategy the {@code MemoryMeterStrategy} to use for measuring object shallow size.
+     * @param classFilter the filter used to filter out classes from the measured object graph
+     * @param fieldFilter the filter used to filter out fields from the measured object graph
+     * @param omitSharedBufferOverhead
+     * @param listenerFactory the factory used to create the listener listening to the object graph traversal
+     */
+    public MemoryMeter(MemoryMeterStrategy strategy,
+                       FieldAndClassFilter classFilter,
+                       FieldFilter fieldFilter,
+                       boolean omitSharedBufferOverhead,
+                       MemoryMeterListener.Factory listenerFactory) {
+
+        this.strategy = strategy;
+        this.classFilter = classFilter;
+        this.fieldFilters = fieldFilter;
+        this.omitSharedBufferOverhead = omitSharedBufferOverhead;
+        this.listenerFactory = listenerFactory;
     }
 
     public static Builder builder()
@@ -90,7 +125,7 @@ public class MemoryMeter {
             throw new NullPointerException(); // match getObjectSize behavior
         }
 
-        if (classFilters.ignore(object.getClass()))
+        if (classFilter.ignore(object.getClass()))
             return 0;
 
         Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
@@ -157,7 +192,7 @@ public class MemoryMeter {
             if (child != null && !tracker.contains(child)) {
 
                 Class<?> childCls = child.getClass();
-                if (classFilters.ignore(childCls)) {
+                if (classFilter.ignore(childCls)) {
                     continue;
                 }
 
@@ -168,6 +203,9 @@ public class MemoryMeter {
         }
     }
 
+    /**
+     * Builder for {@code MemoryMeter} instances
+     */
     public static final class Builder {
 
         private Guess guess = Guess.ALWAYS_INSTRUMENTATION;
@@ -229,7 +267,6 @@ public class MemoryMeter {
             return this;
         }
 
-
         /**
          * Counts only the bytes remaining in a ByteBuffer
          * in measureDeep, rather than the full size of the backing array.
@@ -238,7 +275,7 @@ public class MemoryMeter {
             omitSharedBufferOverhead = true;
             return this;
         }
-        
+
         /**
          * Prints the classes tree to {@ code System.out} when measuring through {@code measureDeep}.
          */
