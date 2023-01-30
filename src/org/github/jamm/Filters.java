@@ -52,10 +52,10 @@ public final class Filters
         }
 
         /**
-         * Checks if the specified class or one of its parent is annotated with {@code Unmetered}
+         * Checks if the specified class or one of its parents is annotated with {@code Unmetered}
          *
          * @param cls the class to check 
-         * @return {@code true} if the specified class or one of its parent is annotated with {@code Unmetered}, {@code false} otherwise.
+         * @return {@code true} if the specified class or one of its parents is annotated with {@code Unmetered}, {@code false} otherwise.
          */
         private boolean isUnmeteredAnnotationPresent(Class<?> cls) {
 

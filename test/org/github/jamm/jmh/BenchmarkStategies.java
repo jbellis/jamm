@@ -27,7 +27,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @BenchmarkMode(Mode.AverageTime)
 @State(Scope.Thread)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-public class BenchmarkMeasure
+public class BenchmarkStategies
 {
     @Param({"ALWAYS_INSTRUMENTATION", "ALWAYS_SPEC", "ALWAYS_UNSAFE"})
     private String guess;
@@ -43,7 +43,7 @@ public class BenchmarkMeasure
                                              ClassWithOnePrimitiveFields.class,
                                              ClassWithOneObjectField.class,
                                              ClassWithTreeObjectFields.class,
-                                             ClassWithOneObjectFieldsAndTwoPrimitives.class,
+                                             ClassWithOneObjectFieldAndTwoPrimitives.class,
                                              ClassWithFiveObjectFields.class};
 
         Random random = new Random();
@@ -89,7 +89,7 @@ public class BenchmarkMeasure
         String[] third = new String[] {"one", "two"};
     }
 
-    public static class ClassWithOneObjectFieldsAndTwoPrimitives
+    public static class ClassWithOneObjectFieldAndTwoPrimitives
     {
         byte first;
 
@@ -104,56 +104,4 @@ public class BenchmarkMeasure
 
         int[] fifth = new int[12];
     }
-
-//    public static Object generateObject(Random random, Class<?> clazz) throws Exception
-//    {
-//        if (String.class.isAssignableFrom(clazz))
-//            return generateString(random);
-//
-//        if (clazz.isArray())
-//            return generateArray(random, clazz.getComponentType());
-//
-//        Object o = clazz.newInstance();
-//
-//        Field[] fields = clazz.getDeclaredFields();
-//        AccessibleObject.setAccessible(fields, true);
-//
-//        for (Field field : fields)
-//        {
-//            if (!field.getType().isPrimitive())
-//                field.set(o, new Object());
-//        }
-//
-//        AccessibleObject.setAccessible(fields, false);
-//
-//        return o;
-//    }
-//
-//    public static Object generateString(Random random) throws Exception
-//    {
-//        int letterA = 97;
-//        int letterZ = 122;
-//        int length = random.nextInt(100);
-//
-//        return random.ints(letterA, letterZ + 1)
-//                     .limit(length)
-//                     .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-//                     .toString();
-//    }
-//
-//    public static Object generateArray(Random random, Class<?> componentType) throws Exception
-//    {
-//        int length = random.nextInt(20);
-//        Object array = Array.newInstance(componentType, length);
-//
-//        if (componentType.isPrimitive())
-//            return array; // For primitive we can stop here as "measure" is only looking at the field type not at the actual value.
-//
-//        for (int i = 0; i < length; i++)
-//        {
-//            Array.set(array, i, new Object()); // We just need a java reference so new Object is fine
-//        }
-//
-//        return array;
-//    }
 }

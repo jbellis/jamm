@@ -34,7 +34,7 @@ final class VM
     }
 
     /**
-     * Retrieve the object alignment in bytes from the JVM. If the alignment cannot be retrieve 
+     * Retrieve the object alignment in bytes from the JVM. If the alignment cannot be retrieved 
      * the default value will be returned.
      *
      * @return the object alignment in bytes if it can be retrieved or the default value (8).

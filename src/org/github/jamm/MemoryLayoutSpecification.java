@@ -8,7 +8,7 @@ package org.github.jamm;
  *  possible alignment paddings. After the object header, there may be zero or more references to instance fields.</p>
  * <p>For arrays, the header contains a 4-byte array length in addition to mark, class, and paddings.</p> 
  *  
- * <p>Object are aligned: they always start at some multiple of the alignment.</p>
+ * <p>Objects are aligned: they always start at some multiple of the alignment.</p>
  *
  */
 public interface MemoryLayoutSpecification

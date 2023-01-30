@@ -3,6 +3,7 @@
 Jamm provides `MemoryMeter`, a Java agent for all Java versions to
 measure actual object memory use including JVM overhead.
 
+Jamm assume that the JVM running the code is an HotSpot JVM. It has not been tested with other type of JVMs.
 
 # Building
 
@@ -18,10 +19,9 @@ The best way to use `MemoryMeter` is to start the JVM with "-javaagent:<path to>
 
 `MemoryMeter` can be used in your code like this:
 
-    MemoryMeter meter = new MemoryMeter();
+    MemoryMeter meter = MemoryMeter.builder().build();
     meter.measure(object);
     meter.measureDeep(object);
-    meter.countChildren(object);
 
 
 If you would like to use `MemoryMeter` in a web application, make sure
@@ -39,6 +39,15 @@ mark the classes (or interfaces) using the `Unmetered` annotation.
   <artifactId>jamm</artifactId>
   <version>0.4.0-SNAPSHOT</version>
 ```
+
+# 0.4.0 breaking changes
+
+The 0.4.0 version comes with speed improvements and support for most recent java versions but also some breaking
+changes at the API level. 
+* The `MemoryMeter` constructor and the static methods used to configure the different options (`omitSharedBufferOverhead`, `withGuessing`, `ignoreOuterClassReference`, `ignoreKnownSingletons`, `ignoreNonStrongReferences`, `enableDebug`) have been removed. Instead `MemoryMeter` instances must be created through a `Builder`.
+* The ability to provide a tracker for visited object has been removed.
+* `Guess.NEVER` has been renamed `Guess.ALWAYS_INSTRUMENTATION` for more clarity.
+* `MemoryMeter.countChildren` as been removed.
 
 # The fine print
 
@@ -64,7 +73,7 @@ the offset in the current Hotspot implementation.
 
 ## Object graph crawling
 
-When `measureDeep` is called `MemoryMeter` will uses reflection to crawl the object graph.
+When `measureDeep` is called `MemoryMeter` will use reflection to crawl the object graph.
 In order to prevent infinite loops due to cycles in the object graph `MemoryMeter` track visited objects
 imposing a memory cost of its own.
 
@@ -73,4 +82,12 @@ imposing a memory cost of its own.
 If you want `MemoryMeter` not to measure some specific classes or fields, you can
 mark the classes/interfaces or fields using the
 [`@Unmetered`](./src/org/github/jamm/Unmetered.java) annotation.
+
+## Debugging
+
+In order to see the object tree visited when calling `MemoryMeter.measureDeep` and ensuring that it matches your
+expectations you can build the `MemoryMeter` instance using `printVisitedTree`:
+```
+    MemoryMeter meter = MemoryMeter.builder().printVisitedTree().build();
+```
 

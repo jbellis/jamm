@@ -123,11 +123,9 @@ public final class MemoryMeterStrategies
                         case FALLBACK_UNSAFE:
                             if (!hasUnsafe())
                                 throw new IllegalStateException("Instrumentation is not set and sun.misc.Unsafe could not be obtained; Jamm must be set as -javaagent, or the SecurityManager must permit access to sun.misc.Unsafe");
-                            //$FALL-THROUGH$
                         case FALLBACK_BEST:
                             if (hasUnsafe())
                                 return unsafeStrategy;
-                            //$FALL-THROUGH$
                         case FALLBACK_SPEC:
                             return specStrategy;
                     }
