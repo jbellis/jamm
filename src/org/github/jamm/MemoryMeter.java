@@ -78,7 +78,7 @@ public final class MemoryMeter {
     /**
      * Create a new {@link MemoryMeter} instance from the different component it needs to measure object graph.
      * <p>Unless there is a specific need to override some of the {@code MemoryMeter} logic people should only create 
-     * {@MemoryMeter} instances through {@code MemoryMeter.builder()}. This constructor provide a way to modify part of the 
+     * {@MemoryMeter} instances through {@code MemoryMeter.builder()}. This constructor provides a way to modify part of the 
      * logic being used by allowing to use specific implementations for the strategy or filters.</p>
      * 
      * @param strategy the {@code MemoryMeterStrategy} to use for measuring object shallow size.
@@ -241,13 +241,22 @@ public final class MemoryMeter {
             return this;
         }
 
+        /**
+         * Ignores the outer class reference from non static inner classes.
+         * <p>In practice this is only useful if the top class provided to {@code MemoryMeter.measureDeep} is an inner 
+         * class and we wish to ignore the outer class in the measurement.</p>
+         *
+         * @return this builder
+         */
         public Builder ignoreOuterClassReference() {
             this.ignoreOuterClassReference = true;
             return this;
         }
 
         /**
-         * ignores space occupied by known singletons such as {@link Class} objects and {@code enum}s
+         * Ignores space occupied by known singletons such as {@link Class} objects and {@code enum}s
+         *
+         * @return this builder
          */
         public Builder ignoreKnownSingletons() {
             this.ignoreKnownSingletons = true;
@@ -256,6 +265,8 @@ public final class MemoryMeter {
 
         /**
          * Ignores the references from a {@link java.lang.ref.Reference} (like weak/soft/phantom references).
+         *
+         * @return this builder
          */
         public Builder ignoreNonStrongReferences() {
             ignoreNonStrongReferences = true;
@@ -265,6 +276,8 @@ public final class MemoryMeter {
         /**
          * Counts only the bytes remaining in a ByteBuffer
          * in measureDeep, rather than the full size of the backing array.
+         *
+         * @return this builder
          */
         public Builder omitSharedBufferOverhead() {
             omitSharedBufferOverhead = true;
@@ -273,6 +286,8 @@ public final class MemoryMeter {
 
         /**
          * Prints the classes tree to {@ code System.out} when measuring through {@code measureDeep}.
+         *
+         * @return this builder
          */
         public Builder printVisitedTree() {
             return printVisitedTreeUpTo(Integer.MAX_VALUE);
@@ -280,6 +295,9 @@ public final class MemoryMeter {
 
         /**
          * Prints the classes tree to {@ code System.out} up to the specified depth when measuring through {@code measureDeep}.
+         *
+         * @param depth the depth up to which the class tree must be printed
+         * @return this builder
          */
         public Builder printVisitedTreeUpTo(int depth) {
             if (depth <= 0)
