@@ -4,10 +4,7 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Deque;
-import java.util.IdentityHashMap;
-import java.util.Set;
 
 import org.github.jamm.MemoryMeterListener.Factory;
 import org.github.jamm.strategies.MemoryMeterStrategies;
@@ -128,7 +125,7 @@ public final class MemoryMeter {
         if (classFilter.ignore(object.getClass()))
             return 0;
 
-        Set<Object> tracker = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+        IdentityHashSet tracker = new IdentityHashSet();
         MemoryMeterListener listener = listenerFactory.newInstance();
 
         tracker.add(object);
@@ -141,17 +138,18 @@ public final class MemoryMeter {
         long total = 0;
         while (!stack.isEmpty()) {
             Object current = stack.pop();
-            assert current != null;
             long size = measure(current);
             listener.objectMeasured(current, size);
             total += size;
 
-            if (current instanceof Object[]) {
-                addArrayChildren((Object[]) current, stack, tracker, listener);
+            Class<?> cls = current.getClass();
+            if (cls.isArray()) {
+                if (!cls.getComponentType().isPrimitive())
+                    addArrayChildren((Object[]) current, stack, tracker, listener);
             } else if (current instanceof ByteBuffer && omitSharedBufferOverhead) {
                 total += ((ByteBuffer) current).remaining();
             } else {
-                addFieldChildren(current, stack, tracker, listener);
+                addFieldChildren(current, cls, stack, tracker, listener);
             }
         }
 
@@ -159,26 +157,19 @@ public final class MemoryMeter {
         return total;
     }
 
-    private void addFieldChildren(Object current, Deque<Object> stack, Set<Object> tracker, MemoryMeterListener listener) {
-        Class<?> cls = current.getClass();
+    private void addFieldChildren(Object obj, Class<?> cls, Deque<Object> stack, IdentityHashSet tracker, MemoryMeterListener listener) {
         while (cls != null) {
             for (Field field : cls.getDeclaredFields()) {
+
                 if (fieldFilters.ignore(field)) {
                     continue;
                 }
 
-                field.setAccessible(true);
-                Object child;
-                try {
-                    child = field.get(current);
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
+                Object child = getObjectValue(obj, field);
 
-                if (child != null && !tracker.contains(child)) {
+                if (child != null && tracker.add(child)) {
                     stack.push(child);
-                    tracker.add(child);
-                    listener.fieldAdded(current, field.getName(), child);
+                    listener.fieldAdded(obj, field.getName(), child);
                 }
             }
 
@@ -186,18 +177,22 @@ public final class MemoryMeter {
         }
     }
 
-    private void addArrayChildren(Object[] current, Deque<Object> stack, Set<Object> tracker, MemoryMeterListener listener) {
+    private Object getObjectValue(Object current, Field field)
+    {
+        field.setAccessible(true);
+        try {
+            return field.get(current);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void addArrayChildren(Object[] current, Deque<Object> stack, IdentityHashSet tracker, MemoryMeterListener listener) {
         for (int i = 0; i < current.length; i++) {
             Object child = current[i];
-            if (child != null && !tracker.contains(child)) {
-
-                Class<?> childCls = child.getClass();
-                if (classFilter.ignore(childCls)) {
-                    continue;
-                }
+            if (child != null && !classFilter.ignore(child.getClass()) && tracker.add(child)) {
 
                 stack.push(child);
-                tracker.add(child);
                 listener.arrayElementAdded(current, i , child);
             }
         }
