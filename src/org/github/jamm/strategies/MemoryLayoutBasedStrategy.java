@@ -66,7 +66,14 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
         throw new IllegalStateException();
     }
 
-    protected static long roundTo(long x, int multiple) {
-        return ((x + multiple - 1) / multiple) * multiple;
+    /**
+     * Rounds x up to the next multiple of m.
+     *
+     * @param x the number to round
+     * @param m the multiple (must be a power of 2)
+     * @return the rounded value of x up to the next multiple of m.
+     */
+    protected static long roundTo(long x, int m) {
+        return (x + m - 1) & -m;
     }
 }
