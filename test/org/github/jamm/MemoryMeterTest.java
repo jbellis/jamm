@@ -13,13 +13,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -530,30 +526,6 @@ public class MemoryMeterTest
         assertEquals("Deep size of Parent", objectSize(0, 1, 0, 0, 0), meter.measureDeep(new Parent()));
         assertEquals("Shallow size of Child", objectSize(0, 2, 0, 0, 0), meter.measure(new Child()));
         assertEquals("Deep size of Parent", objectSize(0, 2, 0, 0, 0), meter.measureDeep(new Child()));
-    }
-
-    @Test
-    @Ignore("These vary quite radically depending on the JVM.")
-    public void testCollections() {
-        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
-
-        assertEquals("sizeOf ArrayList",
-                objectSize(0, 2, 0, 0, 1) // the object itself
-                + arraySize(10), // the backing array's initial load factor
-                meter.measureDeep(new ArrayList<Object>()));
-        assertEquals("sizeOf HashMap",
-                objectSize(0, 4, 0, 0, 4) // the object itself
-                + arraySize(16), // the backing array
-                meter.measureDeep(new HashMap<Object, Object>()));
-        assertEquals("sizeOf LinkedHashMap",
-                objectSize(0, 4, 0, 1, 5)  // the object itself
-                + arraySize(16) // the inherited backing array
-                + objectSize(0, 1, 0, 0, 5), // the first node
-                meter.measureDeep(new LinkedHashMap<Object, Object>()));
-
-        // I give up for the ones below!
-        assertEquals("sizeOf ReentrantReadWriteLock", 176, meter.measureDeep(new ReentrantReadWriteLock()));
-        assertEquals("sizeOf ConcurrentSkipListMap", 192, meter.measureDeep(new ConcurrentSkipListMap<Object, Object>()));
     }
 
     @Test

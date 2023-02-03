@@ -50,6 +50,11 @@ public final class MemoryMeter {
     private final MemoryMeterStrategy strategy;
 
     /**
+     * The accessor used to retrieve field values.
+     */
+    private final FieldAccessor accessor;
+    
+    /**
      * Filter used to determine which classes should be ignored.
      */
     private final FieldAndClassFilter classFilter;
@@ -94,6 +99,7 @@ public final class MemoryMeter {
                        MemoryMeterListener.Factory listenerFactory) {
 
         this.strategy = strategy;
+        this.accessor = FieldAccessor.getInstance();
         this.classFilter = classFilter;
         this.fieldFilters = fieldFilter;
         this.omitSharedBufferOverhead = omitSharedBufferOverhead;
@@ -165,7 +171,7 @@ public final class MemoryMeter {
                     continue;
                 }
 
-                Object child = getObjectValue(obj, field);
+                Object child = accessor.getObjectValue(obj, field);
 
                 if (child != null && tracker.add(child)) {
                     stack.push(child);
@@ -174,16 +180,6 @@ public final class MemoryMeter {
             }
 
             cls = cls.getSuperclass();
-        }
-    }
-
-    private Object getObjectValue(Object current, Field field)
-    {
-        field.setAccessible(true);
-        try {
-            return field.get(current);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
         }
     }
 

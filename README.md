@@ -77,6 +77,11 @@ When `measureDeep` is called `MemoryMeter` will use reflection to crawl the obje
 In order to prevent infinite loops due to cycles in the object graph `MemoryMeter` track visited objects
 imposing a memory cost of its own.
 
+Java 9 introduced the Java Platform Module System (JPMS) that made illegal reflective access between some modules. Breaking
+the ability for Jamm to crawl the object graph. To avoid that problem if Jamm detect that it cannot use reflection to retrieve
+field data it will rely on `Unsafe` to do it. Unfortunately, despite the fact that the code is design to go around those 
+illegal accesses the JVM might emit some warning for access that only will be illegal in future versions.
+
 ## Skipping objects
 
 If you want `MemoryMeter` not to measure some specific classes or fields, you can
@@ -87,6 +92,7 @@ mark the classes/interfaces or fields using the
 
 In order to see the object tree visited when calling `MemoryMeter.measureDeep` and ensuring that it matches your
 expectations you can build the `MemoryMeter` instance using `printVisitedTree`:
+
 ```
     MemoryMeter meter = MemoryMeter.builder().printVisitedTree().build();
 ```

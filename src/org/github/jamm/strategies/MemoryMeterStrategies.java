@@ -1,11 +1,11 @@
 package org.github.jamm.strategies;
 
 import java.lang.instrument.Instrumentation;
-import java.lang.reflect.Field;
 
 import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.MemoryMeter.Guess;
 import org.github.jamm.MemoryMeterStrategy;
+import org.github.jamm.VM;
 
 import sun.misc.Unsafe;
 
@@ -72,24 +72,13 @@ public final class MemoryMeterStrategies
 
     private static MemoryMeterStrategy createUnsafeStrategy(MemoryLayoutSpecification specification)
     {
-        Unsafe unsafe = getUnsafe();
+        Unsafe unsafe = VM.getUnsafe();
         return unsafe != null ? new UnsafeStrategy(specification, unsafe) : null;
     }
 
     private static MemoryMeterStrategy createInstrumentationStrategy()
     {
         return instrumentation != null ? new InstrumentationStrategy(instrumentation) : null;
-    }
-
-    private static Unsafe getUnsafe()
-    {
-        try {
-            Field field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-            field.setAccessible(true);
-            return (sun.misc.Unsafe) field.get(null);
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     public boolean hasInstrumentation()
