@@ -1,18 +1,23 @@
 package org.github.jamm;
 
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeDataSupport;
 
+import sun.misc.Unsafe;
+
 /**
  * Utility class for retrieving information from the JVM.
  */
-final class VM
+public final class VM
 {
     private static final boolean DEFAULT_USE_COMPRESSED_OOPS = true;
     private static final int DEFAULT_ALIGNEMENT_IN_BYTES = 8;
+
+    private static final Unsafe UNSAFE = loadUnsafe();
 
     /**
      * Returns the value of the specified VM option
@@ -63,6 +68,26 @@ final class VM
     public static boolean is32Bits()
     {
         return "32".equals(System.getProperty("sun.arch.data.model"));
+    }
+
+    /**
+     * Returns {@code Unsafe} if it is available.
+     * @return {@code Unsafe} if it is available, {@code null} otherwise.
+     */
+    public static Unsafe getUnsafe()
+    {
+        return UNSAFE;
+    }
+
+    private static Unsafe loadUnsafe()
+    {
+        try {
+            Field field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+            field.setAccessible(true);
+            return (sun.misc.Unsafe) field.get(null);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private VM() { 
