@@ -6,7 +6,10 @@ package org.github.jamm;
  * 
  * <p>The memory layout for normal Java objects start with an object header which consists of mark and class words plus
  *  possible alignment paddings. After the object header, there may be zero or more references to instance fields.</p>
- * <p>For arrays, the header contains a 4-byte array length in addition to mark, class, and paddings.</p> 
+ *
+ * <p>For arrays, the header contains a 4-byte array length in addition to the mark and class word. Array headers
+ *  might also contains some padding as array base is aligned (https://shipilev.net/jvm/objects-inside-out/#_observation_array_base_is_aligned, 
+ *  https://bugs.openjdk.org/browse/JDK-8139457).</p> 
  *  
  * <p>Objects are aligned: they always start at some multiple of the alignment.</p>
  *
@@ -45,71 +48,47 @@ public interface MemoryLayoutSpecification
 
     public static MemoryLayoutSpecification getEffectiveMemoryLayoutSpecification() {
 
-        int objectAlignment = VM.getObjectAlignmentInBytes();
+        final int objectHeaderSize;
+        final int referenceSize;
+        final int heapWordSize;
 
         if (VM.is32Bits()) {
+
             // Running with 32-bit data model
-            return new MemoryLayoutSpecification() {
+            objectHeaderSize = 8; // mark word (4 bytes) + class word (4 bytes)
+            referenceSize = 4; // reference size for 32 bit
+            heapWordSize = 4;
 
-                @Override
-                public int getArrayHeaderSize() {
-                    return 12; // object header (8 bytes) + array length (4 bytes)
-                }
+        } else {
 
-                @Override
-                public int getObjectHeaderSize() {
-                    return 8; // mark word (4 bytes) + class word (4 bytes)
-                }
+            heapWordSize = 8;
+            if (VM.useCompressedOops()) {
 
-                @Override
-                public int getObjectAlignment() {
-                    return objectAlignment;
-                }
+                objectHeaderSize = 12; // mark word (8 bytes) + class word (4 bytes)
+                referenceSize = 4; // compressed reference
 
-                @Override
-                public int getReferenceSize() {
-                    return 4; // reference size for 32 bit
-                }
-            };
+            } else {
+
+                // In other cases, it's a 64-bit uncompressed OOPs object model
+                objectHeaderSize = 16; // mark word (8 bytes) + class word (8 bytes)
+                referenceSize = 8; // uncompressed reference
+            }
         }
 
-        if (VM.useCompressedOops()) {
+        final int objectAlignment = VM.getObjectAlignmentInBytes();
+        final int arrayLength = 4; // space in bytes used to store the array length after the mark and class word
+        final int arrayHeaderSize = MathUtils.roundTo(objectHeaderSize + arrayLength, heapWordSize);
 
-            return new MemoryLayoutSpecification() {
-
-                @Override
-                public int getArrayHeaderSize() {
-                    return 16; // object header (12 bytes) + array length (4 bytes)
-                }
-
-                @Override
-                public int getObjectHeaderSize() {
-                    return 12; // mark word (8 bytes) + class word (4 bytes)
-                }
-
-                @Override
-                public int getObjectAlignment() {
-                    return objectAlignment;
-                }
-
-                @Override
-                public int getReferenceSize() {
-                    return 4;
-                }
-            };
-        }
-
-        // In other cases, it's a 64-bit uncompressed OOPs object model
         return new MemoryLayoutSpecification() {
 
             @Override
             public int getArrayHeaderSize() {
-                return 20; // object header (16 bytes) + array length (4 bytes)
+                return arrayHeaderSize;
             }
 
             @Override
             public int getObjectHeaderSize() {
-                return 16; // mark word (8 bytes) + class word (8 bytes)
+                return objectHeaderSize;
             }
 
             @Override
@@ -119,7 +98,7 @@ public interface MemoryLayoutSpecification
 
             @Override
             public int getReferenceSize() {
-                return 8;
+                return referenceSize;
             }
         };
     }

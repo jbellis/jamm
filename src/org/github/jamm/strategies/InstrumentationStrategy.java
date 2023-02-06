@@ -8,7 +8,7 @@ import org.github.jamm.MemoryMeterStrategy;
  * {@code MemoryMeterStrategy} relying on {@code Instrumentation} to measure object size.
  *
  */
-public final class InstrumentationStrategy implements MemoryMeterStrategy
+final class InstrumentationStrategy implements MemoryMeterStrategy
 {
     public final Instrumentation instrumentation;
 
