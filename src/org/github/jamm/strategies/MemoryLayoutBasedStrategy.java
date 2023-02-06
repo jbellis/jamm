@@ -5,6 +5,8 @@ import java.lang.reflect.Array;
 import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.MemoryMeterStrategy;
 
+import static org.github.jamm.MathUtils.roundTo;
+
 /**
  * Base class for strategies that need access to the {@code MemoryLayoutSpecification} for computing object size.
  */
@@ -28,25 +30,41 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
                               : measureInstance(type);
     }
 
+    /**
+     * Measures the shallow memory used by objects of the specified class.
+     *
+     * @param type the object type
+     * @return the shallow memory used by the object
+     */
     protected abstract long measureInstance(Class<?> type);
 
     /**
-     * Measure the memory that an array will consume
+     * Measure the shallow memory used by the specified array.
      *
      * @param instance the array instance
      * @param type the array type
-     * @return In-memory size of the array
+     * @return the shallow memory used by the specified array
      */
     protected final long measureArray(Object instance, Class<?> type) {
         int length = Array.getLength(instance);
         int elementSize = measureField(type.getComponentType());
-        return roundTo(memoryLayout.getArrayHeaderSize() + length * (long) elementSize, memoryLayout.getObjectAlignment());
+        return roundTo(arrayBaseOffset(type) + length * (long) elementSize, memoryLayout.getObjectAlignment());
     }
+
+    /**
+     * Returns the array base offset.
+     * <p>Array base is aligned based on heapword. It is not visible by default as compressed references are used and the
+     * header size is 16 but becomes visible when they are disabled. 
+     *
+     * @param type the array type
+     * @return the array base offset.
+     */
+    protected abstract int arrayBaseOffset(Class<?> type);
 
     /**
      * @return The memory size of a field of a class of the provided type; for Objects this is the size of the reference only
      */
-    protected int measureField(Class<?> type) {
+    protected final int measureField(Class<?> type) {
 
         if (!type.isPrimitive())
             return memoryLayout.getReferenceSize();
@@ -64,16 +82,5 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
             return 8;
 
         throw new IllegalStateException();
-    }
-
-    /**
-     * Rounds x up to the next multiple of m.
-     *
-     * @param x the number to round
-     * @param m the multiple (must be a power of 2)
-     * @return the rounded value of x up to the next multiple of m.
-     */
-    protected static long roundTo(long x, int m) {
-        return (x + m - 1) & -m;
     }
 }

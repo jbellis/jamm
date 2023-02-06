@@ -49,11 +49,15 @@ changes at the API level.
 * `Guess.NEVER` has been renamed `Guess.ALWAYS_INSTRUMENTATION` for more clarity.
 * `MemoryMeter.countChildren` as been removed.
 
+# Supported Java versions
+
+The 0.4.0 release has been tested with Java 8, 11 and 17.
+
 # The fine print
 
 ## Measurement strategies
 
-`MemoryMeter` can use different strategies to guess the objects sizes.
+`MemoryMeter` can use different strategies to guess the objects sizes. We have tried to ensure that the output of the strategies is the same.
 
 ### Instrumentation
 
@@ -63,13 +67,14 @@ the given object.
 
 ### Unsafe
 
-`MemoryMeter` will use `Unsafe.objectFieldOffset` to guess the object offset. Unfortunately, this
-method might not always be accurate as the value returned is not the true offset, but a cookie that looks like
-the offset in the current Hotspot implementation.
+`MemoryMeter` will use `Unsafe.objectFieldOffset` to guess the object offset.
+Java 15 introduced Hidden classes which are used in Java 17 for Lambda expressions. Unfortunately, calling 
+`Unsafe.objectFieldOffset` on the `Field` of a hidden class will result into an `UnsupportedOperationException` therefore
+for hidden classes the unsafe strategy delegate the measurement to the specification strategy.
 
 ### Specification
 
-`MemoryMeter` will try to guess the object size based on what it knows from the JVM.
+`MemoryMeter` will guess the object size based on what it knows from the JVM.
 
 ## Object graph crawling
 

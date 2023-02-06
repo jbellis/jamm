@@ -1,6 +1,10 @@
 package org.github.jamm.strategies;
 
 import java.lang.instrument.Instrumentation;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
+import java.util.Optional;
 
 import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.MemoryMeter.Guess;
@@ -43,59 +47,90 @@ public final class MemoryMeterStrategies
      */
     private MemoryMeterStrategies(MemoryMeterStrategy instrumentationStrategy,
                                   MemoryMeterStrategy unsafeStrategy,
-                                  MemoryMeterStrategy specStrategy)
-    {
+                                  MemoryMeterStrategy specStrategy) {
+
         this.instrumentationStrategy = instrumentationStrategy;
         this.unsafeStrategy = unsafeStrategy;
         this.specStrategy = specStrategy;
     }
 
-    public static synchronized MemoryMeterStrategies getInstance()
-    {
+    public static synchronized MemoryMeterStrategies getInstance() {
+
         if (instance == null)
             instance = createStrategies();
 
         return instance;
     }
 
-    private static MemoryMeterStrategies createStrategies()
-    {
+    /**
+     * Creates the strategies available based on the JVM informations.
+     * @return the strategies available
+     */
+    private static MemoryMeterStrategies createStrategies() {
+
         MemoryLayoutSpecification specification = MemoryLayoutSpecification.getEffectiveMemoryLayoutSpecification();
 
+        Optional<MethodHandle> mayBeIsHiddenMethodHandle = mayBeIsHiddenMethodHandle();
+
         MemoryMeterStrategy instrumentationStrategy = createInstrumentationStrategy();
-        MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(specification);
-        SpecStrategy createSpecStrategy = new SpecStrategy(specification);
-        MemoryMeterStrategy specStrategy = createSpecStrategy;
+        MemoryMeterStrategy specStrategy = createSpecStrategy(specification, mayBeIsHiddenMethodHandle);
+        MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(specification, mayBeIsHiddenMethodHandle, specStrategy);
+
 
         return new MemoryMeterStrategies(instrumentationStrategy, unsafeStrategy, specStrategy);
     }
 
-    private static MemoryMeterStrategy createUnsafeStrategy(MemoryLayoutSpecification specification)
-    {
+    private static MemoryMeterStrategy createSpecStrategy(MemoryLayoutSpecification specification, 
+                                                          Optional<MethodHandle> mayBeIsHiddenMethodHandle) {
+
+        return mayBeIsHiddenMethodHandle.isPresent() ? new SpecStrategy(specification) : new PreJava15SpecStrategy(specification);
+    }
+
+    private static MemoryMeterStrategy createUnsafeStrategy(MemoryLayoutSpecification specification, 
+                                                            Optional<MethodHandle> mayBeIsHiddenMH,
+                                                            MemoryMeterStrategy specStrategy) {
+
         Unsafe unsafe = VM.getUnsafe();
-        return unsafe != null ? new UnsafeStrategy(specification, unsafe) : null;
-    }
 
-    private static MemoryMeterStrategy createInstrumentationStrategy()
-    {
-        return instrumentation != null ? new InstrumentationStrategy(instrumentation) : null;
-    }
+        if (unsafe == null)
+            return null;
 
-    public boolean hasInstrumentation()
-    {
-        return instrumentationStrategy != null;
-    }
+        // The hidden method was added in Java 15 so if isHidden exists we are on a version greater or equal to Java 15
+        return mayBeIsHiddenMH.isPresent() ? new UnsafeStrategy(specification, unsafe, mayBeIsHiddenMH.get(), (SpecStrategy) specStrategy)
+                                           : new PreJava15UnsafeStrategy(specification, unsafe);
 
-    public boolean hasUnsafe()
-    {
-        return unsafeStrategy != null;
     }
 
     /**
-     * 
-     * @param guess
-     * @return
+     * Returns the {@code MethodHandle} for the {@code Class.isHidden} method introduced in Java 15 if we are running
+     * on a Java 15+ JVM.
+     * @return an {@code Optional} for the {@code MethodHandle}
      */
+    private static Optional<MethodHandle> mayBeIsHiddenMethodHandle()
+    {
+        try {
+
+            Method method = Class.class.getMethod("isHidden", new Class[0]);
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            return Optional.of(lookup.unreflect(method));
+
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private static MemoryMeterStrategy createInstrumentationStrategy() {
+        return instrumentation != null ? new InstrumentationStrategy(instrumentation) : null;
+    }
+
+    public boolean hasInstrumentation() {
+        return instrumentationStrategy != null;
+    }
+
+    public boolean hasUnsafe() {
+        return unsafeStrategy != null;
+    }
+
     public MemoryMeterStrategy getStrategy(Guess guess) {
         switch (guess) {
             case ALWAYS_UNSAFE:
