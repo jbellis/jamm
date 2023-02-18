@@ -372,7 +372,7 @@ public class GuessTest {
     // compile the provided defs by declaring them in source files and calling javac
     private static List<GeneratedClass> compile(List<Def> defs) throws IOException, ExecutionException, InterruptedException {
         final List<String> args = new ArrayList<String>();
-        args.addAll(Arrays.asList("javac", "-d", tempDir.getAbsolutePath()));
+        args.addAll(Arrays.asList("javac", "-d", tempDir.getAbsolutePath(), "-source", "1.8", "-target", "1.8"));
         final List<Decl> decls = new ArrayList<Decl>();
         for (Def def : defs)
             decls.add(def.declare());

@@ -8,7 +8,17 @@
       <vendor>Oracle Corporation</vendor>
     </provides>
     <configuration>
-      <jdkHome>/Library/Java/JavaVirtualMachines/jdk1.8.0_231.jdk/Contents/Home</jdkHome>
+      <jdkHome>/usr/lib/jvm/java-8-openjdk-amd64</jdkHome>
+    </configuration>
+  </toolchain>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>1.8</version>
+      <vendor>Private Build</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>/usr/lib/jvm/java-8-openjdk-i386</jdkHome>
     </configuration>
   </toolchain>
   <toolchain>
@@ -18,7 +28,17 @@
       <vendor>Oracle Corporation</vendor>
     </provides>
     <configuration>
-      <jdkHome>/Library/Java/JavaVirtualMachines/openjdk-11.0.2.jdk/Contents/Home</jdkHome>
+      <jdkHome>/usr/lib/jvm/java-11-openjdk-amd64</jdkHome>
+    </configuration>
+  </toolchain>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>11</version>
+      <vendor>Private Build</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>/usr/lib/jvm/java-11-openjdk-i386</jdkHome>
     </configuration>
   </toolchain>
   <toolchain>
@@ -28,7 +48,17 @@
       <vendor>Oracle Corporation</vendor>
     </provides>
     <configuration>
-      <jdkHome>/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home</jdkHome>
+      <jdkHome>/usr/lib/jvm/java-17-openjdk-amd64</jdkHome>
+    </configuration>
+  </toolchain>
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>17</version>
+      <vendor>Private Build</vendor>
+    </provides>
+    <configuration>
+      <jdkHome>/usr/lib/jvm/java-17-openjdk-i386</jdkHome>
     </configuration>
   </toolchain>
 </toolchains>

@@ -180,24 +180,62 @@
         </configuration>
         <executions>
           <execution>
-            <id>test-jdk11</id>
+            <id>test-jdk8-32</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <jdkToolchain>
+                <version>1.8</version>
+                <vendor>Private Build</vendor>
+              </jdkToolchain>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-jdk11-64</id>
             <goals>
               <goal>test</goal>
             </goals>
             <configuration>
               <jdkToolchain>
                 <version>11</version>
+                <vendor>Oracle Corporation</vendor>
               </jdkToolchain>
             </configuration>
           </execution>
           <execution>
-            <id>test-jdk17</id>
+            <id>test-jdk11-32</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <jdkToolchain>
+                <version>11</version>
+                <vendor>Private Build</vendor>
+              </jdkToolchain>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-jdk17-64</id>
             <goals>
               <goal>test</goal>
             </goals>
             <configuration>
               <jdkToolchain>
                 <version>17</version>
+                <vendor>Oracle Corporation</vendor>
+              </jdkToolchain>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-jdk17-32</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <jdkToolchain>
+                <version>17</version>
+                <vendor>Private Build</vendor>
               </jdkToolchain>
             </configuration>
           </execution>
