@@ -114,20 +114,33 @@ public final class MemoryMeter {
     }
 
     /**
+     * Measures the shallow memory usage of the object.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param object the object to measure
      * @return the shallow memory usage of @param object
-     * @throws NullPointerException if object is null
      */
     public long measure(Object object) {
+
+        if (object == null)
+            return 0L;
+
         return strategy.measure(object);
     }
 
     /**
+     * Measures the memory usage of the object including referenced objects.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param object the object to measure
      * @return the memory usage of @param object including referenced objects
-     * @throws NullPointerException if object is null
      */
     public long measureDeep(Object object) {
+
         if (object == null) {
-            throw new NullPointerException(); // match getObjectSize behavior
+            return 0L;
         }
 
         if (classFilter.ignore(object.getClass()))
@@ -146,7 +159,7 @@ public final class MemoryMeter {
         long total = 0;
         while (!stack.isEmpty()) {
             Object current = stack.pop();
-            long size = measure(current);
+            long size = strategy.measure(current);
             listener.objectMeasured(current, size);
             total += size;
 
