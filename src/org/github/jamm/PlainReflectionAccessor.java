@@ -10,7 +10,7 @@ import java.lang.reflect.Modifier;
 final class PlainReflectionAccessor implements FieldAccessor
 {
     @Override
-    public Object getObjectValue(Object object, Field field) {
+    public Object getFieldValue(Object object, Field field) {
         try {
             if (!Modifier.isPublic(field.getModifiers()) && !field.isAccessible())
                 field.setAccessible(true);

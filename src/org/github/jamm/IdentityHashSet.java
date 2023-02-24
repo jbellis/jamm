@@ -1,17 +1,17 @@
 package org.github.jamm;
 
 /**
- * Simple set that use object equality to compare elements. This set is used {@code MemoryMeter} to keep track of
+ * Simple set that use object equality to compare elements. This set is used in {@code MemoryMeter} to keep track of
  * the objects already visited to avoid circular dependencies.
  *
- * <p>This class provides constant-time performance for the {@code add} operation
- * operations assuming the system identity hash function ({@link System#identityHashCode(Object)})
+ * <p>This class provides constant-time performance for the {@code add} operation,
+ * assuming the system identity hash function ({@link System#identityHashCode(Object)})
  * disperses elements properly among the buckets.</p>
  * 
- * <p>{@code IdentityHashSet} use linear probing to resolve hash collisions. When a hash collision occurs it will look 
+ * <p>{@code IdentityHashSet} uses linear probing to resolve hash collisions. When a hash collision occurs it will look 
  * for the next {@code null} bucket available. To minimize the risk of clustering impacting the performance,
  * {@code IdentityHashSet} will ensure that the underlying array is at most 1/3 full by resizing the array when this
- * limit is reached.
+ * limit is reached.</p>
  */
 final class IdentityHashSet
 {

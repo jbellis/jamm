@@ -40,11 +40,6 @@ public final class MemoryMeterStrategies
      */
     private final MemoryMeterStrategy specStrategy;
 
-    /**
-     * @param maybeInstrumentationStrategy
-     * @param maybeUnsafeStrategy
-     * @param specStrategy
-     */
     private MemoryMeterStrategies(MemoryMeterStrategy instrumentationStrategy,
                                   MemoryMeterStrategy unsafeStrategy,
                                   MemoryMeterStrategy specStrategy) {
@@ -63,7 +58,7 @@ public final class MemoryMeterStrategies
     }
 
     /**
-     * Creates the strategies available based on the JVM informations.
+     * Creates the strategies available based on the JVM information.
      * @return the strategies available
      */
     private static MemoryMeterStrategies createStrategies() {
@@ -131,6 +126,7 @@ public final class MemoryMeterStrategies
         return unsafeStrategy != null;
     }
 
+    @SuppressWarnings("incomplete-switch")
     public MemoryMeterStrategy getStrategy(Guess guess) {
         switch (guess) {
             case ALWAYS_UNSAFE:

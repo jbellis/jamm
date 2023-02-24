@@ -5,6 +5,8 @@ package org.github.jamm;
  */
 public class CannotMeasureObjectException extends RuntimeException
 {
+    private static final long serialVersionUID = -3880720440309336955L;
+
     public CannotMeasureObjectException(String message, Throwable cause)
     {
         super(message, cause);

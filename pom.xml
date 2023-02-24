@@ -84,6 +84,20 @@
         <role>developer</role>
       </roles>
     </developer>
+    <developer>
+      <id>snazy</id>
+      <name>Robert Stupp</name>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>blerer</id>
+      <name>Benjamin Lerer</name>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
   </developers>
   <build>
     <sourceDirectory>${basedir}/src</sourceDirectory>

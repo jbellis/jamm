@@ -17,7 +17,7 @@ import org.github.jamm.MemoryMeter.Guess;
 import static org.junit.Assert.assertEquals;
 
 /**
- * In order to test the correctness of the values being return the tests assume that the correct value is the one 
+ * In order to test the correctness of the values being returned the tests assume that the correct value is the one 
  * returned by the instrumentation strategy.
  */
 @RunWith(Parameterized.class)

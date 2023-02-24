@@ -8,7 +8,7 @@ import org.github.jamm.MemoryLayoutSpecification;
 import static org.github.jamm.MathUtils.roundTo;
 
 /**
- * {@code MemoryMeterStrategy} that compute the size of the memory occupied by an object, in a pre-Java 15 JVM, based on 
+ * {@code MemoryMeterStrategy} that computes the size of the memory occupied by an object, in a pre-Java 15 JVM, based on 
  * the JVM information.
  * 
  * <p> The layout of a Java object in memory is composed of a header, composed of a mark word and a class word,
@@ -22,7 +22,7 @@ import static org.github.jamm.MathUtils.roundTo;
  * </p>
  * <p>
  * The header size depends on the JVM bitness and for 64-bit JVM on the use of compressed references for Java pointers.
- * On a 64 bit JVM with compressed reference enable (default behavior for Heap's lower than 32 GB) object headers occupy 12 bytes.
+ * On a 64 bit JVM with compressed references enabled (default behavior for heaps lower than 32 GB) object headers occupy 12 bytes.
  * This size leave a gap of 4 bytes before the next alignment that the JVM can use to store some fields. For example, the following class:
  * <pre>
  * class A
@@ -108,8 +108,8 @@ final class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
 
     /**
      * Align the size of the fields.
-     * <p>Prior to JDK 15 the field blocks for each super classes where aligned based using the object reference size.
-     * This method provide a hook for that logic.</p>
+     * <p>Prior to JDK 15 the field blocks for each super class were aligned based using the object reference size.
+     * This method provides a hook for that logic.</p>
      *
      * @param sizeOfDeclaredFields the size of the fields for a class of the hierarchy
      * @return the size of the class fields aligned.

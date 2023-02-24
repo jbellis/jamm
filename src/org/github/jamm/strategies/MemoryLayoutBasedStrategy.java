@@ -53,7 +53,7 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
 
     /**
      * Returns the array base offset.
-     * <p>Array base is aligned based on heapword. It is not visible by default as compressed references are used and the
+     * <p>Array base is aligned based on heap word. It is not visible by default as compressed references are used and the
      * header size is 16 but becomes visible when they are disabled. 
      *
      * @param type the array type

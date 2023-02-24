@@ -23,7 +23,7 @@ import static org.github.jamm.MathUtils.roundTo;
  * and the use of hidden class for lambda. Attempting to use {@code Unsafe.objectFieldOffset} on an hidden class field
  * will result in a {@code UnsupportedOperationException} preventing the {@code UnsafeStrategy} to evaluate correctly
  * the memory used by the class. To avoid that problem {@code UnsafeStrategy} will rely on the {@code SpecStrategy} to
- * measure hidden classes. Which can rely on an overestimate of the object size as the {@SpecStrategy} ignore some 
+ * measure hidden classes. This can lead to an overestimation of the object size as the {@SpecStrategy} ignore some 
  * optimizations performed by the JVM</p> 
  */
 public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
@@ -57,10 +57,10 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
     @Override
     public long measureInstance(Class<?> type) {
 
-        try{
+        try {
 
             // If the class is a hidden class 'unsafe.objectFieldOffset(f)' will throw an UnsupportedOperationException
-            // in those cases rather than failing we rely on the Spec strategy to provide the measurement.
+            // In those cases, rather than failing, we rely on the Spec strategy to provide the measurement.
             if ((Boolean) isHiddenMH.invoke(type))
                 return hiddenClassesStrategy.measureInstance(type);
 
@@ -68,8 +68,7 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
             while (type != null)
             {
                 for (Field f : type.getDeclaredFields()) {
-                    if (!Modifier.isStatic(f.getModifiers()))
-                    {
+                    if (!Modifier.isStatic(f.getModifiers())) {
                         size = Math.max(size, unsafe.objectFieldOffset(f) + measureField(f.getType()));
                     }
                 }
@@ -79,8 +78,7 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
             size = size > 0 ? size : memoryLayout.getObjectHeaderSize();
             return roundTo(size, memoryLayout.getObjectAlignment());
         } 
-        catch (Throwable e)
-        {
+        catch (Throwable e) {
             throw new CannotMeasureObjectException("The object of type " + type + " cannot be measured by the unsafe strategy", e);
         }
     }

@@ -8,7 +8,7 @@ package org.github.jamm;
  *  possible alignment paddings. After the object header, there may be zero or more references to instance fields.</p>
  *
  * <p>For arrays, the header contains a 4-byte array length in addition to the mark and class word. Array headers
- *  might also contains some padding as array base is aligned (https://shipilev.net/jvm/objects-inside-out/#_observation_array_base_is_aligned, 
+ *  might also contain some padding as array base is aligned (https://shipilev.net/jvm/objects-inside-out/#_observation_array_base_is_aligned, 
  *  https://bugs.openjdk.org/browse/JDK-8139457).</p> 
  *  
  * <p>Objects are aligned: they always start at some multiple of the alignment.</p>
