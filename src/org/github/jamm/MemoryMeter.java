@@ -28,7 +28,6 @@ public final class MemoryMeter {
     }
 
     public static enum Guess {
-
         /* If instrumentation is not available, error when measuring */
         ALWAYS_INSTRUMENTATION,
         /* If instrumentation is available, use it, otherwise guess the size using predefined specifications */
@@ -51,6 +50,9 @@ public final class MemoryMeter {
 
     /**
      * The accessor used to retrieve field values.
+     *
+     * <p>For JDK prior to Java 9, {@code MemoryMeter} will use plain reflection. From Java 9 onward {@code MemoryMeter}
+     * will use reflection if the object is within an accessible module otherwise it will rely on Unsafe to access the field value.</p>
      */
     private final FieldAccessor accessor;
     
@@ -171,7 +173,7 @@ public final class MemoryMeter {
                     continue;
                 }
 
-                Object child = accessor.getObjectValue(obj, field);
+                Object child = accessor.getFieldValue(obj, field);
 
                 if (child != null && tracker.add(child)) {
                     stack.push(child);

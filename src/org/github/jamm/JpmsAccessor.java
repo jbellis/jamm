@@ -27,7 +27,7 @@ final class JpmsAccessor implements FieldAccessor
     }
 
     @Override
-    public Object getObjectValue(Object object, Field field) {
+    public Object getFieldValue(Object object, Field field) {
         try {
             // This call will unfortunately emit a warning for some scenario (which was a weird decision from the JVM designer)
             if ((boolean) trySetAccessibleMH.invoke(field)) {

@@ -5,6 +5,8 @@ package org.github.jamm;
  */
 public class CannotAccessFieldException extends RuntimeException
 {
+    private static final long serialVersionUID = 8558265261116386533L;
+
     public CannotAccessFieldException(String message, Throwable cause)
     {
         super(message, cause);

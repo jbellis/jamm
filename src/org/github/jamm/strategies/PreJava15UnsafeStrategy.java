@@ -12,8 +12,8 @@ import static org.github.jamm.MathUtils.roundTo;
 /**
  * {@code MemoryMeterStrategy} relying on {@code Unsafe} to measure object sizes for Java version pre-15.
  *
- * <p>In Java 15, the way the JVM layout fields across the hierarchy changed. Prior to Java 15 superclass field
- * always came first. From Java 15 onward it is not the case anymore. This strategy take advantage of that and look at
+ * <p>In Java 15, the JVM layout of fields across the hierarchy changed. Prior to Java 15 superclass field
+ * always came first. From Java 15 onward it is not the case anymore. This strategy takes advantage and it looks at
  * the child class first to find the greatest offsets.</p>
  */
 final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy

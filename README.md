@@ -15,7 +15,7 @@ Jamm assume that the JVM running the code is an HotSpot JVM. It has not been tes
 
 
 The best way to use `MemoryMeter` is to start the JVM with "-javaagent:<path to>/jamm.jar" in order to use the
-`Instrumentation` strategy to guess objects sizes.
+`Instrumentation` strategy to guess objects' sizes.
 
 `MemoryMeter` can be used in your code like this:
 
@@ -47,7 +47,7 @@ changes at the API level.
 * The `MemoryMeter` constructor and the static methods used to configure the different options (`omitSharedBufferOverhead`, `withGuessing`, `ignoreOuterClassReference`, `ignoreKnownSingletons`, `ignoreNonStrongReferences`, `enableDebug`) have been removed. Instead `MemoryMeter` instances must be created through a `Builder`.
 * The ability to provide a tracker for visited object has been removed.
 * `Guess.NEVER` has been renamed `Guess.ALWAYS_INSTRUMENTATION` for more clarity.
-* `MemoryMeter.countChildren` as been removed.
+* `MemoryMeter.countChildren` has been removed.
 
 # Supported Java versions
 
@@ -82,9 +82,9 @@ When `measureDeep` is called `MemoryMeter` will use reflection to crawl the obje
 In order to prevent infinite loops due to cycles in the object graph `MemoryMeter` track visited objects
 imposing a memory cost of its own.
 
-Java 9 introduced the Java Platform Module System (JPMS) that made illegal reflective access between some modules. Breaking
-the ability for Jamm to crawl the object graph. To avoid that problem if Jamm detect that it cannot use reflection to retrieve
-field data it will rely on `Unsafe` to do it. Unfortunately, despite the fact that the code is design to go around those 
+Java 9 introduced the Java Platform Module System (JPMS) that made illegal reflective access between some modules. This is breaking
+the ability for Jamm to crawl the object graph. To avoid that problem, if Jamm detects that it cannot use reflection to retrieve
+field data it will rely on `Unsafe` to do it. Unfortunately, despite the fact that the code is designed to go around those 
 illegal accesses the JVM might emit some warning for access that only will be illegal in future versions.
 
 ## Skipping objects

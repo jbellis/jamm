@@ -66,6 +66,7 @@ public class BenchmarkObjectGraphTraversal
     {
     }
 
+    @SuppressWarnings("unused")
     public static class ClassWithOnePrimitiveFields
     {
         private int intField;
@@ -76,6 +77,7 @@ public class BenchmarkObjectGraphTraversal
         }
     }
 
+    @SuppressWarnings("unused")
     public static class ClassWithOneObjectField
     {
         public static Object staticField = "static";
@@ -88,6 +90,7 @@ public class BenchmarkObjectGraphTraversal
         }
     }
 
+    @SuppressWarnings("unused")
     public static class ClassWithTreeObjectFields
     {
         private Object first;
@@ -104,6 +107,7 @@ public class BenchmarkObjectGraphTraversal
         }
     }
 
+    @SuppressWarnings("unused")
     public static class ClassWithOneObjectFieldsAndTwoPrimitives
     {
         private byte first;
@@ -119,7 +123,8 @@ public class BenchmarkObjectGraphTraversal
             this.third = third;
         }
     }
-    
+
+    @SuppressWarnings("unused")
     public static class ClassWithFiveObjectFields extends ClassWithTreeObjectFields
     {
         private Object fourth;

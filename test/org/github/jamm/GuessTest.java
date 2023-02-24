@@ -136,7 +136,7 @@ public class GuessTest {
     }
 
     /**
-     * Test method that can be use to reproduce test failures found by the testRandomXXX methods
+     * Test method that can be used to reproduce test failures found by the testRandomXXX methods
      */
 //  @Test 
   public void testProblemClasses() throws Exception {
@@ -145,10 +145,10 @@ public class GuessTest {
       Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
       List<Def> defs = new ArrayList<Def>();
       defs.add(Def.parse("{long*2}->{long*2 byte*1}"));
-//      defs.add(Def.parse("{long*1}->{byte*4}"));
-//      defs.add(Def.parse("{long*1}->{byte*7}"));
-//      defs.add(Def.parse("{long*1}->{byte*9}"));
-//      defs.add(Def.parse("{long*1}->{float*1}->{long*1}->{float*1}"));
+      defs.add(Def.parse("{long*1}->{byte*4}"));
+      defs.add(Def.parse("{long*1}->{byte*7}"));
+      defs.add(Def.parse("{long*1}->{byte*9}"));
+      defs.add(Def.parse("{long*1}->{float*1}->{long*1}->{float*1}"));
       final List<GeneratedClass> classes = compile(defs);
       int failures = 0;
       for (final GeneratedClass clazz : classes) {

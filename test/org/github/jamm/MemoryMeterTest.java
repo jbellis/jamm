@@ -59,21 +59,12 @@ public class MemoryMeterTest
     }
 
     @SuppressWarnings("unused")
-    private static class Parent {
-        private int i;
-    }
-
-    @SuppressWarnings("unused")
-    private static class Child extends Parent {
-        private int j;
-    }
-
-    @SuppressWarnings("unused")
     private static class Recursive {
         int i;
         Recursive child = null;
     }
 
+    @SuppressWarnings("unused")
     public static class Outer {
         public int[] somethingHeavy = new int[100];
         public Inner inner = new Inner();
@@ -267,6 +258,7 @@ public class MemoryMeterTest
 
         private final String field;
 
+        @SuppressWarnings("unused")
         private final Predicate<String> greater;
 
         public WithLambdaField(String field)

@@ -17,7 +17,7 @@ public interface FieldAccessor {
      * @param field the field to access
      * @return the field value for the given object
      */
-    Object getObjectValue(Object object, Field field);
+    Object getFieldValue(Object object, Field field);
 
     /**
      * Returns the {@code FieldAccessor} instance suitable for the JDK running this code.

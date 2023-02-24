@@ -8,7 +8,7 @@ import org.github.jamm.MemoryLayoutSpecification;
 import static org.github.jamm.MathUtils.roundTo;
 
 /**
- * {@code MemoryMeterStrategy} that compute the size of the memory occupied by an object, in a Java 15+ JVM, based on 
+ * {@code MemoryMeterStrategy} that computes the size of the memory occupied by an object, in a Java 15+ JVM, based on 
  * the JVM information.
  * <p>In Java 15 the Field layout computation was optimized (https://bugs.openjdk.org/browse/JDK-8237767) to eliminate 
  * a certain amount of the inefficiency from the previous versions (see {@link PreJava15SpecStrategy}).</p>
