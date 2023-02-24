@@ -48,6 +48,7 @@ changes at the API level.
 * The ability to provide a tracker for visited object has been removed.
 * `Guess.NEVER` has been renamed `Guess.ALWAYS_INSTRUMENTATION` for more clarity.
 * `MemoryMeter.countChildren` has been removed.
+* The `MemoryMeter.measure` and `MemoryMeter.measureDeep` now accept `null` parameters
 
 # Supported Java versions
 

@@ -34,6 +34,14 @@ public class MemoryMeterTest
     }
 
     @Test
+    public void testWithNull() {
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
+
+        assertEquals(0L, meter.measure(null));
+        assertEquals(0L, meter.measureDeep(null));
+    }
+
+    @Test
     public void testCycle() throws Exception {
         MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
