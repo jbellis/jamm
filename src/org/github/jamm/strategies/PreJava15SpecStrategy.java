@@ -99,7 +99,7 @@ import static org.github.jamm.MathUtils.roundTo;
  * </p>
  * <p> For more inside on the Java Object Layout, I highly recommend the excellent <a href="https://shipilev.net/jvm/objects-inside-out/">Java Objects Inside Out</a> blog post from Aleksey Shipilëv.
  */
-final class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
+class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
 {
     public PreJava15SpecStrategy(MemoryLayoutSpecification memoryLayout)
     {
@@ -120,7 +120,7 @@ final class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
     }
 
     @Override
-    protected int arrayBaseOffset(Class<?> type)
+    protected final int arrayBaseOffset(Class<?> type)
     {
         return memoryLayout.getArrayHeaderSize();
     }
@@ -152,7 +152,7 @@ final class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
         }
 
         // Ensure that we take into account the superclass gaps
-        if (hasGapSmallerThan8Bytes(size) && hasOnly8BytesFields(sizeOfDeclaredField, sizeTakenBy8BytesFields))
+        if (hasSuperClassGap(size, sizeOfDeclaredField, sizeTakenBy8BytesFields))
         {
             size = roundTo(size, 8);
         }
@@ -163,13 +163,26 @@ final class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
     }
 
     /**
+     * Checks if there should be a gap left at the level of the super class fields.
+     *
+     * @param size the memory space used by all the super classes fields so far.
+     * @param sizeOfDeclaredField the size taken by the field of the class being looked at
+     * @param sizeTakenBy8BytesFields the size taken only by the 8 byte fields
+     * @return if there should be a gap left at the level of the super class fields
+     */
+    protected boolean hasSuperClassGap(long size, long sizeOfDeclaredField, long sizeTakenBy8BytesFields)
+    {
+        return hasGapSmallerThan8Bytes(size) && hasOnly8BytesFields(sizeOfDeclaredField, sizeTakenBy8BytesFields);
+    }
+
+    /**
      * Checks if the fields for this field block are all 8 bytes fields.
      *
      * @param sizeOfDeclaredField the total size of the fields within this block
      * @param sizeTakenBy8BytesFields the total size taken by the 8 bytes fields within this block
      * * @return {@code true} if the fields for this block are all 8 bytes fields, {@code false} otherwise.
      */
-    private boolean hasOnly8BytesFields(long sizeOfDeclaredField, long sizeTakenBy8BytesFields)
+    protected final boolean hasOnly8BytesFields(long sizeOfDeclaredField, long sizeTakenBy8BytesFields)
     {
         return sizeOfDeclaredField != 0 && sizeOfDeclaredField == sizeTakenBy8BytesFields;
     }
@@ -183,7 +196,7 @@ final class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
      * @param size the size of the memory used so far.
      * @return {@code true} if there is some space available (4 bytes), {@code false} otherwise.
      */
-    private boolean hasGapSmallerThan8Bytes(long size)
+    protected final boolean hasGapSmallerThan8Bytes(long size)
     {
         return (size & 7) > 0;
     }

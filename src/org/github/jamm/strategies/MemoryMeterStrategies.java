@@ -65,11 +65,11 @@ public final class MemoryMeterStrategies
 
         MemoryLayoutSpecification specification = MemoryLayoutSpecification.getEffectiveMemoryLayoutSpecification();
 
-        Optional<MethodHandle> mayBeIsHiddenMethodHandle = mayBeIsHiddenMethodHandle();
+        Optional<MethodHandle> mayBeIsHiddenMH = mayBeIsHiddenMethodHandle();
 
         MemoryMeterStrategy instrumentationStrategy = createInstrumentationStrategy();
-        MemoryMeterStrategy specStrategy = createSpecStrategy(specification, mayBeIsHiddenMethodHandle);
-        MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(specification, mayBeIsHiddenMethodHandle, specStrategy);
+        MemoryMeterStrategy specStrategy = createSpecStrategy(specification, mayBeIsHiddenMH);
+        MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(specification, mayBeIsHiddenMH, specStrategy);
 
         // Logging important information once at startup for debugging purpose
         System.out.println("Jamm starting with: java.version='" + System.getProperty("java.version")
@@ -81,10 +81,14 @@ public final class MemoryMeterStrategies
         return new MemoryMeterStrategies(instrumentationStrategy, unsafeStrategy, specStrategy);
     }
 
-    private static MemoryMeterStrategy createSpecStrategy(MemoryLayoutSpecification specification, 
-                                                          Optional<MethodHandle> mayBeIsHiddenMethodHandle) {
+    private static MemoryMeterStrategy createSpecStrategy(MemoryLayoutSpecification specification, Optional<MethodHandle> mayBeIsHiddenMH) {
 
-        return mayBeIsHiddenMethodHandle.isPresent() ? new SpecStrategy(specification) : new PreJava15SpecStrategy(specification);
+        // The Field layout was optimized in Java 15. For backward compatibility reason, in 15+, the optimization can be disabled through the {@code UseEmptySlotsInSupers} option.
+        // (see https://bugs.openjdk.org/browse/JDK-8237767 and https://bugs.openjdk.org/browse/JDK-8239016)
+        // Unfortunately, the layout resulting from the use of {@code UseEmptySlotsInSupers} does not match the pre-15 versions
+        return mayBeIsHiddenMH.isPresent() ? VM.useEmptySlotsInSuper() ? new SpecStrategy(specification)
+                                                                       : new DoesNotUseEmptySlotInSuperSpecStrategy(specification)
+                                           : new PreJava15SpecStrategy(specification);
     }
 
     private static MemoryMeterStrategy createUnsafeStrategy(MemoryLayoutSpecification specification, 
@@ -97,7 +101,7 @@ public final class MemoryMeterStrategies
             return null;
 
         // The hidden method was added in Java 15 so if isHidden exists we are on a version greater or equal to Java 15
-        return mayBeIsHiddenMH.isPresent() ? new UnsafeStrategy(specification, unsafe, mayBeIsHiddenMH.get(), (SpecStrategy) specStrategy)
+        return mayBeIsHiddenMH.isPresent() ? new UnsafeStrategy(specification, unsafe, mayBeIsHiddenMH.get(), (MemoryLayoutBasedStrategy) specStrategy)
                                            : new PreJava15UnsafeStrategy(specification, unsafe);
 
     }

@@ -3,6 +3,8 @@ package org.github.jamm;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Map;
+import java.util.TreeMap;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -53,7 +55,7 @@ public final class VM
 
     /**
      * Checks if the JVM use compressed reference.
-     *  
+     *
      * @return {{@code true} if the JVM use compressed references {@code false} otherwise.
      */
     public static boolean useCompressedOops() {
@@ -64,13 +66,24 @@ public final class VM
 
     /**
      * Checks if the JVM use compressed class pointers.
-     *  
+     *
      * @return {{@code true} if the JVM use compressed class pointers {@code false} otherwise.
      */
     public static boolean useCompressedClassPointers() {
 
         String useCompressedClassPointers = getVMOption("UseCompressedClassPointers");
         return useCompressedClassPointers == null ? useCompressedOops() : Boolean.parseBoolean(useCompressedClassPointers);
+    }
+
+    /**
+     * Checks if the JVM use more aggressive optimizations to avoid unused gaps in instances.
+     *
+     * @return {{@code true} if the JVM use empty slots in super class {@code false} otherwise.
+     */
+    public static boolean useEmptySlotsInSuper() {
+
+        String useEmptySlotsInSuper = getVMOption("UseEmptySlotsInSupers");
+        return useEmptySlotsInSuper == null ? false : Boolean.parseBoolean(useEmptySlotsInSuper);
     }
 
     /**
@@ -99,20 +112,25 @@ public final class VM
     public static void printOffsets(Object obj)
     {
         Class<?> type = obj.getClass();
+
+        Map<Long, String> fieldInfo = new TreeMap<>();
         while (type != null)
         {
             for (Field f : type.getDeclaredFields())
             {
                 if (!Modifier.isStatic(f.getModifiers()))
                 {
-                    System.out.println("field=" + f.getName() 
-                                        + ", offset=" + UNSAFE.objectFieldOffset(f)
-                                        + ", type=" + f.getType());
+                    long offset = UNSAFE.objectFieldOffset(f);
+                    fieldInfo.put(offset, "class=" + type.getName() + ", field=" + f.getName() + ", offset=" + offset + ", field type=" + f.getType());
                 }
             }
-
             type = type.getSuperclass();
         }
+
+        System.out.println("---------------------------------------------------------------------------------");
+        System.out.println("Memory layout for: " + obj.getClass().getName());
+        fieldInfo.forEach((k, v) -> System.out.println(v));
+        System.out.println("---------------------------------------------------------------------------------");
     }
 
     private static Unsafe loadUnsafe()
