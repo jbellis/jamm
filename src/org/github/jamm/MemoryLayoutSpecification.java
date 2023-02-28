@@ -70,7 +70,10 @@ public interface MemoryLayoutSpecification
             } else {
 
                 // In other cases, it's a 64-bit uncompressed OOPs object model
-                objectHeaderSize = 16; // mark word (8 bytes) + class word (8 bytes)
+                // Prior to Java 15, the use of compressed class pointers assumed the use of compressed oops.
+                // This was changed in Java 15 by JDK-8241825 (https://bugs.openjdk.org/browse/JDK-8241825).
+                objectHeaderSize = VM.useCompressedClassPointers() ? 12  // mark word (8 bytes) + class word (4 bytes)
+                                                                   : 16; // mark word (8 bytes) + class word (8 bytes)
                 referenceSize = 8; // uncompressed reference
             }
         }
@@ -99,6 +102,21 @@ public interface MemoryLayoutSpecification
             @Override
             public int getReferenceSize() {
                 return referenceSize;
+            }
+
+            @Override
+            public String toString()
+            {
+                return new StringBuilder().append("Memory Layout: [objectHeaderSize=")
+                                          .append(objectHeaderSize)
+                                          .append(" , arrayHeaderSize=")
+                                          .append(arrayHeaderSize)
+                                          .append(", objectAlignement=")
+                                          .append(objectAlignment)
+                                          .append(", referenceSize=")
+                                          .append(referenceSize)
+                                          .append(']')
+                                          .toString();
             }
         };
     }

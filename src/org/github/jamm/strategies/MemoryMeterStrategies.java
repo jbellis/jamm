@@ -71,6 +71,12 @@ public final class MemoryMeterStrategies
         MemoryMeterStrategy specStrategy = createSpecStrategy(specification, mayBeIsHiddenMethodHandle);
         MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(specification, mayBeIsHiddenMethodHandle, specStrategy);
 
+        // Logging important information once at startup for debugging purpose
+        System.out.println("Jamm starting with: java.version='" + System.getProperty("java.version")
+                            + "', java.vendor='" + System.getProperty("java.vendor")
+                            + "', instrumentation=" + (instrumentationStrategy != null)
+                            + ", unsafe=" + (unsafeStrategy != null)
+                            + ", " + specification);
 
         return new MemoryMeterStrategies(instrumentationStrategy, unsafeStrategy, specStrategy);
     }
