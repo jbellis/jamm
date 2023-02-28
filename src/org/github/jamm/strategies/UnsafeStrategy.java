@@ -38,9 +38,9 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
     /**
      * The strategy used for hidden classes.
      */
-    private final SpecStrategy hiddenClassesStrategy;
+    private final MemoryLayoutBasedStrategy hiddenClassesStrategy;
 
-    public UnsafeStrategy(MemoryLayoutSpecification memoryLayout, Unsafe unsafe, MethodHandle isHiddenMH, SpecStrategy strategy)
+    public UnsafeStrategy(MemoryLayoutSpecification memoryLayout, Unsafe unsafe, MethodHandle isHiddenMH, MemoryLayoutBasedStrategy strategy)
     {
         super(memoryLayout);
         this.unsafe = unsafe;

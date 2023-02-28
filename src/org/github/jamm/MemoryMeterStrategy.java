@@ -10,7 +10,6 @@ public interface MemoryMeterStrategy
      * Measures the shallow memory used by the specified object.
      *
      * @return the shallow memory usage of the @param object
-     * @throws NullPointerException if object is null
      */
     long measure(Object object);
 }

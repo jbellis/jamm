@@ -139,29 +139,32 @@ public class GuessTest {
      * Test method that can be used to reproduce test failures found by the testRandomXXX methods
      */
 //  @Test 
-  public void testProblemClasses() throws Exception {
-      final MemoryMeter instrument = MemoryMeter.builder().build();
-      final MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
-      Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
-      List<Def> defs = new ArrayList<Def>();
-      defs.add(Def.parse("{long*2}->{long*2 byte*1}"));
-      defs.add(Def.parse("{long*1}->{byte*4}"));
-      defs.add(Def.parse("{long*1}->{byte*7}"));
-      defs.add(Def.parse("{long*1}->{byte*9}"));
-      defs.add(Def.parse("{long*1}->{float*1}->{long*1}->{float*1}"));
-      final List<GeneratedClass> classes = compile(defs);
-      int failures = 0;
-      for (final GeneratedClass clazz : classes) {
-          Object obj = clazz.clazz.newInstance();
-          long instrumented = instrument.measure(obj);
-          long guessed = meter.measure(obj);
-          if (instrumented != guessed) {
-              System.err.println(String.format("Guessed %d, instrumented %d for %s", guessed, instrumented, clazz.description));
-              failures++;
-          }
-      }
-      Assert.assertEquals("Not all guesses matched the instrumented values. See output for details.", 0, failures);
-  }
+    public void testProblemClasses() throws Exception {
+        final MemoryMeter instrument = MemoryMeter.builder().build();
+        final MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
+        Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
+        List<Def> defs = new ArrayList<Def>();
+        defs.add(Def.parse("{int*1 char*2}->{boolean*1 float*2}"));
+        defs.add(Def.parse("{double*1 byte*1}->{double*1 boolean*5}")); 
+        defs.add(Def.parse("{}->{int*1 double*2}"));
+        defs.add(Def.parse("{double*1}->{int*2 boolean*1}->{byte*3 short*1 double*1}"));
+        defs.add(Def.parse("{float*2}->{long*1 boolean*2 char*1}"));
+        defs.add(Def.parse("{byte*3}"));
+        defs.add(Def.parse("{char*3 long*1}->{short*1 int*2}"));
+
+        final List<GeneratedClass> classes = compile(defs);
+        int failures = 0;
+        for (final GeneratedClass clazz : classes) {
+            Object obj = clazz.clazz.newInstance();
+            long instrumented = instrument.measure(obj);
+            long guessed = meter.measure(obj);
+            if (instrumented != guessed) {
+                System.err.println(String.format("Guessed %d, instrumented %d for %s", guessed, instrumented, clazz.description));
+                failures++;
+            }
+        }
+        Assert.assertEquals("Not all guesses matched the instrumented values. See output for details.", 0, failures);
+    }
 
     private static final Types[] TYPES = Types.values();
     private static final Random rnd = new Random();
@@ -265,7 +268,7 @@ public class GuessTest {
 
         // parse one of our readable descriptions into a Def
         private static Def parse(String description) {
-            final Pattern clazz = Pattern.compile("\\{([a-zO]+\\*[0-9]+ ?)+\\}");
+            final Pattern clazz = Pattern.compile("\\{([a-zO]+\\*[0-9]+ ?)*\\}");
             final Pattern type = Pattern.compile("([a-zO]+)\\*([0-9]+)");
             Matcher cm = clazz.matcher(description);
             List<ClassDef> classdefs = new ArrayList<ClassDef>();
