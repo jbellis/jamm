@@ -309,9 +309,9 @@ public class GuessTest {
                 File src = new File(tempDir, name + ".java");
                 if (src.exists())
                     throw new IllegalStateException();
-                final FileWriter writer = new FileWriter(src);
-                writer.append(decl);
-                writer.close();
+                try (FileWriter writer = new FileWriter(src)) {
+                    writer.append(decl);
+                }
                 File trg = new File(tempDir, name + ".class");
                 parts.add(new Decl.ClassDecl(src, trg, name, decl.toString()));
                 prev = name;

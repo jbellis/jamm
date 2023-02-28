@@ -2,6 +2,7 @@ package org.github.jamm;
 
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -39,7 +40,7 @@ public final class VM
     }
 
     /**
-     * Retrieve the object alignment in bytes from the JVM. If the alignment cannot be retrieved 
+     * Retrieve the object alignment in bytes from the JVM. If the alignment cannot be retrieved
      * the default value will be returned.
      *
      * @return the object alignment in bytes if it can be retrieved or the default value (8).
@@ -53,12 +54,23 @@ public final class VM
     /**
      * Checks if the JVM use compressed reference.
      *  
-     * @return {{@code true} if the JVM use compressed references {@code false} otherwise. 
+     * @return {{@code true} if the JVM use compressed references {@code false} otherwise.
      */
     public static boolean useCompressedOops() {
 
         String useCommpressedOops = getVMOption("UseCompressedOops");
         return useCommpressedOops == null ? DEFAULT_USE_COMPRESSED_OOPS : Boolean.parseBoolean(useCommpressedOops);
+    }
+
+    /**
+     * Checks if the JVM use compressed class pointers.
+     *  
+     * @return {{@code true} if the JVM use compressed class pointers {@code false} otherwise.
+     */
+    public static boolean useCompressedClassPointers() {
+
+        String useCompressedClassPointers = getVMOption("UseCompressedClassPointers");
+        return useCompressedClassPointers == null ? useCompressedOops() : Boolean.parseBoolean(useCompressedClassPointers);
     }
 
     /**
@@ -77,6 +89,30 @@ public final class VM
     public static Unsafe getUnsafe()
     {
         return UNSAFE;
+    }
+
+    /**
+     * Utility method using {@code Unsafe} to print the field offset for debugging.
+     *
+     * @param obj the object to analyze
+     */
+    public static void printOffsets(Object obj)
+    {
+        Class<?> type = obj.getClass();
+        while (type != null)
+        {
+            for (Field f : type.getDeclaredFields())
+            {
+                if (!Modifier.isStatic(f.getModifiers()))
+                {
+                    System.out.println("field=" + f.getName() 
+                                        + ", offset=" + UNSAFE.objectFieldOffset(f)
+                                        + ", type=" + f.getType());
+                }
+            }
+
+            type = type.getSuperclass();
+        }
     }
 
     private static Unsafe loadUnsafe()
