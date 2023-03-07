@@ -31,21 +31,27 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
     private final Unsafe unsafe;
 
     /**
+     * Method Handle for the {@code Class.isRecord} method introduced in Java 14.
+     */
+    private final MethodHandle isRecordMH;
+
+    /**
      * Method Handle for the {@code Class.isHidden} method introduced in Java 15.
      */
     private final MethodHandle isHiddenMH;
 
     /**
-     * The strategy used for hidden classes.
+     * The strategy used for hidden classes and records.
      */
-    private final MemoryLayoutBasedStrategy hiddenClassesStrategy;
+    private final MemoryLayoutBasedStrategy hiddenClassesOrRecordsStrategy;
 
-    public UnsafeStrategy(MemoryLayoutSpecification memoryLayout, Unsafe unsafe, MethodHandle isHiddenMH, MemoryLayoutBasedStrategy strategy)
+    public UnsafeStrategy(MemoryLayoutSpecification memoryLayout, Unsafe unsafe, MethodHandle isRecordMH, MethodHandle isHiddenMH, MemoryLayoutBasedStrategy strategy)
     {
         super(memoryLayout);
         this.unsafe = unsafe;
+        this.isRecordMH = isRecordMH;
         this.isHiddenMH = isHiddenMH;
-        this.hiddenClassesStrategy = strategy;
+        this.hiddenClassesOrRecordsStrategy = strategy;
     }
 
     @Override
@@ -59,10 +65,10 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
 
         try {
 
-            // If the class is a hidden class 'unsafe.objectFieldOffset(f)' will throw an UnsupportedOperationException
+            // If the class is a hidden class ore a record 'unsafe.objectFieldOffset(f)' will throw an UnsupportedOperationException
             // In those cases, rather than failing, we rely on the Spec strategy to provide the measurement.
-            if ((Boolean) isHiddenMH.invoke(type))
-                return hiddenClassesStrategy.measureInstance(type);
+            if ((Boolean) isRecordMH.invoke(type) || (Boolean) isHiddenMH.invoke(type))
+                return hiddenClassesOrRecordsStrategy.measureInstance(type);
 
             long size = 0;
             while (type != null)

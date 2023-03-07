@@ -254,7 +254,7 @@ public class MemoryMeterTest
             this.field = field;
         }
     }
-    
+
     @Test
     public void testMeasureWithLambdaField() {
         MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();

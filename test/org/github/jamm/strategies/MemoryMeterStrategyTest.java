@@ -197,6 +197,8 @@ public class MemoryMeterStrategyTest
         assertEquals(reference.measure(new A()), tested.measure(new A()));
         assertEquals(reference.measure(new B()), tested.measure(new B()));
         assertEquals(reference.measure(new C()), tested.measure(new C()));
+        assertEquals(reference.measure(new D()), tested.measure(new D()));
+        assertEquals(reference.measure(new E()), tested.measure(new E()));
     }
 
     static class A {
@@ -209,6 +211,13 @@ public class MemoryMeterStrategyTest
 
     static class C extends B {
         boolean c;
+    }
+
+    static class D extends E{
+    }
+
+    static class E {
+        long e;
     }
 
     @Test
@@ -257,4 +266,14 @@ public class MemoryMeterStrategyTest
     static class LongFloatLongFloatHolder extends LongFloatLongHolder {
         private float value;
     }
+//
+//    @Test
+//    public void testRecordClass()
+//    {
+//        User user = new User("test", 30);
+//
+//        assertEquals(reference.measure(user), tested.measure(user));
+//    }
+//
+//    public static record User(String name, int age) {};
 }

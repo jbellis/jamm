@@ -1,8 +1,11 @@
 package org.github.jamm.strategies;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Optional;
 
+import org.github.jamm.CannotMeasureObjectException;
 import org.github.jamm.MemoryLayoutSpecification;
 
 import sun.misc.Unsafe;
@@ -20,10 +23,22 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
 {
     private final Unsafe unsafe;
 
-    public PreJava15UnsafeStrategy(MemoryLayoutSpecification memoryLayout, Unsafe unsafe)
+    /**
+     * Method Handle for the {@code Class.isRecord} method introduced in Java 14.
+     */
+    private final Optional<MethodHandle> mayBeIsRecordMH;
+
+    /**
+     * The strategy used for records.
+     */
+    private final MemoryLayoutBasedStrategy recordsStrategy;
+
+    public PreJava15UnsafeStrategy(MemoryLayoutSpecification memoryLayout, Unsafe unsafe, Optional<MethodHandle> mayBeIsRecordMH, MemoryLayoutBasedStrategy strategy)
     {
         super(memoryLayout);
         this.unsafe = unsafe;
+        this.mayBeIsRecordMH = mayBeIsRecordMH;
+        this.recordsStrategy = strategy;
     }
 
     @Override
@@ -34,22 +49,34 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
 
     @Override
     public long measureInstance(Class<?> type) {
-        while (type != null) {
 
-            long size = 0;
+        try {
 
-            for (Field f : type.getDeclaredFields()) {
-                if (!Modifier.isStatic(f.getModifiers()))
-                    size = Math.max(size, unsafe.objectFieldOffset(f) + measureField(f.getType()));
+            // If the class is a record 'unsafe.objectFieldOffset(f)' will throw an UnsupportedOperationException
+            // In those cases, rather than failing, we rely on the Spec strategy to provide the measurement.
+            if (mayBeIsRecordMH.isPresent() &&  ((Boolean) mayBeIsRecordMH.get().invoke(type)))
+                return recordsStrategy.measureInstance(type);
+
+            while (type != null) {
+
+                long size = 0;
+
+                for (Field f : type.getDeclaredFields()) {
+                    if (!Modifier.isStatic(f.getModifiers()))
+                        size = Math.max(size, unsafe.objectFieldOffset(f) + measureField(f.getType()));
+                }
+
+                // As we know that the superclass fields always come first pre-Java 15, if the size is greater than zero
+                // we know that all the other fields will have a smaller offset.
+                if (size > 0)
+                    return roundTo(size, memoryLayout.getObjectAlignment());
+
+                type = type.getSuperclass();
             }
-
-            // As we know that the superclass fields always come first pre-Java 15, if the size is greater than zero
-            // we know that all the other fields will have a smaller offset.
-            if (size > 0)
-                return roundTo(size, memoryLayout.getObjectAlignment());
-
-            type = type.getSuperclass();
+            return roundTo(memoryLayout.getObjectHeaderSize(), memoryLayout.getObjectAlignment());
+        } 
+        catch (Throwable e) {
+            throw new CannotMeasureObjectException("The object of type " + type + " cannot be measured by the unsafe strategy", e);
         }
-        return roundTo(memoryLayout.getObjectHeaderSize(), memoryLayout.getObjectAlignment());
     }
 }
