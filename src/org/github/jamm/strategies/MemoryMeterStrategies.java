@@ -69,7 +69,7 @@ public final class MemoryMeterStrategies
 
         MemoryMeterStrategy instrumentationStrategy = createInstrumentationStrategy();
         MemoryMeterStrategy specStrategy = createSpecStrategy(specification, mayBeIsHiddenMH);
-        MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(specification, mayBeIsHiddenMH, specStrategy);
+        MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(specification, mayBeIsHiddenMH, (MemoryLayoutBasedStrategy) specStrategy);
 
         // Logging important information once at startup for debugging purpose
         System.out.println("Jamm starting with: java.version='" + System.getProperty("java.version")
@@ -93,16 +93,18 @@ public final class MemoryMeterStrategies
 
     private static MemoryMeterStrategy createUnsafeStrategy(MemoryLayoutSpecification specification, 
                                                             Optional<MethodHandle> mayBeIsHiddenMH,
-                                                            MemoryMeterStrategy specStrategy) {
+                                                            MemoryLayoutBasedStrategy specStrategy) {
 
         Unsafe unsafe = VM.getUnsafe();
 
         if (unsafe == null)
             return null;
 
+        Optional<MethodHandle> mayBeIsRecordMH = mayBeIsRecordMethodHandle();
+
         // The hidden method was added in Java 15 so if isHidden exists we are on a version greater or equal to Java 15
-        return mayBeIsHiddenMH.isPresent() ? new UnsafeStrategy(specification, unsafe, mayBeIsHiddenMH.get(), (MemoryLayoutBasedStrategy) specStrategy)
-                                           : new PreJava15UnsafeStrategy(specification, unsafe);
+        return mayBeIsHiddenMH.isPresent() ? new UnsafeStrategy(specification, unsafe, mayBeIsRecordMH.get(), mayBeIsHiddenMH.get(), specStrategy)
+                                           : new PreJava15UnsafeStrategy(specification, unsafe, mayBeIsRecordMH, specStrategy);
 
     }
 
@@ -113,9 +115,31 @@ public final class MemoryMeterStrategies
      */
     private static Optional<MethodHandle> mayBeIsHiddenMethodHandle()
     {
+        return mayBeMethodHandle(Class.class, "isHidden");
+    }
+
+    /**
+     * Returns the {@code MethodHandle} for the {@code Class.isRecord} method introduced in Java 14 if we are running
+     * on a Java 14+ JVM.
+     * @return an {@code Optional} for the {@code MethodHandle}
+     */
+    private static Optional<MethodHandle> mayBeIsRecordMethodHandle()
+    {
+        return mayBeMethodHandle(Class.class, "isRecord");
+    }
+
+    /**
+     * Returns the {@code MethodHandle} for the specified class and method.
+     *
+     * @param klass the class
+     * @param methodName the method name
+     * @return an {@code Optional} for the {@code MethodHandle}
+     */
+    private static Optional<MethodHandle> mayBeMethodHandle(Class<?> klass, String methodName)
+    {
         try {
 
-            Method method = Class.class.getMethod("isHidden", new Class[0]);
+            Method method = klass.getMethod(methodName, new Class[0]);
             MethodHandles.Lookup lookup = MethodHandles.lookup();
             return Optional.of(lookup.unreflect(method));
 
@@ -123,7 +147,7 @@ public final class MemoryMeterStrategies
             return Optional.empty();
         }
     }
-
+    
     private static MemoryMeterStrategy createInstrumentationStrategy() {
         return instrumentation != null ? new InstrumentationStrategy(instrumentation) : null;
     }
