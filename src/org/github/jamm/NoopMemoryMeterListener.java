@@ -1,5 +1,7 @@
 package org.github.jamm;
 
+import java.nio.ByteBuffer;
+
 /**
  * Listener that does nothing.
  */
@@ -23,6 +25,10 @@ public final class NoopMemoryMeterListener implements MemoryMeterListener {
     }
 
     @Override
+    public void byteBufferRemainingMeasured(ByteBuffer buffer, long size) {
+    }
+
+    @Override
     public void fieldAdded(Object obj, String fieldName, Object fieldValue) {
     }
 
@@ -36,10 +42,6 @@ public final class NoopMemoryMeterListener implements MemoryMeterListener {
 
     @Override
     public void started(Object obj) {
-    }
-
-    @Override
-    public void objectCounted(Object current) {
     }
 
     private NoopMemoryMeterListener() {

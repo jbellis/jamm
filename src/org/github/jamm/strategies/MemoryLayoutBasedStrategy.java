@@ -26,8 +26,57 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
     public final long measure(Object object)
     {
         Class<?> type = object.getClass();
-        return type.isArray() ? measureArray(object, type)
-                              : measureInstance(type);
+         return type.isArray() ? measureArray(object, type) : measureInstance(type);
+    }
+
+    @Override
+    public long measureArray(Object[] array) {
+        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, memoryLayout.getReferenceSize());
+    }
+
+    @Override
+    public long measureArray(byte[] array) {
+        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Byte.BYTES);
+    }
+
+    @Override
+    public long measureArray(boolean[] array) {
+        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, 1);
+    }
+
+    @Override
+    public long measureArray(short[] array) {
+        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Short.BYTES);
+    }
+
+    @Override
+    public long measureArray(char[] array) {
+        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Character.BYTES);
+    }
+
+    @Override
+    public long measureArray(int[] array) {
+        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Integer.BYTES);
+    }
+
+    @Override
+    public long measureArray(float[] array) {
+        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Float.BYTES);
+    }
+
+    @Override
+    public long measureArray(long[] array) {
+        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Long.BYTES);
+    }
+
+    @Override
+    public long measureArray(double[] array) {
+        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Double.BYTES);
+    }
+
+    @Override
+    public long measureString(String s) {
+        return measure(s);
     }
 
     /**
@@ -48,7 +97,19 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
     protected final long measureArray(Object instance, Class<?> type) {
         int length = Array.getLength(instance);
         int elementSize = measureField(type.getComponentType());
-        return roundTo(arrayBaseOffset(type) + length * (long) elementSize, memoryLayout.getObjectAlignment());
+        return computeArraySize(arrayBaseOffset(type), length, elementSize);
+    }
+
+    /**
+     * Computes the size of an array from its base offset, length and elementSize.
+     *
+     * @param arrayBaseOffset the array base offset
+     * @param length the array length
+     * @param elementSize the size of the array elements
+     * @return the size of the array
+     */
+    private final long computeArraySize(int arrayBaseOffset, int length, int elementSize) {
+        return roundTo(arrayBaseOffset + length * (long) elementSize, memoryLayout.getObjectAlignment());
     }
 
     /**

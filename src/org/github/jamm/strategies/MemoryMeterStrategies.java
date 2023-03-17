@@ -77,15 +77,20 @@ public final class MemoryMeterStrategies
                             + "', instrumentation=" + (instrumentationStrategy != null)
                             + ", unsafe=" + (unsafeStrategy != null)
                             + ", " + specification);
-
+ 
         return new MemoryMeterStrategies(instrumentationStrategy, unsafeStrategy, specStrategy);
     }
 
     private static MemoryMeterStrategy createSpecStrategy(MemoryLayoutSpecification specification, Optional<MethodHandle> mayBeIsHiddenMH) {
 
-        // The Field layout was optimized in Java 15. For backward compatibility reason, in 15+, the optimization can be disabled through the {@code UseEmptySlotsInSupers} option.
+        if (!VM.useEmptySlotsInSuper())
+            System.out.println("WARNING: Jamm is starting with the UseEmptySlotsInSupers JVM option disabled."
+                               + " The memory layout created when this option is enabled cannot always be reproduced accuratly by the SPEC or UNSAFE strategies."
+                               + " By consequence the measured sizes when these strategies are used might be off in some cases.");
+
+        // The Field layout was optimized in Java 15. For backward compatibility reasons, in 15+, the optimization can be disabled through the {@code -XX:-UseEmptySlotsInSupers} option.
         // (see https://bugs.openjdk.org/browse/JDK-8237767 and https://bugs.openjdk.org/browse/JDK-8239016)
-        // Unfortunately, the layout resulting from the use of {@code UseEmptySlotsInSupers} does not match the pre-15 versions
+        // Unfortunately, when {@code UseEmptySlotsInSupers} is disabled the layout resulting does not match the pre-15 versions
         return mayBeIsHiddenMH.isPresent() ? VM.useEmptySlotsInSuper() ? new SpecStrategy(specification)
                                                                        : new DoesNotUseEmptySlotInSuperSpecStrategy(specification)
                                            : new PreJava15SpecStrategy(specification);

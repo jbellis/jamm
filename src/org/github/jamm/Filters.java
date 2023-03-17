@@ -3,6 +3,9 @@ package org.github.jamm;
 import java.lang.ref.Reference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Utility class providing the different filters used by {@code MemoryMeter}
@@ -15,10 +18,29 @@ public final class Filters
      */
     private static final String OUTER_CLASS_REFERENCE = "this\\$[0-9]+";
 
+    private static final List<String> CLEANER_FIELDS_TO_IGNORE = Arrays.asList("queue", "prev", "next");
+
+    private static final Class<?> CLEANER_CLASS = getCleanerClass();
+
+    private static Class<?> getCleanerClass()
+    {
+        try
+        {
+            return ByteBuffer.allocateDirect(0)
+                             .getClass()
+                             .getDeclaredField("cleaner")
+                             .getType();
+
+        } catch (Exception e) {
+            System.out.print("WARN: Jamm could not load the sun.misc.Cleaner Class. This might lead to overestimating DirectByteBuffer size.");
+            return null;
+        }
+    }
+
     /**
      * Filter excluding static and primitive fields
      */
-    private static final FieldFilter IGNORE_STATIC_AND_PRIMITIVE_FIELDS = f -> Modifier.isStatic(f.getModifiers()) || f.getType().isPrimitive();
+    private static final FieldFilter IGNORE_STATIC_AND_PRIMITIVE_FIELDS = (c, f) -> Modifier.isStatic(f.getModifiers()) || f.getType().isPrimitive();
 
     /**
      * Filter excluding class such as {@code Enum} and {@code Class}
@@ -28,13 +50,23 @@ public final class Filters
     /**
      * Filter excluding non strong references
      */
-    private static final FieldFilter IGNORE_NON_STRONG_REFERENCES = f -> Reference.class.isAssignableFrom(f.getDeclaringClass()) && "referent".equals(f.getName());
+    private static final FieldFilter IGNORE_NON_STRONG_REFERENCES = (c, f) -> Reference.class.isAssignableFrom(c) && "referent".equals(f.getName());
+
+    /**
+     * Filter excluding some of the fields from sun.misc.Cleaner as they should not be taken into account.
+     * The fields being excluded are: 
+     * <ul>
+     *     <li>queue: as it is a dummy queue referenced by all Cleaner instances.</li>
+     *     <li>next and prev: as they are used to create a doubly-linked list of live cleaners and therefore refer to other Cleaners instances</li>
+     * </ul>
+     */
+    private static final FieldFilter IGNORE_CLEANER_FIELDS = (c, f) -> c.equals(CLEANER_CLASS) && CLEANER_FIELDS_TO_IGNORE.contains(f.getName()) ;
 
     /**
      * Filter excluding the outer class reference from non static inner classes.
      * In practice that filter is only useful if the top class is an inner class and we wish to ignore the outer class in the measurement.
      */
-    private static final FieldFilter IGNORE_OUTER_CLASS_REFERENCES = f -> f.getName().matches(OUTER_CLASS_REFERENCE);
+    private static final FieldFilter IGNORE_OUTER_CLASS_REFERENCES = (c, f) -> f.getName().matches(OUTER_CLASS_REFERENCE);
 
     /**
      * Filter excluding fields and class annotated with {@code Unmetered}
@@ -42,7 +74,7 @@ public final class Filters
     private static final FieldAndClassFilter IGNORE_UNMETERED_FIELDS_AND_CLASSES = new FieldAndClassFilter()
     {
         @Override
-        public boolean ignore(Field field) {
+        public boolean ignore(Class<?> cls, Field field) {
             return field.isAnnotationPresent(Unmetered.class) || ignore(field.getType());
         }
 
@@ -88,23 +120,27 @@ public final class Filters
         if (ignoreOuterClassReference) {
 
             if (ignoreNonStrongReferences)
-                return f -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(f) 
-                        || getClassFilters(ignoreKnownSingletons).ignore(f)
-                        || IGNORE_NON_STRONG_REFERENCES.ignore(f)
-                        || IGNORE_OUTER_CLASS_REFERENCES.ignore(f);
+                return (c, f) -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(c, f) 
+                        || getClassFilters(ignoreKnownSingletons).ignore(c, f)
+                        || IGNORE_CLEANER_FIELDS.ignore(c, f)
+                        || IGNORE_NON_STRONG_REFERENCES.ignore(c, f)
+                        || IGNORE_OUTER_CLASS_REFERENCES.ignore(c, f);
 
-            return f -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(f) 
-                    || getClassFilters(ignoreKnownSingletons).ignore(f)
-                    || IGNORE_OUTER_CLASS_REFERENCES.ignore(f);
+            return (c, f) -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(c, f) 
+                    || getClassFilters(ignoreKnownSingletons).ignore(c, f)
+                    || IGNORE_CLEANER_FIELDS.ignore(c, f)
+                    || IGNORE_OUTER_CLASS_REFERENCES.ignore(c, f);
         }
 
         if (ignoreNonStrongReferences)
-            return f -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(f) 
-                    || getClassFilters(ignoreKnownSingletons).ignore(f)
-                    || IGNORE_NON_STRONG_REFERENCES.ignore(f);
+            return (c, f) -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(c, f) 
+                    || getClassFilters(ignoreKnownSingletons).ignore(c, f)
+                    || IGNORE_CLEANER_FIELDS.ignore(c, f)
+                    || IGNORE_NON_STRONG_REFERENCES.ignore(c, f);
 
-        return f -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(f) 
-                || getClassFilters(ignoreKnownSingletons).ignore(f);
+        return (c, f) -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(c, f) 
+                || getClassFilters(ignoreKnownSingletons).ignore(c, f)
+                || IGNORE_CLEANER_FIELDS.ignore(c, f);
     }
 
     /**

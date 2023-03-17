@@ -1,5 +1,6 @@
 package org.github.jamm;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -72,7 +73,11 @@ final class TreePrinter implements MemoryMeterListener {
     }
 
     @Override
-    public void objectCounted(Object current) {
+    public void byteBufferRemainingMeasured(ByteBuffer buffer, long size) {
+        ObjectInfo field = mapping.get(buffer);
+        if (field != null) {
+            field.size += size;
+        }
     }
 
     @Override

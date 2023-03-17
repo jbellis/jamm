@@ -130,6 +130,150 @@ public final class MemoryMeter {
     }
 
     /**
+     * Measures the shallow memory usage of the specified Object array.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param array the object array to measure
+     * @return the shallow memory usage of the array
+     */
+    public long measureArray(Object[] array) {
+
+        if (array == null)
+            return 0L;
+
+        return strategy.measureArray(array);
+    }
+
+    /**
+     * Measures the shallow memory usage of the specified byte array.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param array the byte array to measure
+     * @return the shallow memory usage of the byte array
+     */
+    public long measureArray(byte[] array) {
+
+        if (array == null)
+            return 0L;
+
+        return strategy.measureArray(array);
+    }
+
+    /**
+     * Measures the shallow memory usage of the specified boolean array.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param array the boolean array to measure
+     * @return the shallow memory usage of the boolean array
+     */
+    public long measureArray(boolean[] array) {
+
+        if (array == null)
+            return 0L;
+
+        return strategy.measureArray(array);
+    }
+
+    /**
+     * Measures the shallow memory usage of the specified short array.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param array the short array to measure
+     * @return the shallow memory usage of the short array
+     */
+    public long measureArray(short[] array) {
+
+        if (array == null)
+            return 0L;
+
+        return strategy.measureArray(array);
+    }
+
+    /**
+     * Measures the shallow memory usage of the specified char array.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param array the char array to measure
+     * @return the shallow memory usage of the char array
+     */
+    public long measureArray(char[] array) {
+
+        if (array == null)
+            return 0L;
+
+        return strategy.measureArray(array);
+    }
+
+    /**
+     * Measures the shallow memory usage of the specified int array.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param array the int array to measure
+     * @return the shallow memory usage of the int array
+     */
+    public long measureArray(int[] array) {
+
+        if (array == null)
+            return 0L;
+
+        return strategy.measureArray(array);
+    }
+
+    /**
+     * Measures the shallow memory usage of the specified float array.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param array the float array to measure
+     * @return the shallow memory usage of the float array
+     */
+    public long measureArray(float[] array) {
+
+        if (array == null)
+            return 0L;
+
+        return strategy.measureArray(array);
+    }
+
+    /**
+     * Measures the shallow memory usage of the specified double array.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param array the double array to measure
+     * @return the shallow memory usage of the double array
+     */
+    public long measureArray(double[] array) {
+
+        if (array == null)
+            return 0L;
+
+        return strategy.measureArray(array);
+    }
+
+    /**
+     * Measures the shallow memory usage of the specified long array.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param array the long array to measure
+     * @return the shallow memory usage of the long array
+     */
+    public long measureArray(long[] array) {
+
+        if (array == null)
+            return 0L;
+
+        return strategy.measureArray(array);
+    }
+
+    /**
      * Measures the memory usage of the object including referenced objects.
      *
      * <p>If the object is {@code null} the value returned will be zero.</p>
@@ -164,12 +308,32 @@ public final class MemoryMeter {
             total += size;
 
             Class<?> cls = current.getClass();
+
             if (cls.isArray()) {
+
                 if (!cls.getComponentType().isPrimitive())
                     addArrayChildren((Object[]) current, stack, tracker, listener);
-            } else if (current instanceof ByteBuffer && omitSharedBufferOverhead) {
-                total += ((ByteBuffer) current).remaining();
+
             } else {
+
+                if (current instanceof ByteBuffer && omitSharedBufferOverhead) {
+
+                    ByteBuffer buffer = (ByteBuffer) current;
+
+                    if (!buffer.isDirect()) {
+
+                        int arrayLength = buffer.capacity();
+                        int bufferLength = buffer.remaining();
+
+                        // if we're only referencing a sub-portion of the ByteBuffer, we do not count the array overhead as we assume that it is SLAB
+                        // allocated - the overhead amortized over all the allocations is negligible and better to under count than over count.
+                        if (arrayLength > bufferLength) {
+                            total += bufferLength;
+                            listener.byteBufferRemainingMeasured(buffer, bufferLength);
+                            continue;
+                        }
+                    }
+                }
                 addFieldChildren(current, cls, stack, tracker, listener);
             }
         }
@@ -179,14 +343,19 @@ public final class MemoryMeter {
     }
 
     private void addFieldChildren(Object obj, Class<?> cls, Deque<Object> stack, IdentityHashSet tracker, MemoryMeterListener listener) {
-        while (cls != null) {
-            for (Field field : cls.getDeclaredFields()) {
+        Class<?> type = cls;
+        while (type != null) {
+            for (Field field : type.getDeclaredFields()) {
 
-                if (fieldFilters.ignore(field)) {
+                if (fieldFilters.ignore(cls, field)) {
                     continue;
                 }
 
                 Object child = accessor.getFieldValue(obj, field);
+
+                if (omitSharedBufferOverhead && isDirectBufferView(obj, field, child)) {
+                    continue;
+                }
 
                 if (child != null && tracker.add(child)) {
                     stack.push(child);
@@ -194,8 +363,29 @@ public final class MemoryMeter {
                 }
             }
 
-            cls = cls.getSuperclass();
+            type = type.getSuperclass();
         }
+    }
+
+    /**
+     * Checks if the object is a direct {@code ByteBuffer} which is the view of another buffer.
+     *
+     * <p>When a {@code DirectByteBuffer} is a view of another buffer, it use the {@code att} field 
+     * to keep a reference to that buffer.
+     * 
+     * @param obj The object to check
+     * @param field the field
+     * @param child the field value
+     * @return {@code true} if the object is a direct {@code ByteBuffer} which is the view of another buffer,
+     * {@code false} otherwise.
+     */
+    private boolean isDirectBufferView(Object obj, Field field, Object child)
+    {
+        return obj instanceof ByteBuffer 
+                && ((ByteBuffer) obj).isDirect()
+                && !((ByteBuffer) obj).isReadOnly() 
+                && field.getName().equals("att") 
+                && child != null;
     }
 
     private void addArrayChildren(Object[] current, Deque<Object> stack, IdentityHashSet tracker, MemoryMeterListener listener) {
@@ -285,8 +475,11 @@ public final class MemoryMeter {
         }
 
         /**
-         * Counts only the bytes remaining in a ByteBuffer
-         * in measureDeep, rather than the full size of the backing array.
+         * Counts only the bytes remaining in a {@code ByteBuffer} in measureDeep if the buffer only reference a
+         * sub-portion of the backing array.
+         *
+         * <p>This option is to handle SLAB allocated {@code ByteBuffer} where the overhead amortized over all
+         * the allocations is negligible and we prefer to under count than over count. </p>
          *
          * @return this builder
          */

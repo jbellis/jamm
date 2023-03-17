@@ -56,37 +56,136 @@ public class MemoryMeterStrategyTest
     @Test
     public void testObjectArraySizes() {
 
-        assertEquals("Shallow size of Object[0]", reference.measure(new Object[0]), tested.measure(new Object[0]));
-        assertEquals("Shallow size of Object[1]", reference.measure(new Object[1]), tested.measure(new Object[1]));
-        assertEquals("Shallow size of Object[256]", reference.measure(new Object[256]), tested.measure(new Object[256]));
+        checkMesureArray(new Object[0]);
+        checkMesureArray(new Object[1]);
+        checkMesureArray(new Object[256]);
+    }
+
+    private void checkMesureArray(Object[] array) {
+
+        String message = "Shallow size of Object[" + array.length + "] with guess= " + guess;
+        assertEquals(message, reference.measure(array), tested.measure(array));
+        assertEquals(message, reference.measureArray(array), tested.measureArray(array));
     }
 
     @Test
     public void testByteArraySizes() {
-        assertEquals("Shallow size of byte[0]" + guess, reference.measure(new byte[0]), tested.measure(new byte[0]));
-        assertEquals("Shallow size of byte[1]", reference.measure(new byte[1]), tested.measure(new byte[1]));
-        assertEquals("Shallow size of byte[256]", reference.measure(new byte[256]), tested.measure(new byte[256]));
+
+        checkMesureArray(new byte[0]);
+        checkMesureArray(new byte[1]);
+        checkMesureArray(new byte[256]);
+    }
+
+    private void checkMesureArray(byte[] array) {
+
+        String message = "Shallow size of byte[" + array.length + "] with guess= " + guess;
+        assertEquals(message, reference.measure(array), tested.measure(array));
+        assertEquals(message, reference.measureArray(array), tested.measureArray(array));
+    }
+
+    @Test
+    public void testBooleanArraySizes() {
+
+        checkMesureArray(new boolean[0]);
+        checkMesureArray(new boolean[1]);
+        checkMesureArray(new boolean[256]);
+    }
+
+    private void checkMesureArray(boolean[] array) {
+
+        String message = "Shallow size of boolean[" + array.length + "] with guess= " + guess;
+        assertEquals(message, reference.measure(array), tested.measure(array));
+        assertEquals(message, reference.measureArray(array), tested.measureArray(array));
+    }
+
+    @Test
+    public void testShortArraySizes() {
+
+        checkMesureArray(new short[0]);
+        checkMesureArray(new short[1]);
+        checkMesureArray(new short[256]);
+    }
+
+    private void checkMesureArray(short[] array) {
+
+        String message = "Shallow size of short[" + array.length + "] with guess= " + guess;
+        assertEquals(message, reference.measure(array), tested.measure(array));
+        assertEquals(message, reference.measureArray(array), tested.measureArray(array));
     }
 
     @Test
     public void testCharArraySizes() {
-        assertEquals("Shallow size of char[0]", reference.measure(new char[0]), tested.measure(new char[0]));
-        assertEquals("Shallow size of char[1]", reference.measure(new char[1]), tested.measure(new char[1]));
-        assertEquals("Shallow size of char[256]", reference.measure(new char[256]), tested.measure(new char[256]));
+
+        checkMesureArray(new char[0]);
+        checkMesureArray(new char[1]);
+        checkMesureArray(new char[256]);
+    }
+
+    private void checkMesureArray(char[] array) {
+
+        String message = "Shallow size of char[" + array.length + "] with guess= " + guess;
+        assertEquals(message, reference.measure(array), tested.measure(array));
+        assertEquals(message, reference.measureArray(array), tested.measureArray(array));
     }
 
     @Test
     public void testIntArraySizes() {
-        assertEquals("Shallow size of int[0]", reference.measure(new int[0]), tested.measure(new int[0]));
-        assertEquals("Shallow size of int[1]", reference.measure(new int[1]), tested.measure(new int[1]));
-        assertEquals("Shallow size of int[256]", reference.measure(new int[256]), tested.measure(new int[256]));
+
+        checkMesureArray(new int[0]);
+        checkMesureArray(new int[1]);
+        checkMesureArray(new int[256]);
+    }
+
+    private void checkMesureArray(int[] array) {
+
+        String message = "Shallow size of int[" + array.length + "] with guess= " + guess;
+        assertEquals(message, reference.measure(array), tested.measure(array));
+        assertEquals(message, reference.measureArray(array), tested.measureArray(array));
+    }
+
+    @Test
+    public void testFloatArraySizes() {
+
+        checkMesureArray(new float[0]);
+        checkMesureArray(new float[1]);
+        checkMesureArray(new float[256]);
+    }
+
+    private void checkMesureArray(float[] array) {
+
+        String message = "Shallow size of float[" + array.length + "] with guess= " + guess;
+        assertEquals(message, reference.measure(array), tested.measure(array));
+        assertEquals(message, reference.measureArray(array), tested.measureArray(array));
     }
 
     @Test
     public void testLongArraySizes() {
-        assertEquals("Shallow size of long[0]", reference.measure(new long[0]), tested.measure(new long[0]));
-        assertEquals("Shallow size of long[1]", reference.measure(new long[1]), tested.measure(new long[1]));
-        assertEquals("Shallow size of long[256]", reference.measure(new long[256]), tested.measure(new long[256]));
+
+        checkMesureArray(new long[0]);
+        checkMesureArray(new long[1]);
+        checkMesureArray(new long[256]);
+    }
+
+    private void checkMesureArray(long[] array) {
+
+        String message = "Shallow size of long[" + array.length + "] with guess= " + guess;
+        assertEquals(message, reference.measure(array), tested.measure(array));
+        assertEquals(message, reference.measureArray(array), tested.measureArray(array));
+    }
+
+    @Test
+    public void testDoubleArraySizes() {
+
+        checkMesureArray(new double[0]);
+        checkMesureArray(new double[1]);
+        checkMesureArray(new double[256]);
+    }
+
+    private void checkMesureArray(double[] array) {
+
+        String message = "Shallow size of double[" + array.length + "] with guess= " + guess;
+        assertEquals(message, reference.measure(array), tested.measure(array));
+        assertEquals(message, reference.measureArray(array), tested.measureArray(array));
     }
 
     @SuppressWarnings("unused")
@@ -171,26 +270,115 @@ public class MemoryMeterStrategyTest
     }
 
     @Test
-    public void testByteBuffer() {
+    public void testHeapByteBuffer() {
+
         ByteBuffer empty = ByteBuffer.allocate(0);
+        ByteBuffer readOnlyEmpty = empty.asReadOnlyBuffer();
         ByteBuffer one = ByteBuffer.allocate(1);
+        ByteBuffer readOnlyOne = one.asReadOnlyBuffer();
         ByteBuffer emptyOne = (ByteBuffer) one.duplicate().position(1);
+        ByteBuffer readOnlyEmptyOne = emptyOne.asReadOnlyBuffer();
+        ByteBuffer twenty = ByteBuffer.allocate(20);
+        ByteBuffer readOnlyTwenty = twenty.asReadOnlyBuffer();
+        ByteBuffer five = (ByteBuffer) twenty.slice().limit(5);
+        ByteBuffer readOnlyFive = five.asReadOnlyBuffer();
 
         MemoryMeter m1 = MemoryMeter.builder().withGuessing(guess).build();
 
-        assertEquals("Deep empty ByteBuffer", reference.measureDeep(empty), m1.measureDeep(empty));
-        assertEquals("Deep 1-byte ByteBuffer", reference.measureDeep(one), m1.measureDeep(one));
-        assertEquals("Deep duplicated 1-byte ByteBuffer", reference.measureDeep(emptyOne), m1.measureDeep(emptyOne));
+        long sizeShallowEmptyBuffer = reference.measure(empty);
+        assertEquals("empty ByteBuffer", sizeShallowEmptyBuffer, m1.measure(empty));
+        assertEquals("empty ByteBuffer", sizeShallowEmptyBuffer, m1.measure(readOnlyEmpty));
+
+        long expected = sizeShallowEmptyBuffer + reference.measureArray(empty.array());
+        assertEquals("Deep empty ByteBuffer", expected, m1.measureDeep(empty));
+        assertEquals("Deep empty ByteBuffer", expected, m1.measureDeep(readOnlyEmpty));
+
+        expected = sizeShallowEmptyBuffer + reference.measureArray(emptyOne.array());
+        assertEquals("Deep duplicated 1-byte ByteBuffer", expected, m1.measureDeep(emptyOne));
+        assertEquals("Deep duplicated 1-byte ByteBuffer", expected, m1.measureDeep(readOnlyEmptyOne));
+
+        expected = sizeShallowEmptyBuffer + reference.measureArray(one.array());
+        assertEquals("Deep 1-byte ByteBuffer", expected, m1.measureDeep(one));
+        assertEquals("Deep 1-byte ByteBuffer", expected, m1.measureDeep(readOnlyOne));
+
+        expected = sizeShallowEmptyBuffer + reference.measureArray(twenty.array());
+        assertEquals("Twenty bytes ByteBuffer", expected, m1.measureDeep(twenty));
+        assertEquals("Twenty bytes ByteBuffer", expected, m1.measureDeep(readOnlyTwenty));
+        assertEquals("Five bytes ByteBuffer", expected, m1.measureDeep(five));
+        assertEquals("Five bytes ByteBuffer", expected, m1.measureDeep(readOnlyFive));
 
         MemoryMeter m2 = MemoryMeter.builder().withGuessing(guess).omitSharedBufferOverhead().build();
 
-        long sizeEmptyByteBuffer = reference.measure(empty);
-        assertEquals(sizeEmptyByteBuffer, m2.measure(empty));
-        assertEquals(sizeEmptyByteBuffer, m2.measureDeep(empty));
-        assertEquals(sizeEmptyByteBuffer + 1, m2.measureDeep(one)); // as of 0.2.4 we don't count the bytes!!!
-        assertEquals(sizeEmptyByteBuffer, m2.measureDeep(emptyOne));
+        assertEquals(sizeShallowEmptyBuffer, m2.measure(empty));
+
+        expected = sizeShallowEmptyBuffer + reference.measureArray(empty.array()); // The buffer represent the full array therefore nothing is shared
+        assertEquals(expected, m2.measureDeep(empty));
+        assertEquals(expected, m2.measureDeep(readOnlyEmpty));
+
+        expected = sizeShallowEmptyBuffer + emptyOne.remaining();
+        assertEquals("Deep duplicated 1-byte ByteBuffer", expected, m2.measureDeep(emptyOne));
+        assertEquals("Deep duplicated 1-byte ByteBuffer", expected, m2.measureDeep(readOnlyEmptyOne));
+
+        expected = sizeShallowEmptyBuffer + reference.measureArray(twenty.array());
+        assertEquals("Twenty bytes ByteBuffer", expected, m2.measureDeep(twenty)); // The buffer represent the full array therefore nothing is shared
+        assertEquals("Twenty bytes ByteBuffer", expected, m2.measureDeep(readOnlyTwenty));
+
+        expected = sizeShallowEmptyBuffer + five.remaining();
+        assertEquals("Five bytes ByteBuffer", expected, m2.measureDeep(five));
+        assertEquals("Five bytes ByteBuffer", expected, m2.measureDeep(readOnlyFive));
     }
-    
+
+    @Test
+    public void testDirectByteBuffer() {
+
+        ByteBuffer empty = ByteBuffer.allocateDirect(0);
+        ByteBuffer readOnlyEmpty = empty.asReadOnlyBuffer();
+        ByteBuffer one = ByteBuffer.allocateDirect(1);
+        ByteBuffer readOnlyOne = one.asReadOnlyBuffer();
+        ByteBuffer emptyOne = (ByteBuffer) one.duplicate().position(1);
+        ByteBuffer readOnlyEmptyOne = emptyOne.asReadOnlyBuffer();
+        ByteBuffer twenty = ByteBuffer.allocateDirect(20);
+        ByteBuffer readOnlyTwenty = twenty.asReadOnlyBuffer();
+        ByteBuffer five = (ByteBuffer) twenty.slice().limit(5);
+        ByteBuffer readOnlyFive = five.asReadOnlyBuffer();
+
+        MemoryMeter m1 = MemoryMeter.builder().withGuessing(guess).build();
+
+        long sizeShallowBuffer = reference.measure(empty);
+        assertEquals("empty ByteBuffer", sizeShallowBuffer, m1.measure(empty));
+        assertEquals("empty ByteBuffer", sizeShallowBuffer, m1.measure(readOnlyEmpty));
+
+        long sizeDeepBuffer = reference.measureDeep(empty);
+        assertEquals("Deep empty ByteBuffer", sizeDeepBuffer, m1.measureDeep(empty));
+
+        // If a DirectByteBuffer is referencing a part of another DirectByteBuffer it will have a reference to this buffer
+        // through the att (attachement) field and no cleaner
+        long sizeDeepWithAttachedBuffer = sizeShallowBuffer + sizeDeepBuffer;
+        assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyEmpty));
+        assertEquals("Deep duplicated 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(emptyOne));
+        assertEquals("Deep duplicated 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyEmptyOne));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepBuffer, m1.measureDeep(one));
+        assertEquals("Twenty bytes ByteBuffer", sizeDeepBuffer, m1.measureDeep(twenty));
+        assertEquals("Twenty bytes ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyTwenty));
+        assertEquals("Five bytes ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(five));
+        assertEquals("Five bytes ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyFive));
+
+        MemoryMeter m2 = MemoryMeter.builder().withGuessing(guess).omitSharedBufferOverhead().build();
+
+        assertEquals("empty ByteBuffer", sizeShallowBuffer, m2.measure(empty));
+        assertEquals("empty ByteBuffer", sizeShallowBuffer, m2.measure(readOnlyEmpty));
+        assertEquals("Deep empty ByteBuffer", sizeDeepBuffer, m2.measureDeep(empty));
+        assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyEmpty));
+        assertEquals("Deep duplicated 1-byte ByteBuffer", sizeShallowBuffer, m2.measureDeep(emptyOne));
+        assertEquals("Deep duplicated 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyEmptyOne));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepBuffer, m2.measureDeep(one));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyOne));
+        assertEquals("Twenty bytes ByteBuffer", sizeDeepBuffer, m2.measureDeep(twenty));
+        assertEquals("Twenty bytes ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyTwenty));
+        assertEquals("Five bytes ByteBuffer", sizeShallowBuffer, m2.measureDeep(five));
+        assertEquals("Five bytes ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyFive));
+    }
+
     @Test
     public void testHierachyPadding()
     {

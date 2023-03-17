@@ -9,8 +9,8 @@ import java.lang.reflect.Field;
 public interface FieldAndClassFilter extends FieldFilter
 {
     @Override
-    default boolean ignore(Field field) {
-        return ignore(field.getType());
+    default boolean ignore(Class<?> cls, Field field) {
+        return ignore(cls);
     }
 
     /**
