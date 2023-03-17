@@ -1,5 +1,7 @@
 package org.github.jamm;
 
+import java.nio.ByteBuffer;
+
 /**
  * Listener that receive notification form MemoryMeter.
  */
@@ -46,11 +48,12 @@ interface MemoryMeterListener {
     void objectMeasured(Object current, long size);
 
     /**
-     * Notification that the specified object been counted.
+     * Notification that the size of the remaining bytes of a {@code ByteBuffer} have been measured.
      *
-     * @param current the object that has been counted
+     * @param buffer the {@code ByteBuffer}
+     * @param size the remaining bytes
      */
-    void objectCounted(Object current);
+    void byteBufferRemainingMeasured(ByteBuffer buffer, long size);
 
     /**
      * Notification that the entire graphs has been measured.
