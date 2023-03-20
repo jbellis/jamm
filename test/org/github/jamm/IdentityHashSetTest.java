@@ -35,7 +35,7 @@ public class IdentityHashSetTest
         {
             Object o = ref1.get(i);
             assertEquals(i, s.size);
-            assertEquals(expectedCapacity(i), s.table.length);
+            assertEquals("" + i, expectedCapacity(i), s.table.length);
             assertTrue(s.add(o));
         }
         assertEquals(ref1.size(), s.size);
@@ -60,16 +60,11 @@ public class IdentityHashSetTest
 
     private int expectedCapacity(int i)
     {
-        // 3 as the "magic size factor" to have enough 'null's in the open-addressing-map
-        i *= 3;
+        // the backing array must be at most 2/3 full in order to have enough 'null's in the open-addressing-map
+        i = (i * 3) / 2;
 
         // next power of 2
-        i--;
-        i |= i >> 1;
-        i |= i >> 2;
-        i |= i >> 4;
-        i |= i >> 8;
-        i++;
+        i = 1 << (32 - Integer.numberOfLeadingZeros(i));
         return Math.max(16, i);
     }
 }

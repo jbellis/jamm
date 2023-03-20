@@ -10,35 +10,31 @@ package org.github.jamm;
  * 
  * <p>{@code IdentityHashSet} uses linear probing to resolve hash collisions. When a hash collision occurs it will look 
  * for the next {@code null} bucket available. To minimize the risk of clustering impacting the performance,
- * {@code IdentityHashSet} will ensure that the underlying array is at most 1/3 full by resizing the array when this
+ * {@code IdentityHashSet} will ensure that the underlying array is at most 2/3 full by resizing the array when this
  * limit is reached.</p>
  */
 final class IdentityHashSet
 {
     int size;
     // Open-addressing table for this set.
-    // This table will never be fully populated (1/3) to keep enough "spare slots" that are `null`
+    // This table will never be fully populated (2/3) to keep enough "spare slots" that are `null`
     // so a loop checking for an element would not have to check too many slots (iteration stops
     // when an entry in the table is `null`).
-    Object[] table = new Object[16];
+    Object[] table = new Object[16]; // 16 2/3 populated = 10 elements
 
     boolean add(Object o)
     {
         // no need for a null-check here, see call-sites
-
-        Object[] tab;
-        Object item;
-        int len, mask, i, s;
         for (; true; resize())
         {
-            tab = table;
-            len = tab.length;
-            mask = len - 1;
-            i = index(o, mask);
+            Object[] tab = table;
+            int len = tab.length;
+            int mask = len - 1;
+            int i = index(o, mask);
 
             while (true)
             {
-                item = tab[i];
+                Object item = tab[i];
                 if (item == null)
                     break;
                 if (item == o)
@@ -46,9 +42,12 @@ final class IdentityHashSet
                 i = inc(i, len);
             }
 
-            s = size + 1;
-            // 3 as the "magic size factor" to have enough 'null's in the open-addressing-map
-            if (s * 3 <= len)
+            int s = size + 1;
+            // Ensure that the array is only at most 2/3 full
+            // if ( s <= ((2 * len) / 3)
+            // if ((3 * s) <= (2 * len))
+            // if ((s + (2 * s)) <= (2 * len))
+            if (s + (s << 1) <= (len << 1))
             {
                 size = s;
                 tab[i] = o;
