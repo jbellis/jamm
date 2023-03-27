@@ -205,7 +205,7 @@ public class MemoryMeterTest
 
     private static class WithAnnotationField {
 
-        @org.github.jamm.Unmetered
+        @Unmetered
         private String s;
 
         public WithAnnotationField(String s) {

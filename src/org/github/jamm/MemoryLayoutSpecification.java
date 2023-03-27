@@ -8,8 +8,8 @@ package org.github.jamm;
  *  possible alignment paddings. After the object header, there may be zero or more references to instance fields.</p>
  *
  * <p>For arrays, the header contains a 4-byte array length in addition to the mark and class word. Array headers
- *  might also contain some padding as array base is aligned (https://shipilev.net/jvm/objects-inside-out/#_observation_array_base_is_aligned, 
- *  https://bugs.openjdk.org/browse/JDK-8139457).</p> 
+ *  might also contain some padding as array base is aligned (<a href="https://shipilev.net/jvm/objects-inside-out/#_observation_array_base_is_aligned">
+ *  https://bugs.openjdk.org/browse/JDK-8139457)</a>,.</p> 
  *  
  * <p>Objects are aligned: they always start at some multiple of the alignment.</p>
  *
@@ -46,7 +46,7 @@ public interface MemoryLayoutSpecification
      */
     int getReferenceSize();
 
-    public static MemoryLayoutSpecification getEffectiveMemoryLayoutSpecification() {
+    static MemoryLayoutSpecification getEffectiveMemoryLayoutSpecification() {
 
         final int objectHeaderSize;
         final int referenceSize;
@@ -111,7 +111,7 @@ public interface MemoryLayoutSpecification
                                           .append(objectHeaderSize)
                                           .append(" , arrayHeaderSize=")
                                           .append(arrayHeaderSize)
-                                          .append(", objectAlignement=")
+                                          .append(", objectAlignment=")
                                           .append(objectAlignment)
                                           .append(", referenceSize=")
                                           .append(referenceSize)

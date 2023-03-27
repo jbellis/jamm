@@ -229,7 +229,7 @@ final class TreePrinter implements MemoryMeterListener {
                 appendSizeTo(builder, size);
                 builder.append(')');
             }
-            return appendChildren(childIntentation(indentation, isLast),
+            return appendChildren(childIndentation(indentation, isLast),
                                   printTotalSize,
                                   builder.append(LINE_SEPARATOR));
         }
@@ -257,7 +257,7 @@ final class TreePrinter implements MemoryMeterListener {
          * @param isLast <code>true</code> if the parent is the last child of its parent
          * @return the indentation to use for the children
          */
-        private static String childIntentation(String indentation, boolean isLast) {
+        private static String childIndentation(String indentation, boolean isLast) {
             return isLast ? indentation + "  " : indentation + "|  ";
         }
 
@@ -311,5 +311,5 @@ final class TreePrinter implements MemoryMeterListener {
         public MemoryMeterListener newInstance() {
             return new TreePrinter(depth);
         }
-    };
+    }
 }

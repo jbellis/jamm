@@ -39,7 +39,7 @@ class SpecStrategy extends MemoryLayoutBasedStrategy
     /**
      * Returns the size of the declared fields of the specified class.
      *
-     * @param type the class for which the the size of its declared fields must be returned
+     * @param type the class for which the size of its declared fields must be returned
      * @return the size of the declared fields of the specified class
      */
     private long sizeOfDeclaredFields(Class<?> type) {

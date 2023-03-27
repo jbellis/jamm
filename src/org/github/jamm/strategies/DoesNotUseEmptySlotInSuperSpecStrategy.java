@@ -8,7 +8,8 @@ import static org.github.jamm.MathUtils.roundTo;
  * {@code MemoryMeterStrategy} that computes the size of the memory occupied by an object, in a Java 15+ JVM, when the 
  * {@code UseEmptySlotsInSupers} option is disabled.
  * <p>For backward compatibility reason, in 15+, the optimization can be disabled through the {@code UseEmptySlotsInSupers} option.
- * (see https://bugs.openjdk.org/browse/JDK-8237767 and https://bugs.openjdk.org/browse/JDK-8239016)
+ * (see <a href="https://bugs.openjdk.org/browse/JDK-8237767">https://bugs.openjdk.org/browse/JDK-8237767</a> and 
+ * <a href="https://bugs.openjdk.org/browse/JDK-8239016</a>)
  * Unfortunately, when {@code UseEmptySlotsInSupers} is disabled the layout does not match the pre-15 versions and in some cases like 
  * {@code DirectByteBuffer} the layout produced by the JVM does not even group the fields by super-classes making it impossible for this strategy to reproduce it.</p>
  */

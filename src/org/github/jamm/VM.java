@@ -18,7 +18,7 @@ import sun.misc.Unsafe;
 public final class VM
 {
     private static final boolean DEFAULT_USE_COMPRESSED_OOPS = true;
-    private static final int DEFAULT_ALIGNEMENT_IN_BYTES = 8;
+    private static final int DEFAULT_ALIGNMENT_IN_BYTES = 8;
 
     private static final Unsafe UNSAFE = loadUnsafe();
 
@@ -49,8 +49,8 @@ public final class VM
      */
     public static int getObjectAlignmentInBytes() {
 
-        String alignement = getVMOption("ObjectAlignmentInBytes");
-        return alignement == null ? DEFAULT_ALIGNEMENT_IN_BYTES : Integer.parseInt(alignement);
+        String alignment = getVMOption("ObjectAlignmentInBytes");
+        return alignment == null ? DEFAULT_ALIGNMENT_IN_BYTES : Integer.parseInt(alignment);
     }
 
     /**
@@ -60,8 +60,8 @@ public final class VM
      */
     public static boolean useCompressedOops() {
 
-        String useCommpressedOops = getVMOption("UseCompressedOops");
-        return useCommpressedOops == null ? DEFAULT_USE_COMPRESSED_OOPS : Boolean.parseBoolean(useCommpressedOops);
+        String useCompressedOops = getVMOption("UseCompressedOops");
+        return useCompressedOops == null ? DEFAULT_USE_COMPRESSED_OOPS : Boolean.parseBoolean(useCompressedOops);
     }
 
     /**

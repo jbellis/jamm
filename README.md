@@ -42,7 +42,7 @@ mark the classes (or interfaces) using the `Unmetered` annotation.
 
 # 0.4.0 breaking changes
 
-The 0.4.0 version comes with speed improvements and support for most recent java versions but also some breaking
+The 0.4.0 version comes with speed improvements and support for newer java versions but also some breaking
 changes at the API level. 
 * The `MemoryMeter` constructor and the static methods used to configure the different options (`omitSharedBufferOverhead`, `withGuessing`, `ignoreOuterClassReference`, `ignoreKnownSingletons`, `ignoreNonStrongReferences`, `enableDebug`) have been removed. Instead `MemoryMeter` instances must be created through a `Builder`.
 * The ability to provide a tracker for visited object has been removed.
@@ -72,7 +72,7 @@ the given object.
 `MemoryMeter` will use `Unsafe.objectFieldOffset` to guess the object offset.
 Java 14 introduced records and Java 15 introduced Hidden classes which are used in Java 17 for Lambda expressions. 
 Unfortunately, calling `Unsafe.objectFieldOffset` on the `Field` of a record or hidden class will result into an `UnsupportedOperationException` therefore
-for record and hidden classes the unsafe strategy delegate the measurement to the specification strategy.
+for record and hidden classes the unsafe strategy delegates the measurement to the specification strategy.
 
 ### Specification
 
@@ -141,7 +141,7 @@ root [java.nio.DirectByteBuffer] 136 bytes (64 bytes)
     +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
 ```
 
-In reality the `cleaner` fields has some extra fields that `MemoryMeter` is excluding as they might result in an incorrect
+In reality the `cleaner` field has some extra fields that `MemoryMeter` is excluding as they might result in an incorrect
 measurement. Those fields are: 
 * `queue` as it is a dummy queue referenced by all `Cleaner` instances
 * `next` and `prev` as they are used to create a doubly-linked list of live cleaners and therefore refer to other Cleaners instances

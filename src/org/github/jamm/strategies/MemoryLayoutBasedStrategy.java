@@ -108,7 +108,7 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
      * @param elementSize the size of the array elements
      * @return the size of the array
      */
-    private final long computeArraySize(int arrayBaseOffset, int length, int elementSize) {
+    private long computeArraySize(int arrayBaseOffset, int length, int elementSize) {
         return roundTo(arrayBaseOffset + length * (long) elementSize, memoryLayout.getObjectAlignment());
     }
 
