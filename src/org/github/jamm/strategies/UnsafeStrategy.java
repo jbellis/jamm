@@ -17,13 +17,13 @@ import static org.github.jamm.MathUtils.roundTo;
  * <p>In Java 15, the way the JVM layout fields across the hierarchy changed. Prior to Java 15 superclass field
  * always came first. Therefore that strategy could only look at the current class to find the greatest offsets.
  * From Java 15 onward it is not the case anymore. The JVM optimizes ensure minimal memory usage by packing the fields
- * in the best possible way across the hierarchy (https://bugs.openjdk.org/browse/JDK-8237767).</p>
+ * in the best possible way across the hierarchy (<a href="https://bugs.openjdk.org/browse/JDK-8237767">https://bugs.openjdk.org/browse/JDK-8237767</a>).</p>
  * 
  * <p>Another important change that came in Java 15 is the introduction of hidden classes (https://openjdk.org/jeps/371)
  * and the use of hidden class for lambda. Attempting to use {@code Unsafe.objectFieldOffset} on an hidden class field
  * will result in a {@code UnsupportedOperationException} preventing the {@code UnsafeStrategy} to evaluate correctly
  * the memory used by the class. To avoid that problem {@code UnsafeStrategy} will rely on the {@code SpecStrategy} to
- * measure hidden classes. This can lead to an overestimation of the object size as the {@SpecStrategy} ignore some 
+ * measure hidden classes. This can lead to an overestimation of the object size as the {@code SpecStrategy} ignore some 
  * optimizations performed by the JVM</p> 
  */
 public final class UnsafeStrategy extends MemoryLayoutBasedStrategy

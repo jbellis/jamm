@@ -27,7 +27,7 @@ public final class MemoryMeter {
         return MemoryMeterStrategies.getInstance().hasUnsafe();
     }
 
-    public static enum Guess {
+    public enum Guess {
         /* If instrumentation is not available, error when measuring */
         ALWAYS_INSTRUMENTATION,
         /* If instrumentation is available, use it, otherwise guess the size using predefined specifications */
@@ -296,7 +296,7 @@ public final class MemoryMeter {
         tracker.add(object);
         listener.started(object);
 
-        // track stack manually so we can handle deeper hierarchies than recursion
+        // track stack manually, so we can handle deeper hierarchies than recursion
         Deque<Object> stack = new ArrayDeque<Object>();
         stack.push(object);
 
@@ -326,7 +326,7 @@ public final class MemoryMeter {
                         int bufferLength = buffer.remaining();
 
                         // if we're only referencing a sub-portion of the ByteBuffer, we do not count the array overhead as we assume that it is SLAB
-                        // allocated - the overhead amortized over all the allocations is negligible and better to under count than over count.
+                        // allocated - the overhead amortized over all the allocations is negligible and better to undercount than over count.
                         if (arrayLength > bufferLength) {
                             total += bufferLength;
                             listener.byteBufferRemainingMeasured(buffer, bufferLength);
@@ -370,7 +370,7 @@ public final class MemoryMeter {
     /**
      * Checks if the object is a direct {@code ByteBuffer} which is the view of another buffer.
      *
-     * <p>When a {@code DirectByteBuffer} is a view of another buffer, it use the {@code att} field 
+     * <p>When a {@code DirectByteBuffer} is a view of another buffer, it uses the {@code att} field 
      * to keep a reference to that buffer.
      * 
      * @param obj The object to check
@@ -443,7 +443,7 @@ public final class MemoryMeter {
         }
 
         /**
-         * Ignores the outer class reference from non static inner classes.
+         * Ignores the outer class reference from non-static inner classes.
          * <p>In practice this is only useful if the top class provided to {@code MemoryMeter.measureDeep} is an inner 
          * class and we wish to ignore the outer class in the measurement.</p>
          *
@@ -489,7 +489,7 @@ public final class MemoryMeter {
         }
 
         /**
-         * Prints the classes tree to {@ code System.out} when measuring through {@code measureDeep}.
+         * Prints the classes tree to {@code System.out} when measuring through {@code measureDeep}.
          *
          * @return this builder
          */
@@ -498,7 +498,7 @@ public final class MemoryMeter {
         }
 
         /**
-         * Prints the classes tree to {@ code System.out} up to the specified depth when measuring through {@code measureDeep}.
+         * Prints the classes tree to {@code System.out} up to the specified depth when measuring through {@code measureDeep}.
          *
          * @param depth the depth up to which the class tree must be printed
          * @return this builder

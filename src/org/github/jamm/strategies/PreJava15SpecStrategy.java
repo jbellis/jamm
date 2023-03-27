@@ -132,7 +132,7 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
         return roundTo(size, memoryLayout.getObjectAlignment());
     }
 
-    private long sizeOfFields(Class<?> type, boolean useFieldBlockAlignement) {
+    private long sizeOfFields(Class<?> type, boolean useFieldBlockAlignment) {
 
         if (type == Object.class)
             return memoryLayout.getObjectHeaderSize();
@@ -158,7 +158,7 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
         }
 
         // Ensure that we take into account the hierarchy gaps
-        size += useFieldBlockAlignement ? alignFieldBlock(sizeOfDeclaredField) : sizeOfDeclaredField;
+        size += useFieldBlockAlignment ? alignFieldBlock(sizeOfDeclaredField) : sizeOfDeclaredField;
         return size;
     }
 

@@ -33,7 +33,7 @@ interface MemoryMeterListener {
     /**
      * Notification that the element from the specified array has been added.
      *
-     * @param array the array for which a element has been added
+     * @param array the array for which an element has been added
      * @param index the element index
      * @param elementValue the element value
      */

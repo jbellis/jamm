@@ -48,7 +48,7 @@ public final class Filters
     private static final FieldAndClassFilter IGNORE_KNOWN_SINGLETONS = c -> Class.class.equals(c) || Enum.class.isAssignableFrom(c);
 
     /**
-     * Filter excluding non strong references
+     * Filter excluding non-strong references
      */
     private static final FieldFilter IGNORE_NON_STRONG_REFERENCES = (c, f) -> Reference.class.isAssignableFrom(c) && "referent".equals(f.getName());
 
@@ -63,8 +63,8 @@ public final class Filters
     private static final FieldFilter IGNORE_CLEANER_FIELDS = (c, f) -> c.equals(CLEANER_CLASS) && CLEANER_FIELDS_TO_IGNORE.contains(f.getName()) ;
 
     /**
-     * Filter excluding the outer class reference from non static inner classes.
-     * In practice that filter is only useful if the top class is an inner class and we wish to ignore the outer class in the measurement.
+     * Filter excluding the outer class reference from non-static inner classes.
+     * In practice that filter is only useful if the top class is an inner class, and we wish to ignore the outer class in the measurement.
      */
     private static final FieldFilter IGNORE_OUTER_CLASS_REFERENCES = (c, f) -> f.getName().matches(OUTER_CLASS_REFERENCE);
 

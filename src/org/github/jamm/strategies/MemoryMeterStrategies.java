@@ -21,7 +21,7 @@ public final class MemoryMeterStrategies
     public static Instrumentation instrumentation;
 
     /**
-     * The strategies instances.
+     * The strategies instance.
      */
     private static MemoryMeterStrategies instance; 
 
@@ -85,7 +85,7 @@ public final class MemoryMeterStrategies
 
         if (!VM.useEmptySlotsInSuper())
             System.out.println("WARNING: Jamm is starting with the UseEmptySlotsInSupers JVM option disabled."
-                               + " The memory layout created when this option is enabled cannot always be reproduced accuratly by the SPEC or UNSAFE strategies."
+                               + " The memory layout created when this option is enabled cannot always be reproduced accurately by the SPEC or UNSAFE strategies."
                                + " By consequence the measured sizes when these strategies are used might be off in some cases.");
 
         // The Field layout was optimized in Java 15. For backward compatibility reasons, in 15+, the optimization can be disabled through the {@code -XX:-UseEmptySlotsInSupers} option.
