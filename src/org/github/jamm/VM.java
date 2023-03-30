@@ -83,7 +83,6 @@ public final class VM
     public static boolean useEmptySlotsInSuper() {
 
         String useEmptySlotsInSuper = getVMOption("UseEmptySlotsInSupers");
-        System.out.println("UseEmptySlotsInSupers: " + useEmptySlotsInSuper);
         return useEmptySlotsInSuper == null ? false : Boolean.parseBoolean(useEmptySlotsInSuper);
     }
 

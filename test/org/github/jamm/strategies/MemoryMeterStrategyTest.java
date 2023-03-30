@@ -1,8 +1,11 @@
 package org.github.jamm.strategies;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import org.junit.After;
@@ -23,6 +26,17 @@ import static org.junit.Assert.assertEquals;
 @RunWith(Parameterized.class)
 public class MemoryMeterStrategyTest
 {
+    private static final boolean RUNNING_WITH_PRE_JAVA12_JVM = isRunningWithPreJava12Jvm();
+
+    private static boolean isRunningWithPreJava12Jvm() {
+        try {
+            String.class.getMethod("indent", int.class);
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     private final MemoryMeter.Guess guess;
 
     private MemoryMeter tested;
@@ -356,12 +370,17 @@ public class MemoryMeterStrategyTest
         long sizeDeepWithAttachedBuffer = sizeShallowBuffer + sizeDeepBuffer;
         assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyEmpty));
         assertEquals("Deep duplicated 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(emptyOne));
-        assertEquals("Deep duplicated 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyEmptyOne));
+        // Pre java 12, a DirectByteBuffer created from another DirectByteBuffer was using the source buffer as an attachment
+        // for liveness rather than the source buffer's attachment (https://bugs.openjdk.org/browse/JDK-8208362)
+        long sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m1.measureDeep(emptyOne) : m1.measureDeep(emptyOne);
+        assertEquals("Deep duplicated 1-byte ByteBuffer", sizeReadOnlyBuffer, m1.measureDeep(readOnlyEmptyOne));
         assertEquals("Deep 1-byte ByteBuffer", sizeDeepBuffer, m1.measureDeep(one));
         assertEquals("Twenty bytes ByteBuffer", sizeDeepBuffer, m1.measureDeep(twenty));
-        assertEquals("Twenty bytes ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyTwenty));
+        sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m1.measureDeep(twenty) : m1.measureDeep(twenty);
+        assertEquals("Twenty bytes ByteBuffer", sizeReadOnlyBuffer, m1.measureDeep(readOnlyTwenty));
         assertEquals("Five bytes ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(five));
-        assertEquals("Five bytes ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyFive));
+        sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m1.measureDeep(five) : m1.measureDeep(five);
+        assertEquals("Five bytes ByteBuffer", sizeReadOnlyBuffer, m1.measureDeep(readOnlyFive));
 
         MemoryMeter m2 = MemoryMeter.builder().withGuessing(guess).omitSharedBufferOverhead().build();
 
@@ -370,13 +389,16 @@ public class MemoryMeterStrategyTest
         assertEquals("Deep empty ByteBuffer", sizeDeepBuffer, m2.measureDeep(empty));
         assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyEmpty));
         assertEquals("Deep duplicated 1-byte ByteBuffer", sizeShallowBuffer, m2.measureDeep(emptyOne));
-        assertEquals("Deep duplicated 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyEmptyOne));
+        sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m2.measureDeep(emptyOne) : m2.measureDeep(emptyOne);
+        assertEquals("Deep duplicated 1-byte ByteBuffer", sizeReadOnlyBuffer, m2.measureDeep(readOnlyEmptyOne));
         assertEquals("Deep 1-byte ByteBuffer", sizeDeepBuffer, m2.measureDeep(one));
         assertEquals("Deep 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyOne));
         assertEquals("Twenty bytes ByteBuffer", sizeDeepBuffer, m2.measureDeep(twenty));
-        assertEquals("Twenty bytes ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyTwenty));
+        sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m2.measureDeep(twenty) : m2.measureDeep(twenty);
+        assertEquals("Twenty bytes ByteBuffer", sizeReadOnlyBuffer, m2.measureDeep(readOnlyTwenty));
         assertEquals("Five bytes ByteBuffer", sizeShallowBuffer, m2.measureDeep(five));
-        assertEquals("Five bytes ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyFive));
+        sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m2.measureDeep(five) : m2.measureDeep(five);
+        assertEquals("Five bytes ByteBuffer", sizeReadOnlyBuffer, m2.measureDeep(readOnlyFive));
     }
 
     @Test
