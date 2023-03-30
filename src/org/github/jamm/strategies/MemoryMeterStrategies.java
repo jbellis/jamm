@@ -152,7 +152,7 @@ public final class MemoryMeterStrategies
             return Optional.empty();
         }
     }
-    
+
     private static MemoryMeterStrategy createInstrumentationStrategy() {
         return instrumentation != null ? new InstrumentationStrategy(instrumentation) : null;
     }
