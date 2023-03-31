@@ -83,7 +83,7 @@ public final class MemoryMeterStrategies
 
     private static MemoryMeterStrategy createSpecStrategy(MemoryLayoutSpecification specification, Optional<MethodHandle> mayBeIsHiddenMH) {
 
-        if (!VM.useEmptySlotsInSuper())
+        if (mayBeIsHiddenMH.isPresent() && !VM.useEmptySlotsInSuper())
             System.out.println("WARNING: Jamm is starting with the UseEmptySlotsInSupers JVM option disabled."
                                + " The memory layout created when this option is enabled cannot always be reproduced accurately by the SPEC or UNSAFE strategies."
                                + " By consequence the measured sizes when these strategies are used might be off in some cases.");

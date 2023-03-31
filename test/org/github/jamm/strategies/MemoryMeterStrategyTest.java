@@ -1,11 +1,8 @@
 package org.github.jamm.strategies;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import org.junit.After;
@@ -405,10 +402,15 @@ public class MemoryMeterStrategyTest
     public void testHierachyPadding()
     {
         assertEquals(reference.measure(new A()), tested.measure(new A()));
+        assertEquals(reference.measureDeep(new A()), tested.measureDeep(new A()));
         assertEquals(reference.measure(new B()), tested.measure(new B()));
+        assertEquals(reference.measureDeep(new B()), tested.measureDeep(new B()));
         assertEquals(reference.measure(new C()), tested.measure(new C()));
+        assertEquals(reference.measureDeep(new C()), tested.measureDeep(new C()));
         assertEquals(reference.measure(new D()), tested.measure(new D()));
+        assertEquals(reference.measureDeep(new D()), tested.measureDeep(new D()));
         assertEquals(reference.measure(new E()), tested.measure(new E()));
+        assertEquals(reference.measureDeep(new E()), tested.measureDeep(new E()));
     }
 
     static class A {

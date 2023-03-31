@@ -1,7 +1,5 @@
 package org.github.jamm;
 
-import java.nio.ByteBuffer;
-
 /**
  * Represents a strategy to measure the shallow memory used by a Java object. 
  */

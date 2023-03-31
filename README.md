@@ -42,14 +42,15 @@ mark the classes (or interfaces) using the `Unmetered` annotation.
 
 # 0.4.0 breaking changes
 
-The 0.4.0 version comes with speed improvements and support for newer java versions but also some breaking
+The 0.4.0 version comes with speed improvements and support java versions up to Java 17 but also some breaking
 changes at the API level. 
 * The `MemoryMeter` constructor and the static methods used to configure the different options (`omitSharedBufferOverhead`, `withGuessing`, `ignoreOuterClassReference`, `ignoreKnownSingletons`, `ignoreNonStrongReferences`, `enableDebug`) have been removed. Instead `MemoryMeter` instances must be created through a `Builder`.
 * The ability to provide a tracker for visited object has been removed.
 * `Guess.NEVER` has been renamed `Guess.ALWAYS_INSTRUMENTATION` for more clarity.
 * `MemoryMeter.countChildren` has been removed.
 * The `MemoryMeter.measure` and `MemoryMeter.measureDeep` now accept `null` parameters
-* The behavior of the `omitSharedBufferOverhead` has been changed as it was incorrect 
+* The behavior of the `omitSharedBufferOverhead` has been changed as it was incorrect. It was not counting correctly for direct ByteBuffers and considering some buffer has shared even if they were not.
+* Jamm is not trying anymore to support non Hotspot JVM (e.g. OpenJ9)
 
 # Supported Java versions
 
@@ -70,7 +71,7 @@ the given object.
 ### Unsafe
 
 `MemoryMeter` will use `Unsafe.objectFieldOffset` to guess the object offset.
-Java 14 introduced records and Java 15 introduced Hidden classes which are used in Java 17 for Lambda expressions. 
+Java 14 introduced records and Java 15 introduced Hidden classes which are used from Java 15 onward for Lambda expressions. 
 Unfortunately, calling `Unsafe.objectFieldOffset` on the `Field` of a record or hidden class will result into an `UnsupportedOperationException` therefore
 for record and hidden classes the unsafe strategy delegates the measurement to the specification strategy.
 
@@ -171,5 +172,12 @@ expectations you can build the `MemoryMeter` instance using `printVisitedTree`:
 
 ```
     MemoryMeter meter = MemoryMeter.builder().printVisitedTree().build();
+```
+## JMH Benchmarks
+
+The Jamm JMH benchmarks can be run using:
+
+```
+    mvn jmh:benchmark
 ```
 

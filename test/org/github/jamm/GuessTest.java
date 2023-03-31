@@ -56,7 +56,7 @@ public class GuessTest {
     }
 
     @Test
-    public void testDeepNecessaryClasses() {
+    public void testDeepClasses() {
         final MemoryMeter instrument = MemoryMeter.builder().build();
         final MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
         Assert.assertTrue("MemoryMeter not initialised", MemoryMeter.hasInstrumentation());
@@ -71,7 +71,7 @@ public class GuessTest {
             long instrumented = instrument.measureDeep(obj);
             long guessed = meter.measureDeep(obj);
             if (instrumented != guessed) {
-                System.err.println(String.format("Guessed %d, instrumented %d for %s and Guess %s", guessed, instrumented, obj.getClass().getName(), guess));
+                System.err.printf("Guessed %d, instrumented %d for %s and Guess %s%n", guessed, instrumented, obj.getClass().getName(), guess);
                 failures++;
             }
         }
@@ -159,7 +159,7 @@ public class GuessTest {
             long instrumented = instrument.measure(obj);
             long guessed = meter.measure(obj);
             if (instrumented != guessed) {
-                System.err.println(String.format("Guessed %d, instrumented %d for %s", guessed, instrumented, clazz.description));
+                System.err.printf("Guessed %d, instrumented %d for %s%n", guessed, instrumented, clazz.description);
                 failures++;
             }
         }
