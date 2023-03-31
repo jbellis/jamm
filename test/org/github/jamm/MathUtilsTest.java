@@ -17,6 +17,17 @@ public class MathUtilsTest
         assertEquals(8, roundTo(8, 8));
         assertEquals(16, roundTo(9, 8));
         assertEquals(16, roundTo(10, 8));
+        assertEquals(40, roundTo(36, 8));
+
+        assertEquals(0, roundTo(0, 16));
+        assertEquals(16, roundTo(1, 16));
+        assertEquals(16, roundTo(2, 16));
+        assertEquals(16, roundTo(3, 16));
+        assertEquals(16, roundTo(8, 16));
+        assertEquals(16, roundTo(9, 16));
+        assertEquals(16, roundTo(10, 16));
+        assertEquals(32, roundTo(20, 16));
+        assertEquals(48, roundTo(36, 16));
     }
 
     @Test
@@ -29,8 +40,19 @@ public class MathUtilsTest
         assertEquals(8, roundTo(8L, 8));
         assertEquals(16, roundTo(9L, 8));
         assertEquals(16, roundTo(10L, 8));
+        assertEquals(40, roundTo(36L, 8));
+
+        assertEquals(0, roundTo(0L, 16));
+        assertEquals(16, roundTo(1L, 16));
+        assertEquals(16, roundTo(2L, 16));
+        assertEquals(16, roundTo(3L, 16));
+        assertEquals(16, roundTo(8L, 16));
+        assertEquals(16, roundTo(9L, 16));
+        assertEquals(16, roundTo(10L, 16));
+        assertEquals(32, roundTo(20L, 16));
+        assertEquals(48, roundTo(36L, 16));
     }
-    
+
     @Test
     public void testModulo()
     {

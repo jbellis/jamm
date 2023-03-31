@@ -296,20 +296,20 @@ final class TreePrinter implements MemoryMeterListener {
         /**
          * The maximum depth of the trees to be printed
          */
-        private final int depth;
+        private final int maxDepth;
 
         /**
          * Creates a new <code>Factory</code> instance which create <code>TreePrinter</code> that will print the 
          * visited trees up to the specified maxDepth.
          * @param maxDepth the maximum depth of the trees to be printed
          */
-        public Factory(int depth) {
-            this.depth = depth;
+        public Factory(int maxDepth) {
+            this.maxDepth = maxDepth;
         }
 
         @Override
         public MemoryMeterListener newInstance() {
-            return new TreePrinter(depth);
+            return new TreePrinter(maxDepth);
         }
     }
 }

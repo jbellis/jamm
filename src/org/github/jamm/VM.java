@@ -54,7 +54,7 @@ public final class VM
     }
 
     /**
-     * Checks if the JVM use compressed reference.
+     * Checks if the JVM uses compressed reference.
      *
      * @return {{@code true} if the JVM use compressed references {@code false} otherwise.
      */
@@ -65,7 +65,7 @@ public final class VM
     }
 
     /**
-     * Checks if the JVM use compressed class pointers.
+     * Checks if the JVM uses compressed class pointers.
      *
      * @return {{@code true} if the JVM use compressed class pointers {@code false} otherwise.
      */
@@ -76,7 +76,7 @@ public final class VM
     }
 
     /**
-     * Checks if the JVM use more aggressive optimizations to avoid unused gaps in instances.
+     * Checks if the JVM uses more aggressive optimizations to avoid unused gaps in instances.
      *
      * @return {{@code true} if the JVM use empty slots in super class {@code false} otherwise.
      */
@@ -111,26 +111,39 @@ public final class VM
      */
     public static void printOffsets(Object obj)
     {
+        if (UNSAFE == null)
+            throw new IllegalStateException("printOffsets relies on Unsafe which could not be loaded");
+
         Class<?> type = obj.getClass();
 
-        Map<Long, String> fieldInfo = new TreeMap<>();
-        while (type != null)
-        {
-            for (Field f : type.getDeclaredFields())
-            {
-                if (!Modifier.isStatic(f.getModifiers()))
-                {
-                    long offset = UNSAFE.objectFieldOffset(f);
-                    fieldInfo.put(offset, "class=" + type.getName() + ", field=" + f.getName() + ", offset=" + offset + ", field type=" + f.getType());
-                }
-            }
-            type = type.getSuperclass();
-        }
+        if (type.isArray()) {
 
-        System.out.println("---------------------------------------------------------------------------------");
-        System.out.println("Memory layout for: " + obj.getClass().getName());
-        fieldInfo.forEach((k, v) -> System.out.println(v));
-        System.out.println("---------------------------------------------------------------------------------");
+            System.out.println("---------------------------------------------------------------------------------");
+            System.out.println("Memory layout for: " + obj.getClass().getName());
+            System.out.println("arrayBaseOffset : " + UNSAFE.arrayBaseOffset(obj.getClass()));
+            System.out.println("---------------------------------------------------------------------------------");
+
+        } else {
+
+            Map<Long, String> fieldInfo = new TreeMap<>();
+            while (type != null)
+            {
+                for (Field f : type.getDeclaredFields())
+                {
+                    if (!Modifier.isStatic(f.getModifiers()))
+                    {
+                        long offset = UNSAFE.objectFieldOffset(f);
+                        fieldInfo.put(offset, "class=" + type.getName() + ", field=" + f.getName() + ", offset=" + offset + ", field type=" + f.getType());
+                    }
+                }
+                type = type.getSuperclass();
+            }
+
+            System.out.println("---------------------------------------------------------------------------------");
+            System.out.println("Memory layout for: " + obj.getClass().getName());
+            fieldInfo.forEach((k, v) -> System.out.println(v));
+            System.out.println("---------------------------------------------------------------------------------");
+        }
     }
 
     private static Unsafe loadUnsafe()
