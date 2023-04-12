@@ -1,9 +1,15 @@
 package org.github.jamm.strategies;
 
+import java.lang.annotation.Annotation;
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.util.Optional;
 
+import org.github.jamm.CannotMeasureObjectException;
 import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.MemoryMeterStrategy;
+import org.github.jamm.VM;
 
 import static org.github.jamm.MathUtils.roundTo;
 
@@ -13,13 +19,32 @@ import static org.github.jamm.MathUtils.roundTo;
 public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
 {
     /**
+     * {@code true} if contended is enabled, false otherwise.
+     */
+    protected static final boolean CONTENDED_ENABLED = VM.enableContended();
+
+    /**
      * The memory layout to use when computing object sizes.
      */
     protected final MemoryLayoutSpecification memoryLayout;
 
-    public MemoryLayoutBasedStrategy(MemoryLayoutSpecification memoryLayout)
+    /**
+     * The {@code Contended} annotation class.
+     */
+    protected final Class<? extends Annotation> contendedClass;
+
+    /**
+     * The {@code MethodHandle} used to invoke the value method from {@code @Contended} if it is accessible.
+     */
+    private final Optional<MethodHandle> mayBeContendedValueMH;
+
+    public MemoryLayoutBasedStrategy(MemoryLayoutSpecification memoryLayout,
+                                     Class<? extends Annotation> contendedClass,
+                                     Optional<MethodHandle> mayBeContendedValueMH)
     {
         this.memoryLayout = memoryLayout;
+        this.contendedClass = contendedClass;
+        this.mayBeContendedValueMH = mayBeContendedValueMH;
     }
 
     @Override
@@ -143,5 +168,78 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
             return 8;
 
         throw new IllegalStateException();
+    }
+
+    /**
+     * Checks if the specified type is annotated with {@code Contended}
+     *
+     * @param type the type to check 
+     * @return {@code true} if the specified type is annotated with {@code Contended}, {@code false} otherwise. 
+     */
+    protected final boolean isClassAnnotatedWithContended(Class<?> type) {
+        return type.isAnnotationPresent(contendedClass);
+    }
+
+    /**
+     * Checks if the specified field is annotated with {@code Contended}
+     *
+     * @param f the field to check
+     * @return {@code true} if the specified field is annotated with {@code Contended}, {@code false} otherwise. 
+     */
+    protected final boolean isFieldAnnotatedWithContended(Field f) {
+        return f.isAnnotationPresent(contendedClass);
+    }
+
+    /**
+     * Returns the {@code @Contended} annotation of the specified field
+     *
+     * @param f the field
+     * @return the {@code @Contended} annotation of the specified field 
+     */
+    protected final Object getContendedAnnotation(Field f) {
+        return f.getAnnotation(contendedClass);
+    }
+
+    /**
+     * Adds to the counter the contention group tag for the specified field
+     * 
+     * @param counter the counter to add to
+     * @param f the field
+     * @return the provided counter or a new one if the provided one was {@code null}
+     */
+    protected final ContentionGroupsCounter countContentionGroup(ContentionGroupsCounter counter, Field f) {
+
+        if (isFieldAnnotatedWithContended(f)) {
+            String tag = getContentionGroupTag(f);
+            if (counter == null)
+                counter = new ContentionGroupsCounter();
+            counter.add(tag);
+        }
+        return counter;
+    }
+
+    /**
+     * Returns the contention group tag of the {@code @Contended} annotation of the specified field.
+     *
+     * @param f the field for which the contention group tag must be retrieved
+     * @return the contention group tag of the {@code @Contended} annotation of the specified field
+     */
+    private final String getContentionGroupTag(Field f) {
+
+        try {
+            if (mayBeContendedValueMH.isPresent())
+                return (String) mayBeContendedValueMH.get().invoke(getContendedAnnotation(f));
+        } catch (Throwable e) {
+            throw new CannotMeasureObjectException("The field " + f.getName() + " from the class " + f.getDeclaringClass() + "cannot be measured.", e);
+        }
+
+        // We cannot retrieve the contention group tag as the annotation can only be used by internal classes.
+        // Up to Java 17 the only internal java classes using @Contended on fields were Threads.
+        if (f.getDeclaringClass().equals(Thread.class))
+            return "tlr"; // for ThreadLocalRandom
+
+        throw new CannotMeasureObjectException("The field " + f.getName() + " from the class " + f.getDeclaringClass() 
+                                                 + "cannot be measured as the @Contended contention group tag cannot be retrieves."
+                                                 + " Consider using: --add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED to remove that problem");
     }
 }

@@ -302,6 +302,7 @@ public final class MemoryMeter {
 
         long total = 0;
         while (!stack.isEmpty()) {
+
             Object current = stack.pop();
             long size = strategy.measure(current);
             listener.objectMeasured(current, size);
@@ -336,8 +337,7 @@ public final class MemoryMeter {
                 }
                 addFieldChildren(current, cls, stack, tracker, listener);
             }
-        }
-
+        } 
         listener.done(total);
         return total;
     }
@@ -351,7 +351,7 @@ public final class MemoryMeter {
                     continue;
                 }
 
-                Object child = accessor.getFieldValue(obj, field);
+                Object child = getFieldValue(obj, field, listener);
 
                 if (omitSharedBufferOverhead && isDirectBufferView(obj, field, child)) {
                     continue;
@@ -364,6 +364,25 @@ public final class MemoryMeter {
             }
 
             type = type.getSuperclass();
+        }
+    }
+
+    /**
+     * Retrieves the field value if possible.
+     *
+     * @param obj the object for which the field value must be retrieved
+     * @param field the field for which the value must be retrieved
+     * @param listener the {@code MemoryMeterListener}
+     * @return the field value if it was possible to retrieve it
+     * @throws CannotAccessFieldException if the field could not be accessed
+     */
+    private Object getFieldValue(Object obj, Field field, MemoryMeterListener listener)
+    {
+        try {
+            return accessor.getFieldValue(obj, field);
+        } catch (CannotAccessFieldException e) {
+            listener.failedToAccessField(obj, field.getName(), field.getType());
+            throw e;
         }
     }
 

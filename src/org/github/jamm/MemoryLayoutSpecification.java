@@ -46,6 +46,13 @@ public interface MemoryLayoutSpecification
      */
     int getReferenceSize();
 
+    /**
+     * Returns the number of bytes used to pad the fields/classes annotated with {@code Contended}.
+     *
+     * @return the number of bytes used to pad the fields/classes annotated with {@code Contended}.
+     */
+    int getContendedPaddingWidth();
+
     static MemoryLayoutSpecification getEffectiveMemoryLayoutSpecification() {
 
         final int objectHeaderSize;
@@ -81,6 +88,7 @@ public interface MemoryLayoutSpecification
         final int objectAlignment = VM.getObjectAlignmentInBytes();
         final int arrayLength = 4; // space in bytes used to store the array length after the mark and class word
         final int arrayHeaderSize = MathUtils.roundTo(objectHeaderSize + arrayLength, heapWordSize);
+        final int contendedPaddingWidth = VM.contendedPaddingWidth();
 
         return new MemoryLayoutSpecification() {
 
@@ -105,6 +113,12 @@ public interface MemoryLayoutSpecification
             }
 
             @Override
+            public int getContendedPaddingWidth()
+            {
+                return contendedPaddingWidth;
+            }
+
+            @Override
             public String toString()
             {
                 return new StringBuilder().append("Memory Layout: [objectHeaderSize=")
@@ -115,6 +129,8 @@ public interface MemoryLayoutSpecification
                                           .append(objectAlignment)
                                           .append(", referenceSize=")
                                           .append(referenceSize)
+                                          .append(", contendedPaddingWidth=")
+                                          .append(contendedPaddingWidth)
                                           .append(']')
                                           .toString();
             }

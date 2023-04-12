@@ -19,6 +19,7 @@ public final class VM
 {
     private static final boolean DEFAULT_USE_COMPRESSED_OOPS = true;
     private static final int DEFAULT_ALIGNMENT_IN_BYTES = 8;
+    private static final int DEFAULT_CONTENDED_PADDING_WIDTH = 128;
 
     private static final Unsafe UNSAFE = loadUnsafe();
 
@@ -87,6 +88,40 @@ public final class VM
     }
 
     /**
+     * Checks if the JVM restricts the use of {@code @Contended} to internal classes.
+     *
+     * @return {{@code true} if the JVM restricts the use of {@code @Contended} to internal classes, {@code false} otherwise.
+     */
+    public static boolean restrictContended() {
+
+        String restrictContended = getVMOption("RestrictContended");
+        return restrictContended == null ? true : Boolean.parseBoolean(restrictContended);
+    }
+
+    /**
+     * Checks if {@code @Contended} annotations are enabled.
+     *
+     * @return {{@code true} if {@code @Contended} annotations are enabled, {@code false} otherwise.
+     */
+    public static boolean enableContended() {
+
+        String enableContended = getVMOption("EnableContended");
+        return enableContended == null ? true : Boolean.parseBoolean(enableContended);
+    }
+    
+    /**
+     * Returns the number of bytes used to pad the fields/classes annotated with {@code Contended}.
+     * <p>The value will be between 0 and 8192 (inclusive) and will be a multiple of 8.</p>
+     *
+     * @return the number of bytes used to pad the fields/classes annotated with {@code Contended}.
+     */
+    public static int contendedPaddingWidth() {
+
+        String contendedPaddingWidth = getVMOption("ContendedPaddingWidth");
+        return contendedPaddingWidth == null ? DEFAULT_CONTENDED_PADDING_WIDTH : Integer.parseInt(contendedPaddingWidth);
+    }
+
+    /**
      * Checks if the JVM is a 32 bits one.
      * @return {@code true} if the JVM is a 32 bits version, {@code false} otherwise.
      */
@@ -119,7 +154,7 @@ public final class VM
         if (type.isArray()) {
 
             System.out.println("---------------------------------------------------------------------------------");
-            System.out.println("Memory layout for: " + obj.getClass().getName());
+            System.out.println("Memory layout for: " + obj.getClass().getComponentType().getName() + "[]");
             System.out.println("arrayBaseOffset : " + UNSAFE.arrayBaseOffset(obj.getClass()));
             System.out.println("---------------------------------------------------------------------------------");
 
@@ -133,7 +168,9 @@ public final class VM
                     if (!Modifier.isStatic(f.getModifiers()))
                     {
                         long offset = UNSAFE.objectFieldOffset(f);
-                        fieldInfo.put(offset, "class=" + type.getName() + ", field=" + f.getName() + ", offset=" + offset + ", field type=" + f.getType());
+                        Class<?> fieldType = f.getType();
+                        String fieldTypeAsString = fieldType.isArray() ? fieldType.getComponentType().getName() + "[]" : fieldType.getName();
+                        fieldInfo.put(offset, "class=" + type.getName() + ", field=" + f.getName() + ", offset=" + offset + ", field type=" + fieldTypeAsString);
                     }
                 }
                 type = type.getSuperclass();

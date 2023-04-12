@@ -4,6 +4,7 @@ import java.lang.ref.Reference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
+import java.security.AccessControlContext;
 import java.util.Arrays;
 import java.util.List;
 
@@ -43,9 +44,12 @@ public final class Filters
     private static final FieldFilter IGNORE_STATIC_AND_PRIMITIVE_FIELDS = (c, f) -> Modifier.isStatic(f.getModifiers()) || f.getType().isPrimitive();
 
     /**
-     * Filter excluding class such as {@code Enum} and {@code Class}
+     * Filter excluding class such as {@code Enum}, {@code Class}, {@code ClassLoader} and {@code AccessControlContext}
      */
-    private static final FieldAndClassFilter IGNORE_KNOWN_SINGLETONS = c -> Class.class.equals(c) || Enum.class.isAssignableFrom(c);
+    private static final FieldAndClassFilter IGNORE_KNOWN_SINGLETONS = c -> Class.class.equals(c) 
+                                                                         || Enum.class.isAssignableFrom(c)
+                                                                         || ClassLoader.class.isAssignableFrom(c)
+                                                                         || AccessControlContext.class.isAssignableFrom(c);
 
     /**
      * Filter excluding non-strong references
@@ -61,6 +65,11 @@ public final class Filters
      * </ul>
      */
     private static final FieldFilter IGNORE_CLEANER_FIELDS = (c, f) -> c.equals(CLEANER_CLASS) && CLEANER_FIELDS_TO_IGNORE.contains(f.getName()) ;
+
+    /**
+     * Filter excluding the {@code group} field from thread classes has that field has hold the references to all the other threads from the group to which the thread belong. 
+     */
+    private static final FieldFilter IGNORE_THREAD_FIELDS = (c, f) -> c.equals(Thread.class) && "group".equals(f.getName()) ;
 
     /**
      * Filter excluding the outer class reference from non-static inner classes.
@@ -123,12 +132,14 @@ public final class Filters
                 return (c, f) -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(c, f) 
                         || getClassFilters(ignoreKnownSingletons).ignore(c, f)
                         || IGNORE_CLEANER_FIELDS.ignore(c, f)
+                        || IGNORE_THREAD_FIELDS.ignore(c, f)
                         || IGNORE_NON_STRONG_REFERENCES.ignore(c, f)
                         || IGNORE_OUTER_CLASS_REFERENCES.ignore(c, f);
 
             return (c, f) -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(c, f) 
                     || getClassFilters(ignoreKnownSingletons).ignore(c, f)
                     || IGNORE_CLEANER_FIELDS.ignore(c, f)
+                    || IGNORE_THREAD_FIELDS.ignore(c, f)
                     || IGNORE_OUTER_CLASS_REFERENCES.ignore(c, f);
         }
 
@@ -136,11 +147,13 @@ public final class Filters
             return (c, f) -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(c, f) 
                     || getClassFilters(ignoreKnownSingletons).ignore(c, f)
                     || IGNORE_CLEANER_FIELDS.ignore(c, f)
+                    || IGNORE_THREAD_FIELDS.ignore(c, f)
                     || IGNORE_NON_STRONG_REFERENCES.ignore(c, f);
 
         return (c, f) -> IGNORE_STATIC_AND_PRIMITIVE_FIELDS.ignore(c, f) 
                 || getClassFilters(ignoreKnownSingletons).ignore(c, f)
-                || IGNORE_CLEANER_FIELDS.ignore(c, f);
+                || IGNORE_CLEANER_FIELDS.ignore(c, f)
+                || IGNORE_THREAD_FIELDS.ignore(c, f);
     }
 
     /**

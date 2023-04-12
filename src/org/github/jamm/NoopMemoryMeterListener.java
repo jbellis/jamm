@@ -41,6 +41,10 @@ public final class NoopMemoryMeterListener implements MemoryMeterListener {
     }
 
     @Override
+    public void failedToAccessField(Object obj, String fieldName, Class<?> fieldType) {
+    }
+
+    @Override
     public void started(Object obj) {
     }
 

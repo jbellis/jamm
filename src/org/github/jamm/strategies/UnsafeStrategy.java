@@ -1,15 +1,17 @@
 package org.github.jamm.strategies;
 
+import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Optional;
 
-import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.CannotMeasureObjectException;
-
-import sun.misc.Unsafe;
+import org.github.jamm.MemoryLayoutSpecification;
 
 import static org.github.jamm.MathUtils.roundTo;
+
+import sun.misc.Unsafe;
 
 /**
  * {@code MemoryMeterStrategy} relying on {@code Unsafe} to measure object sizes for Java versions >= 15.
@@ -45,9 +47,14 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
      */
     private final MemoryLayoutBasedStrategy hiddenClassesOrRecordsStrategy;
 
-    public UnsafeStrategy(MemoryLayoutSpecification memoryLayout, Unsafe unsafe, MethodHandle isRecordMH, MethodHandle isHiddenMH, MemoryLayoutBasedStrategy strategy)
+    public UnsafeStrategy(MemoryLayoutSpecification memoryLayout,
+                          Unsafe unsafe,
+                          Class<? extends Annotation> contendedClass,
+                          MethodHandle isRecordMH,
+                          MethodHandle isHiddenMH,
+                          MemoryLayoutBasedStrategy strategy)
     {
-        super(memoryLayout);
+        super(memoryLayout, contendedClass, Optional.empty()); // The mayBeContendedValueMH is not needed for Unsafe strategies
         this.unsafe = unsafe;
         this.isRecordMH = isRecordMH;
         this.isHiddenMH = isHiddenMH;
@@ -71,15 +78,28 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
                 return hiddenClassesOrRecordsStrategy.measureInstance(type);
 
             long size = 0;
+            boolean isLastFieldWithinContentionGroup = false;
             while (type != null)
             {
                 for (Field f : type.getDeclaredFields()) {
                     if (!Modifier.isStatic(f.getModifiers())) {
+                        long previousSize = size;
                         size = Math.max(size, unsafe.objectFieldOffset(f) + measureField(f.getType()));
+                        if (previousSize < size)
+                            isLastFieldWithinContentionGroup = isFieldAnnotatedWithContended(f);
                     }
                 }
 
+                if (CONTENDED_ENABLED && isClassAnnotatedWithContended(type))
+                    size += memoryLayout.getContendedPaddingWidth();
+
                 type = type.getSuperclass();
+            }
+            if (size == 0) {
+                size = memoryLayout.getObjectHeaderSize();
+            } else {
+                if (isLastFieldWithinContentionGroup)
+                    size += memoryLayout.getContendedPaddingWidth();
             }
             size = size > 0 ? size : memoryLayout.getObjectHeaderSize();
             return roundTo(size, memoryLayout.getObjectAlignment());

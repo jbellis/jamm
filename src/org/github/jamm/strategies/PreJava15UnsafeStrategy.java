@@ -1,5 +1,6 @@
 package org.github.jamm.strategies;
 
+import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -33,9 +34,13 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
      */
     private final MemoryLayoutBasedStrategy recordsStrategy;
 
-    public PreJava15UnsafeStrategy(MemoryLayoutSpecification memoryLayout, Unsafe unsafe, Optional<MethodHandle> mayBeIsRecordMH, MemoryLayoutBasedStrategy strategy)
+    public PreJava15UnsafeStrategy(MemoryLayoutSpecification memoryLayout,
+                                   Unsafe unsafe,
+                                   Class<? extends Annotation> contendedClass,
+                                   Optional<MethodHandle> mayBeIsRecordMH,
+                                   MemoryLayoutBasedStrategy strategy)
     {
-        super(memoryLayout);
+        super(memoryLayout, contendedClass, Optional.empty()); // The mayBeContendedValueMH is not needed for Unsafe strategies
         this.unsafe = unsafe;
         this.mayBeIsRecordMH = mayBeIsRecordMH;
         this.recordsStrategy = strategy;
@@ -57,19 +62,41 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
             if (mayBeIsRecordMH.isPresent() &&  ((Boolean) mayBeIsRecordMH.get().invoke(type)))
                 return recordsStrategy.measureInstance(type);
 
+            int annotatedClassesWithoutFields = 0; // Keep track of the @Contended annotated classes without fields
             while (type != null) {
 
                 long size = 0;
 
+                boolean isLastFieldWithinContentionGroup = false;
                 for (Field f : type.getDeclaredFields()) {
                     if (!Modifier.isStatic(f.getModifiers()))
+                    {
+                        long previousSize = size;
                         size = Math.max(size, unsafe.objectFieldOffset(f) + measureField(f.getType()));
+                        if (CONTENDED_ENABLED && previousSize < size)
+                            isLastFieldWithinContentionGroup = isFieldAnnotatedWithContended(f);
+                    }
                 }
+
+                // If the last field is within a contention group we need to add the end padding
+                if (isLastFieldWithinContentionGroup)
+                    size += memoryLayout.getContendedPaddingWidth();
 
                 // As we know that the superclass fields always come first pre-Java 15, if the size is greater than zero
                 // we know that all the other fields will have a smaller offset.
-                if (size > 0)
+                if (size > 0) {
+                    // If the class is annotated with @Contended we need to add the end padding
+                    if (CONTENDED_ENABLED && isClassAnnotatedWithContended(type))
+                        size += memoryLayout.getContendedPaddingWidth();
+
+                    size += annotatedClassesWithoutFields * (memoryLayout.getContendedPaddingWidth() << 1);
+
                     return roundTo(size, memoryLayout.getObjectAlignment());
+                }
+
+                // The JVM will add padding even if the annotated class does not have any fields 
+                if (CONTENDED_ENABLED && isClassAnnotatedWithContended(type))
+                    annotatedClassesWithoutFields++;
 
                 type = type.getSuperclass();
             }

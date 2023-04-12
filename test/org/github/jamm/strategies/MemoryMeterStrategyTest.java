@@ -3,18 +3,27 @@ package org.github.jamm.strategies;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Predicate;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import org.github.jamm.MemoryMeter;
+import org.github.jamm.VM;
 import org.github.jamm.MemoryMeter.Guess;
 
 import static org.junit.Assert.assertEquals;
+
+import sun.misc.Contended;
 
 /**
  * In order to test the correctness of the values being returned the tests assume that the correct value is the one 
@@ -53,8 +62,8 @@ public class MemoryMeterStrategyTest
     @Before
     public void setUp()
     {
-        reference = MemoryMeter.builder().withGuessing(Guess.ALWAYS_INSTRUMENTATION).build();
-        tested = MemoryMeter.builder().withGuessing(guess).build();
+        reference = MemoryMeter.builder().withGuessing(Guess.ALWAYS_INSTRUMENTATION).ignoreKnownSingletons().build();
+        tested = MemoryMeter.builder().withGuessing(guess).ignoreKnownSingletons().ignoreNonStrongReferences().build();
     }
 
     @After
@@ -488,4 +497,190 @@ public class MemoryMeterStrategyTest
 //    }
 //
 //    public static record User(String name, int age) {};
+
+    @Test
+    public void testLongAdder() throws Exception {
+        // Create a LongAdder and make sure that we have Contended class being used.
+        LongAdder longAdder = new LongAdder();
+        final CountDownLatch lach = new CountDownLatch(10);
+        Runnable runnable = 
+                () -> {
+                    for (int i = 0; i < 1000; i++)
+                        longAdder.increment();
+                    lach.countDown();
+                };
+
+        ExecutorService pool = Executors.newFixedThreadPool(10);
+        for (int i = 0; i < 10; i++)
+            pool.execute(runnable);
+        lach.await();
+        assertEquals(reference.measureDeep(longAdder), tested.measureDeep(longAdder));
+    }
+
+    @Test
+    public void testThread() throws Exception {
+        Thread thread = new Thread();
+        assertEquals(reference.measureDeep(thread), tested.measureDeep(thread));
+    }
+
+    @Test
+    public void testConcurrentHashMap() throws Exception {
+        // Create a ConcurrentHashMap and make sure that we have Contended class being used.
+        ConcurrentHashMap<Integer, Integer> map = new ConcurrentHashMap<>();
+        final CountDownLatch lach = new CountDownLatch(10);
+        Runnable adder = 
+                () -> {
+                    for (int i = 0; i < 1000; i++)
+                        map.put(i, i);
+                    lach.countDown();
+                };
+
+        Runnable remover = 
+                () -> {
+                    for (int i = 0; i < 1000; i++)
+                        map.remove(i);
+                    lach.countDown();
+                };
+
+        ExecutorService pool = Executors.newFixedThreadPool(10);
+        for (int i = 0; i < 10; i++)
+            pool.execute(i % 2 == 0 ? adder : remover);
+        lach.await();
+        assertEquals(reference.measureDeep(map), tested.measureDeep(map));
+    }
+
+    // Needs to be run with -XX:-RestrictContended in Java 8
+    @Test
+    public void testContendedForNonInternalClasses() throws Exception {
+        Assume.assumeFalse(VM.restrictContended());
+
+        Object underTest = new WithMultipleAnonymousContendedAnnotations();
+        assertEquals(reference.measureDeep(underTest), tested.measureDeep(underTest));
+
+        underTest = new WithMultipleContentionGroupAnnotations();
+        assertEquals(reference.measureDeep(underTest), tested.measureDeep(underTest));
+
+        underTest = new WithMultipleContentionGroupAndAnonymousContendedAnnotations();
+        assertEquals(reference.measureDeep(underTest), tested.measureDeep(underTest));
+
+        underTest = new WithClassContendedAnnotation();
+        assertEquals(reference.measureDeep(underTest), tested.measureDeep(underTest));
+
+        underTest = new WithClassAndMultipleContentionGroupAnnotations();
+        assertEquals(reference.measureDeep(underTest), tested.measureDeep(underTest));
+    }
+
+    @SuppressWarnings("unused")
+    public static class WithMultipleAnonymousContendedAnnotations {
+
+        @Contended
+        private int first;
+
+        @Contended
+        private int second;
+
+        private int third;
+
+        @Contended
+        private int fourth;
+    }
+
+    @SuppressWarnings("unused")
+    public static class WithMultipleContentionGroupAnnotations {
+
+        @Contended("group1")
+        private int first;
+
+        @Contended("group1")
+        private int second;
+
+        private int third;
+
+        @Contended("group2")
+        private int fourth;
+    }
+
+    @SuppressWarnings("unused")
+    public static class WithMultipleContentionGroupAndAnonymousContendedAnnotations {
+
+        @Contended("group1")
+        private int first;
+
+        @Contended("group1")
+        private int second;
+
+        @Contended
+        private int third;
+
+        @Contended("group2")
+        private int fourth;
+    }
+
+    @Contended
+    @SuppressWarnings("unused")
+    public static class WithClassContendedAnnotation {
+
+        private int first;
+
+        private int second;
+
+        private int third;
+
+         private int fourth;
+    }
+
+    @Contended
+    @SuppressWarnings("unused")
+    public static class WithClassAndMultipleContentionGroupAnnotations {
+
+        @Contended("group1")
+        private int first;
+
+        @Contended("group1")
+        private int second;
+
+        @Contended
+        private int third;
+
+        @Contended("group2")
+        private int fourth;
+    }
+
+    // Needs to be run with -XX:-RestrictContended in Java 8
+    @Test
+    public void testHierachyPaddingWithContendedAnnotation()
+    {
+        Assume.assumeFalse(VM.restrictContended());
+
+        assertEquals(reference.measure(new F()), tested.measure(new F()));
+        assertEquals(reference.measureDeep(new F()), tested.measureDeep(new F()));
+        assertEquals(reference.measure(new G()), tested.measure(new G()));
+        assertEquals(reference.measureDeep(new G()), tested.measureDeep(new G()));
+
+        assertEquals(reference.measure(new H()), tested.measure(new H()));
+        assertEquals(reference.measureDeep(new H()), tested.measureDeep(new H()));
+        assertEquals(reference.measure(new I()), tested.measure(new I()));
+        assertEquals(reference.measureDeep(new I()), tested.measureDeep(new I()));
+    }
+
+    @Contended
+    @SuppressWarnings("unused")
+    static class F extends A {
+        boolean f;
+    }
+
+    @SuppressWarnings("unused")
+    static class G extends F {
+        boolean g;
+    }
+
+    @Contended
+    @SuppressWarnings("unused")
+    static class H extends A {
+    }
+
+    @SuppressWarnings("unused")
+    static class I extends H {
+        boolean i;
+    }
 }
