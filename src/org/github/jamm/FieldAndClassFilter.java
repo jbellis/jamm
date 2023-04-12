@@ -10,7 +10,7 @@ public interface FieldAndClassFilter extends FieldFilter
 {
     @Override
     default boolean ignore(Class<?> cls, Field field) {
-        return ignore(cls);
+        return ignore(field.getType());
     }
 
     /**

@@ -85,6 +85,33 @@ final class TreePrinter implements MemoryMeterListener {
         System.out.println(mapping.get(root).toString(!hasMissingElements));
     }
 
+    @Override
+    public void failedToAccessField(Object obj, String fieldName, Class<?> fieldType) {
+
+        String fieldTypeName = ObjectInfo.className(fieldType);
+        StringBuilder builder = new StringBuilder("The value of the ").append(fieldName)
+                                                                      .append(" field from ")
+                                                                      .append(fieldTypeName)
+                                                                      .append(" could not be retrieved. Dependency stack below: ")
+                                                                      .append(LINE_SEPARATOR);
+
+        builder.append(fieldName)
+               .append(" [")
+               .append(fieldTypeName)
+               .append("] ");
+
+        ObjectInfo parent = mapping.get(obj);
+        while (parent != null) {
+            builder.append(LINE_SEPARATOR)
+                   .append('|')
+                   .append(LINE_SEPARATOR);
+            parent.appendNameAndClassName(builder);
+            parent = parent.parent;
+        }
+
+        System.err.println(builder.toString());
+    }
+
     /**
      * Container for the information associated to a field object.
      */
@@ -111,6 +138,11 @@ final class TreePrinter implements MemoryMeterListener {
         private final int depth;
 
         /**
+         * The object parent.
+         */
+        private final ObjectInfo parent;
+
+        /**
          * The field children
          */
         private List<ObjectInfo> children = Collections.emptyList();
@@ -125,7 +157,8 @@ final class TreePrinter implements MemoryMeterListener {
          */
         private long totalSize = -1;
 
-        public ObjectInfo(String name, Class<?> clazz, int depth) {
+        public ObjectInfo(ObjectInfo parent, String name, Class<?> clazz, int depth) {
+            this.parent = parent;
             this.name = name;
             this.className = className(clazz);
             this.depth = depth;
@@ -138,7 +171,7 @@ final class TreePrinter implements MemoryMeterListener {
          * @return a new root <code>ObjectInfo</code>
          */
         public static ObjectInfo newRoot(Class<?> clazz) {
-            return new ObjectInfo(ROOT_NAME, clazz, 0);
+            return new ObjectInfo(null, ROOT_NAME, clazz, 0);
         }
 
         /**
@@ -148,7 +181,7 @@ final class TreePrinter implements MemoryMeterListener {
          * @return the child information
          */
         public ObjectInfo addChild(String childName, Class<?> childClass) {
-            ObjectInfo child = new ObjectInfo(childName, childClass, depth + 1);
+            ObjectInfo child = new ObjectInfo(this, childName, childClass, depth + 1);
             if (children.isEmpty()) {
                 children = new ArrayList<TreePrinter.ObjectInfo>();
             }
@@ -215,10 +248,7 @@ final class TreePrinter implements MemoryMeterListener {
                        .append("+--");
             }
 
-            builder.append(name)
-                   .append(" [")
-                   .append(className)
-                   .append("] ");
+            appendNameAndClassName(builder);
 
             if (size != 0) {
                 if (printTotalSize) {
@@ -232,6 +262,19 @@ final class TreePrinter implements MemoryMeterListener {
             return appendChildren(childIndentation(indentation, isLast),
                                   printTotalSize,
                                   builder.append(LINE_SEPARATOR));
+        }
+
+        /**
+         * Appends the name and class name of this <code>ObjectInfo</code> to the specified builder.
+         *
+         * @param builder the <code>StringBuilder</code> to append to
+         * @return the <code>StringBuilder</code>
+         */
+        public StringBuilder appendNameAndClassName(StringBuilder builder) {
+            return builder.append(name)
+                          .append(" [")
+                          .append(className)
+                          .append("] ");
         }
 
         /**
@@ -267,7 +310,7 @@ final class TreePrinter implements MemoryMeterListener {
          * @param clazz the class
          * @return the name of the specified class
          */
-        private static String className(Class<? extends Object> clazz) {
+        public static String className(Class<? extends Object> clazz) {
 
             if (clazz.isArray())
             {

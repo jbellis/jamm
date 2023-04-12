@@ -56,8 +56,17 @@ interface MemoryMeterListener {
     void byteBufferRemainingMeasured(ByteBuffer buffer, long size);
 
     /**
-     * Notification that the entire graphs has been measured.
+     * Notification that the entire graph has been measured.
      * @param size the size of the entire graph.
      */
     void done(long size);
+
+    /**
+     * Notification that the graph could not be fully measured has it failed to access a field.
+     *
+     * @param obj the object owning the field that could not be accessed
+     * @param fieldName the field name
+     * @param fieldValue the field value
+     */
+    public void failedToAccessField(Object obj, String fieldName, Class<?> fieldType);
 }

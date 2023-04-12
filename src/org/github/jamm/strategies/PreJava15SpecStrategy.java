@@ -1,7 +1,10 @@
 package org.github.jamm.strategies;
 
+import java.lang.annotation.Annotation;
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Optional;
 
 import org.github.jamm.MemoryLayoutSpecification;
 
@@ -101,9 +104,10 @@ import static org.github.jamm.MathUtils.roundTo;
  */
 class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
 {
-    public PreJava15SpecStrategy(MemoryLayoutSpecification memoryLayout)
-    {
-        super(memoryLayout);
+    public PreJava15SpecStrategy(MemoryLayoutSpecification memoryLayout,
+                                 Class<? extends Annotation> contendedClass,
+                                 Optional<MethodHandle> mayBeContendedValueMH) {
+        super(memoryLayout, contendedClass, mayBeContendedValueMH);
     }
 
     /**
@@ -114,14 +118,12 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
      * @param sizeOfDeclaredFields the size of the fields for a class of the hierarchy
      * @return the size of the class fields aligned.
      */
-    protected long alignFieldBlock(long sizeOfDeclaredFields)
-    {
+    protected long alignFieldBlock(long sizeOfDeclaredFields) {
         return roundTo(sizeOfDeclaredFields, memoryLayout.getReferenceSize());
     }
 
     @Override
-    protected final int arrayBaseOffset(Class<?> type)
-    {
+    protected final int arrayBaseOffset(Class<?> type) {
         return memoryLayout.getArrayHeaderSize();
     }
 
@@ -141,24 +143,41 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
 
         long sizeOfDeclaredField = 0;
         long sizeTakenBy8BytesFields = 0;
-        for (Field f : type.getDeclaredFields())
-        {
+        ContentionGroupsCounter contentionGroupCounter = null;
+        for (Field f : type.getDeclaredFields()) {
             if (!Modifier.isStatic(f.getModifiers())) {
                 int fieldSize = measureField(f.getType());
 
                 sizeTakenBy8BytesFields += fieldSize & 8; // count only the 8 bytes fields
                 sizeOfDeclaredField += fieldSize;
+                // If some fields are annotated with @Contended we need to count the contention groups to know how much padding needs to be added
+                if (CONTENDED_ENABLED)
+                    contentionGroupCounter = countContentionGroup(contentionGroupCounter, f);
             }
         }
 
         // Ensure that we take into account the superclass gaps
-        if (hasSuperClassGap(size, sizeOfDeclaredField, sizeTakenBy8BytesFields))
-        {
+        if (hasSuperClassGap(size, sizeOfDeclaredField, sizeTakenBy8BytesFields)) {
             size = roundTo(size, 8);
         }
 
         // Ensure that we take into account the hierarchy gaps
         size += useFieldBlockAlignment ? alignFieldBlock(sizeOfDeclaredField) : sizeOfDeclaredField;
+
+        /* From Contended Javadoc:
+         * The class level {@code @Contended} annotation is not inherited and has
+         * no effect on the fields declared in any sub-classes. The effects of all
+         * {@code @Contended} annotations, however, remain in force for all
+         * subclass instances, providing isolation of all the defined contention
+         * groups. Contention group tags are not inherited, and the same tag used
+         * in a superclass and subclass, represent distinct contention groups.
+         */
+        if (CONTENDED_ENABLED && isClassAnnotatedWithContended(type))
+            size += (memoryLayout.getContendedPaddingWidth() << 1);
+
+        if (CONTENDED_ENABLED && contentionGroupCounter != null)
+            size += (contentionGroupCounter.count() + 1) * memoryLayout.getContendedPaddingWidth(); // 1 padding before each group + 1 at the end
+
         return size;
     }
 
@@ -170,8 +189,7 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
      * @param sizeTakenBy8BytesFields the size taken only by the 8 byte fields
      * @return if there should be a gap left at the level of the super class fields
      */
-    protected boolean hasSuperClassGap(long size, long sizeOfDeclaredField, long sizeTakenBy8BytesFields)
-    {
+    protected boolean hasSuperClassGap(long size, long sizeOfDeclaredField, long sizeTakenBy8BytesFields) {
         return hasGapSmallerThan8Bytes(size) && hasOnly8BytesFields(sizeOfDeclaredField, sizeTakenBy8BytesFields);
     }
 
@@ -182,8 +200,7 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
      * @param sizeTakenBy8BytesFields the total size taken by the 8 bytes fields within this block
      * * @return {@code true} if the fields for this block are all 8 bytes fields, {@code false} otherwise.
      */
-    protected final boolean hasOnly8BytesFields(long sizeOfDeclaredField, long sizeTakenBy8BytesFields)
-    {
+    protected final boolean hasOnly8BytesFields(long sizeOfDeclaredField, long sizeTakenBy8BytesFields) {
         return sizeOfDeclaredField != 0 && sizeOfDeclaredField == sizeTakenBy8BytesFields;
     }
 
@@ -196,8 +213,7 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
      * @param size the size of the memory used so far.
      * @return {@code true} if there is some space available (4 bytes), {@code false} otherwise.
      */
-    protected final boolean hasGapSmallerThan8Bytes(long size)
-    {
+    protected final boolean hasGapSmallerThan8Bytes(long size) {
         return (size & 7) > 0;
     }
 }
