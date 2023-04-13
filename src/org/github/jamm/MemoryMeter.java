@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-import org.github.jamm.MemoryMeterListener.Factory;
 import org.github.jamm.strategies.MemoryMeterStrategies;
 
 public final class MemoryMeter {
@@ -439,28 +438,13 @@ public final class MemoryMeter {
 
         private Guess guess = Guess.ALWAYS_INSTRUMENTATION;
         private boolean ignoreOuterClassReference;
-        private boolean ignoreKnownSingletons;
-        private boolean ignoreNonStrongReferences;
+        private boolean ignoreKnownSingletons = true;
+        private boolean ignoreNonStrongReferences = true;
         private boolean omitSharedBufferOverhead;
         private MemoryMeterListener.Factory listenerFactory = NoopMemoryMeterListener.FACTORY;
 
         private Builder() {
 
-        }
-
-        private Builder(Guess guess,
-                       boolean ignoreOuterClassReference,
-                       boolean ignoreKnownSingletons,
-                       boolean ignoreNonStrongReferences,
-                       boolean omitSharedBufferOverhead,
-                       Factory listenerFactory)
-        {
-            this.guess = guess;
-            this.ignoreOuterClassReference = ignoreOuterClassReference;
-            this.ignoreKnownSingletons = ignoreKnownSingletons;
-            this.ignoreNonStrongReferences = ignoreNonStrongReferences;
-            this.omitSharedBufferOverhead = omitSharedBufferOverhead;
-            this.listenerFactory = listenerFactory;
         }
 
         public MemoryMeter build() {
@@ -488,22 +472,24 @@ public final class MemoryMeter {
         }
 
         /**
-         * Ignores space occupied by known singletons such as {@link Class} objects and {@code enum}s
+         * Measures the space occupied by known singletons such as {@link Class} objects, {@code enum}s, {@code ClassLoader}s and
+         * {@code AccessControlContext}s. By default {@code MemoryMeter} will ignore those.
          *
          * @return this builder
          */
-        public Builder ignoreKnownSingletons() {
-            this.ignoreKnownSingletons = true;
+        public Builder measureKnownSingletons() {
+            this.ignoreKnownSingletons = false;
             return this;
         }
 
         /**
-         * Ignores the references from a {@link java.lang.ref.Reference} (like weak/soft/phantom references).
+         * Measures the references from a {@link java.lang.ref.Reference} (like weak/soft/phantom references).
+         * By default {@code MemoryMeter} will ignore those.
          *
          * @return this builder
          */
-        public Builder ignoreNonStrongReferences() {
-            ignoreNonStrongReferences = true;
+        public Builder measureNonStrongReferences() {
+            ignoreNonStrongReferences = false;
             return this;
         }
 

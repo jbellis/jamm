@@ -51,8 +51,8 @@ public class MemoryMeterStrategyTest
     @Before
     public void setUp()
     {
-        reference = MemoryMeter.builder().withGuessing(Guess.ALWAYS_INSTRUMENTATION).ignoreKnownSingletons().build();
-        tested = MemoryMeter.builder().withGuessing(guess).ignoreKnownSingletons().ignoreNonStrongReferences().build();
+        reference = MemoryMeter.builder().withGuessing(Guess.ALWAYS_INSTRUMENTATION).build();
+        tested = MemoryMeter.builder().withGuessing(guess).build();
     }
 
     @After
