@@ -41,12 +41,12 @@ public final class Filters
     /**
      * Filter excluding static and primitive fields
      */
-    private static final FieldFilter IGNORE_STATIC_AND_PRIMITIVE_FIELDS = (c, f) -> Modifier.isStatic(f.getModifiers()) || f.getType().isPrimitive();
+    public static final FieldFilter IGNORE_STATIC_AND_PRIMITIVE_FIELDS = (c, f) -> Modifier.isStatic(f.getModifiers()) || f.getType().isPrimitive();
 
     /**
      * Filter excluding class such as {@code Enum}, {@code Class}, {@code ClassLoader} and {@code AccessControlContext}
      */
-    private static final FieldAndClassFilter IGNORE_KNOWN_SINGLETONS = c -> Class.class.equals(c) 
+    public static final FieldAndClassFilter IGNORE_KNOWN_SINGLETONS = c -> Class.class.equals(c) 
                                                                          || Enum.class.isAssignableFrom(c)
                                                                          || ClassLoader.class.isAssignableFrom(c)
                                                                          || AccessControlContext.class.isAssignableFrom(c);
@@ -54,7 +54,7 @@ public final class Filters
     /**
      * Filter excluding non-strong references
      */
-    private static final FieldFilter IGNORE_NON_STRONG_REFERENCES = (c, f) -> Reference.class.isAssignableFrom(c) && "referent".equals(f.getName());
+    public static final FieldFilter IGNORE_NON_STRONG_REFERENCES = (c, f) -> Reference.class.isAssignableFrom(c) && "referent".equals(f.getName());
 
     /**
      * Filter excluding some of the fields from sun.misc.Cleaner as they should not be taken into account.
@@ -64,23 +64,23 @@ public final class Filters
      *     <li>next and prev: as they are used to create a doubly-linked list of live cleaners and therefore refer to other Cleaners instances</li>
      * </ul>
      */
-    private static final FieldFilter IGNORE_CLEANER_FIELDS = (c, f) -> c.equals(CLEANER_CLASS) && CLEANER_FIELDS_TO_IGNORE.contains(f.getName()) ;
+    public static final FieldFilter IGNORE_CLEANER_FIELDS = (c, f) -> c.equals(CLEANER_CLASS) && CLEANER_FIELDS_TO_IGNORE.contains(f.getName()) ;
 
     /**
      * Filter excluding the {@code group} field from thread classes has that field has hold the references to all the other threads from the group to which the thread belong. 
      */
-    private static final FieldFilter IGNORE_THREAD_FIELDS = (c, f) -> c.equals(Thread.class) && "group".equals(f.getName()) ;
+    public static final FieldFilter IGNORE_THREAD_FIELDS = (c, f) -> c.equals(Thread.class) && "group".equals(f.getName()) ;
 
     /**
      * Filter excluding the outer class reference from non-static inner classes.
      * In practice that filter is only useful if the top class is an inner class, and we wish to ignore the outer class in the measurement.
      */
-    private static final FieldFilter IGNORE_OUTER_CLASS_REFERENCES = (c, f) -> f.getName().matches(OUTER_CLASS_REFERENCE);
+    public static final FieldFilter IGNORE_OUTER_CLASS_REFERENCES = (c, f) -> f.getName().matches(OUTER_CLASS_REFERENCE);
 
     /**
      * Filter excluding fields and class annotated with {@code Unmetered}
      */
-    private static final FieldAndClassFilter IGNORE_UNMETERED_FIELDS_AND_CLASSES = new FieldAndClassFilter()
+    public static final FieldAndClassFilter IGNORE_UNMETERED_FIELDS_AND_CLASSES = new FieldAndClassFilter()
     {
         @Override
         public boolean ignore(Class<?> cls, Field field) {
@@ -119,12 +119,26 @@ public final class Filters
     public static FieldAndClassFilter getClassFilters(boolean ignoreKnownSingletons) {
 
         if (ignoreKnownSingletons)
-            return c -> IGNORE_KNOWN_SINGLETONS.ignore(c) || IGNORE_UNMETERED_FIELDS_AND_CLASSES.ignore(c);
+            return new FieldAndClassFilter() {
+
+                @Override
+                public boolean ignore(Class<?> cls, Field field) {
+                    return IGNORE_KNOWN_SINGLETONS.ignore(cls, field) || IGNORE_UNMETERED_FIELDS_AND_CLASSES.ignore(cls, field);
+                }
+
+                @Override
+                public boolean ignore(Class<?> cls)
+                {
+                    return IGNORE_KNOWN_SINGLETONS.ignore(cls) || IGNORE_UNMETERED_FIELDS_AND_CLASSES.ignore(cls);
+                }
+        };
 
         return IGNORE_UNMETERED_FIELDS_AND_CLASSES;
     }
 
-    public static FieldFilter getFieldFilters(boolean ignoreKnownSingletons, boolean ignoreOuterClassReference, boolean ignoreNonStrongReferences) {
+    public static FieldFilter getFieldFilters(boolean ignoreKnownSingletons,
+                                              boolean ignoreOuterClassReference,
+                                              boolean ignoreNonStrongReferences) {
 
         if (ignoreOuterClassReference) {
 

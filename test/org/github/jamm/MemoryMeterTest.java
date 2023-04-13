@@ -101,13 +101,13 @@ public class MemoryMeterTest
     }
 
     @Test
-    public void testIgnoreKnownSingletons() {
-        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
+    public void testMeasureKnownSingletons() {
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).measureKnownSingletons().build();
 
         long classFieldSize = meter.measureDeep(new HasClassField());
         long enumFieldSize = meter.measureDeep(new HasEnumField());
 
-        meter = MemoryMeter.builder().withGuessing(guess).ignoreKnownSingletons().build();
+        meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
         assertNotEquals(enumFieldSize, meter.measureDeep(new HasEnumField()));
@@ -115,11 +115,11 @@ public class MemoryMeterTest
 
     @Test
     public void testIgnoreNonStrongReferences() {
-        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).measureNonStrongReferences().build();
 
         long classFieldSize = meter.measureDeep(new HasReferenceField());
 
-        meter = MemoryMeter.builder().withGuessing(guess).ignoreNonStrongReferences().build();
+        meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
     }

@@ -51,10 +51,25 @@ changes at the API level.
 * The `MemoryMeter.measure` and `MemoryMeter.measureDeep` now accept `null` parameters
 * The behavior of the `omitSharedBufferOverhead` has been changed as it was incorrect. It was not counting correctly for direct ByteBuffers and considering some buffer has shared even if they were not.
 * Jamm is not trying anymore to support non Hotspot JVM (e.g. OpenJ9)
+* By default `MemoryMeter.measureDeep` is now ignoring the space occupied by known singletons such as `Class` objects, `enums`, `ClassLoaders`, `AccessControlContexts` as well as non-strong references
+(like weak/soft/phantom references). If you want `MemoryMeter` to measure them you need to enable those measurements through `MemoryMeter.builder().measureKnownSingletons()` and `MemoryMeter.builder().measureNonStrongReferences()`.
+* When measuring direct `ByteBuffer` objects `MemoryMeter` is ignoring some fields from the Cleaner as it might leads to some incorrect measurements by including references to other Cleaner instances
+* When measuring `Thread` objects `MemoryMeter` is ignoring the `group` field as it references the all the threads from the group
 
 # Supported Java versions
 
-The 0.4.0 release has been tested with Java 8, 11 and 17.
+The 0.4.0 release has been tested with Java 8, 11 and 17 and the following JVM arguments that can affect the memory layout:
+* `-Xmx`
+* `UseCompressedClassPointers`
+* `ObjectAlignmentInBytes`
+* `UseCompressedOops`
+* `RestrictContended`
+* `EnableContended`
+* `ContendedPaddingWidth`
+* `UseEmptySlotsInSupers`
+
+The `Specification` strategy does not work correctly with `UseEmptySlotsInSupers` disabled for some classes like direct `ByteBuffer`
+that interleave fields from different classes when they should not.
 
 # The fine print
 
@@ -91,6 +106,10 @@ field data it will rely on `Unsafe` to do it. Unfortunately, despite the fact th
 illegal accesses the JVM might emit some warning for access that only will be illegal in future versions. The `Unsafe` approach
  might also fails for some scenarios as `Unsafe.objectFieldOffset` do not work for `records` or `hidden` classes such 
  as lambda expressions.
+ 
+ By default `MemoryMeter.measureDeep` is ignoring known singletons such as `Class` objects, `enums`, `ClassLoaders`, `AccessControlContexts` as well as non-strong references
+(like weak/soft/phantom references). If you want `MemoryMeter` to measure them you need to enable those measurements through
+ `MemoryMeter.builder().measureKnownSingletons()` and `MemoryMeter.builder().measureNonStrongReferences()`.
 
 ## Skipping objects
 
@@ -122,6 +141,8 @@ mark the classes/interfaces or fields using the
         ...
     }
 ```
+
+For a finer control on which classes and fields should be filtered out it is possible to use the `MemoryMeter(MemoryMeterStrategy, FieldAndClassFilter, FieldFilter , boolean, MemoryMeterListener.Factory)` constructor.
 
 ## ByteBuffer measurements
 
