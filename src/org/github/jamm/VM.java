@@ -21,7 +21,22 @@ public final class VM
     private static final int DEFAULT_ALIGNMENT_IN_BYTES = 8;
     private static final int DEFAULT_CONTENDED_PADDING_WIDTH = 128;
 
+    private static final boolean IS_PRE_JAVA12_JVM = !supportStringIndentMethod();
+
     private static final Unsafe UNSAFE = loadUnsafe();
+
+    /**
+     * Checks if the JVM support the {@code String#indent} method added in Java 12.
+     * @return {@code true} if the JVM support the {@code String#indent} method, {@code false} otherwise. 
+     */
+    private static boolean supportStringIndentMethod() {
+        try {
+            String.class.getMethod("indent", int.class);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     /**
      * Returns the value of the specified VM option
@@ -128,6 +143,15 @@ public final class VM
     public static boolean is32Bits()
     {
         return "32".equals(System.getProperty("sun.arch.data.model"));
+    }
+
+    /**
+     * Checks if the JVM is a pre-Java 12 version.
+     * @return {@code true} if the JVM is a pre-Java 12 version, {@code false} otherwise.
+     */
+    public static boolean isPreJava12JVM()
+    {
+        return IS_PRE_JAVA12_JVM;
     }
 
     /**
