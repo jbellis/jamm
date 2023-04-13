@@ -167,6 +167,12 @@ If the `omitSharedBufferOverhead` option is used `MemoryMeter` will try to remov
 For heap buffers, if only a portion of the array is used (capacity > remaining), `MemoryMeter` will only take into account the remaining bytes
 instead of the size of the array object. For direct buffer, `MemoryMeter` will ignore the field referencing the original buffer object in its computation.
 
+A read-only buffer might actually be the only representation of a `ByteBuffer` so `MemoryMeter` will not by default consider read-only buffers as shared.
+Pre-java 12, a read-only buffer created from a direct `ByteBuffer` was using the source buffer as an attachment for liveness rather than the source buffer's
+ attachment (https://bugs.openjdk.org/browse/JDK-8208362). Therefore prior to Java 12, `MemoryMeter` could easy to determine for read-only direct buffers which part was shared.
+Unfortunately, the approach did not work anymore since Java 12. Due to that, for java versions >= 12, `MemoryMeter` use the same approach than the one used for heap buffers to determine
+if the data of a read-only direct buffer is shared (capacity > remaining).
+
 ## @Contended
 
  `@Contended` was introduced in Java 8 as `sun.misc.Contended` but was repackaged in the `jdk.internal.vm.annotation` package in Java 9.

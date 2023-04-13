@@ -32,17 +32,6 @@ import sun.misc.Contended;
 @RunWith(Parameterized.class)
 public class MemoryMeterStrategyTest
 {
-    private static final boolean RUNNING_WITH_PRE_JAVA12_JVM = isRunningWithPreJava12Jvm();
-
-    private static boolean isRunningWithPreJava12Jvm() {
-        try {
-            String.class.getMethod("indent", int.class);
-            return false;
-        } catch (Exception e) {
-            return true;
-        }
-    }
-
     private final MemoryMeter.Guess guess;
 
     private MemoryMeter tested;
@@ -364,47 +353,70 @@ public class MemoryMeterStrategyTest
 
         MemoryMeter m1 = MemoryMeter.builder().withGuessing(guess).build();
 
+        // Read-only and normal direct ByteBuffer have the same fields and therefore the same size
         long sizeShallowBuffer = reference.measure(empty);
         assertEquals("empty ByteBuffer", sizeShallowBuffer, m1.measure(empty));
         assertEquals("empty ByteBuffer", sizeShallowBuffer, m1.measure(readOnlyEmpty));
 
-        long sizeDeepBuffer = reference.measureDeep(empty);
-        assertEquals("Deep empty ByteBuffer", sizeDeepBuffer, m1.measureDeep(empty));
+        // Measure deep will include reference to the cleaner for Read-write buffers
+        //
+        // root [java.nio.DirectByteBuffer] 136 bytes (64 bytes)
+        //   |
+        //   +--cleaner [jdk.internal.ref.Cleaner] 72 bytes (40 bytes)
+        //     |
+        //     +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
+        long sizeDeepRwBuffer = reference.measureDeep(empty);
+        assertEquals("Deep empty ByteBuffer", sizeDeepRwBuffer, m1.measureDeep(empty));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepRwBuffer, m1.measureDeep(one));
+        assertEquals("Twenty bytes ByteBuffer", sizeDeepRwBuffer, m1.measureDeep(twenty));
 
-        // If a DirectByteBuffer is referencing a part of another DirectByteBuffer it will have a reference to this buffer
-        // through the att (attachement) field and no cleaner
-        long sizeDeepWithAttachedBuffer = sizeShallowBuffer + sizeDeepBuffer;
-        assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyEmpty));
+        // If a DirectByteBuffer is referencing a part of another DirectByteBuffer (read only or slice buffer), it will have a 
+        // reference to the original buffer through the att (attachement) field and no cleaner
+        long sizeDeepWithAttachedBuffer = sizeShallowBuffer + sizeDeepRwBuffer;
+        // root [java.nio.DirectByteBufferR] 200 bytes (64 bytes)
+        //   |
+        //   +--att [java.nio.DirectByteBuffer] 136 bytes (64 bytes)
+        //     |
+        //     +--cleaner [jdk.internal.ref.Cleaner] 72 bytes (40 bytes)
+        //       |
+        //       +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
+        assertEquals("Deep empty read-only ByteBuffer", sizeDeepWithAttachedBuffer , m1.measureDeep(readOnlyEmpty));
         assertEquals("Deep duplicated 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(emptyOne));
+        assertEquals("Deep twenty bytes read-only ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyTwenty));
+        assertEquals("Five bytes slice ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(five));
+
         // Pre java 12, a DirectByteBuffer created from another DirectByteBuffer was using the source buffer as an attachment
         // for liveness rather than the source buffer's attachment (https://bugs.openjdk.org/browse/JDK-8208362)
-        long sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m1.measureDeep(emptyOne) : m1.measureDeep(emptyOne);
-        assertEquals("Deep duplicated 1-byte ByteBuffer", sizeReadOnlyBuffer, m1.measureDeep(readOnlyEmptyOne));
-        assertEquals("Deep 1-byte ByteBuffer", sizeDeepBuffer, m1.measureDeep(one));
-        assertEquals("Twenty bytes ByteBuffer", sizeDeepBuffer, m1.measureDeep(twenty));
-        sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m1.measureDeep(twenty) : m1.measureDeep(twenty);
-        assertEquals("Twenty bytes ByteBuffer", sizeReadOnlyBuffer, m1.measureDeep(readOnlyTwenty));
-        assertEquals("Five bytes ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(five));
-        sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m1.measureDeep(five) : m1.measureDeep(five);
-        assertEquals("Five bytes ByteBuffer", sizeReadOnlyBuffer, m1.measureDeep(readOnlyFive));
+        long sizeDeepWithMultiLayersOfReferences = VM.isPreJava12JVM() ? sizeShallowBuffer + sizeDeepWithAttachedBuffer : sizeDeepWithAttachedBuffer;
+        assertEquals("Deep duplicated read-only 1-byte ByteBuffer", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyEmptyOne));
+        assertEquals("Deep five bytes slice read-only ByteBuffer", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyFive));
 
+        // Test with omitting shared buffer overhead
         MemoryMeter m2 = MemoryMeter.builder().withGuessing(guess).omitSharedBufferOverhead().build();
 
+        // Read-only and normal direct ByteBuffer have the same fields and therefore the same size
         assertEquals("empty ByteBuffer", sizeShallowBuffer, m2.measure(empty));
         assertEquals("empty ByteBuffer", sizeShallowBuffer, m2.measure(readOnlyEmpty));
-        assertEquals("Deep empty ByteBuffer", sizeDeepBuffer, m2.measureDeep(empty));
-        assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyEmpty));
+
+        // Measure deep is unaffected by the option as long as their is no shared buffer
+        assertEquals("Deep empty ByteBuffer", sizeDeepRwBuffer, m2.measureDeep(empty));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepRwBuffer, m2.measureDeep(one));
+        assertEquals("Twenty bytes ByteBuffer", sizeDeepRwBuffer, m2.measureDeep(twenty));
+
+        // Read-only buffers even if they are technically a view of another buffer are not considered as shared by the option
+        assertEquals("Deep empty read-only ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyEmpty));
+        assertEquals("Deep 1-byte read-only ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyOne));
+        assertEquals("Twenty bytes read-only ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyTwenty));
+
+        // For duplicated and sliced buffer the attachment should be ignored from the computation
         assertEquals("Deep duplicated 1-byte ByteBuffer", sizeShallowBuffer, m2.measureDeep(emptyOne));
-        sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m2.measureDeep(emptyOne) : m2.measureDeep(emptyOne);
-        assertEquals("Deep duplicated 1-byte ByteBuffer", sizeReadOnlyBuffer, m2.measureDeep(readOnlyEmptyOne));
-        assertEquals("Deep 1-byte ByteBuffer", sizeDeepBuffer, m2.measureDeep(one));
-        assertEquals("Deep 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyOne));
-        assertEquals("Twenty bytes ByteBuffer", sizeDeepBuffer, m2.measureDeep(twenty));
-        sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m2.measureDeep(twenty) : m2.measureDeep(twenty);
-        assertEquals("Twenty bytes ByteBuffer", sizeReadOnlyBuffer, m2.measureDeep(readOnlyTwenty));
         assertEquals("Five bytes ByteBuffer", sizeShallowBuffer, m2.measureDeep(five));
-        sizeReadOnlyBuffer = RUNNING_WITH_PRE_JAVA12_JVM ? sizeShallowBuffer + m2.measureDeep(five) : m2.measureDeep(five);
-        assertEquals("Five bytes ByteBuffer", sizeReadOnlyBuffer, m2.measureDeep(readOnlyFive));
+
+        // A read-only buffer of a duplicated/sliced buffer should only account for the shallow read-only part and swallow attachment part
+        long sizeDeepWithReadOnlyAndShallowBuffer = VM.isPreJava12JVM() ? sizeShallowBuffer + sizeShallowBuffer  // top level (= shallow RByteBuffer) + att top level
+                                                                        : sizeShallowBuffer; // only top level (= shallow RByteBuffer)
+        assertEquals("Deep duplicated 1-byte read-only ByteBuffer", sizeDeepWithReadOnlyAndShallowBuffer, m2.measureDeep(readOnlyEmptyOne));
+        assertEquals("Five bytes sliced read-only ByteBuffer", sizeDeepWithReadOnlyAndShallowBuffer, m2.measureDeep(readOnlyFive));
     }
 
     @Test

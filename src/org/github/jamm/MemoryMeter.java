@@ -400,10 +400,24 @@ public final class MemoryMeter {
      */
     private boolean isDirectBufferView(Object obj, Field field, Object child)
     {
-        return obj instanceof ByteBuffer 
-                && ((ByteBuffer) obj).isDirect()
-                && !((ByteBuffer) obj).isReadOnly() 
-                && field.getName().equals("att") 
+        if (!(obj instanceof ByteBuffer))
+            return false;
+
+        ByteBuffer byteBuffer = (ByteBuffer) obj;
+
+        if (!byteBuffer.isDirect())
+            return false;
+
+        // Read-only buffer might actually be the only representation of a ByteBuffer so we cannot simply consider them as shared.
+        // Pre java 12, a DirectByteBuffer created from another DirectByteBuffer was using the source buffer as an attachment 
+        // for liveness rather than the source buffer's attachment (https://bugs.openjdk.org/browse/JDK-8208362). 
+        // Therefore prior to Java 12 it was easy to determine which part was shared but that approach did not work anymore
+        // since Java 12 so we have to rely on the usage to guess if it is shared or not
+        if (byteBuffer.isReadOnly())
+            return VM.isPreJava12JVM() ? false
+                                       : byteBuffer.remaining() < byteBuffer.capacity();
+
+        return  field.getName().equals("att") 
                 && child != null;
     }
 
