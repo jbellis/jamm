@@ -230,7 +230,7 @@ final class TreePrinter implements MemoryMeterListener {
          * Appends the representation of this <code>ObjectInfo</code> to the specified builder.
          *
          * @param indentation the indentation to use
-         * @param isLast <code>true</code> if this object is the last child from is parent
+         * @param isLast <code>true</code> if this object is the last child from its parent
          * @param printTotalSize <code>true</code> if the total size must be printed, <code>false</code> otherwise
          * @param builder the <code>StringBuilder</code> to append to
          * @return the <code>StringBuilder</code>
