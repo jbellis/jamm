@@ -11,6 +11,17 @@ Jamm assume that the JVM running the code is an HotSpot JVM. It has not been tes
 "mvn package"; optionally, "mvn install"
 
 
+# Running Tests
+
+The tests can be run with "mvn test". The `JvmArgs` property can be used to specify the JVM arguments that can be used for running the tests.
+For example:
+
+```
+mvn test -DjvmArgs="-Xmx64g"
+mvn test -DjvmArgs="-Xmx64g -XX:ObjectAlignmentInBytes=16 -XX:-UseCompressedClassPointers"
+```
+
+
 # Use
 
 
