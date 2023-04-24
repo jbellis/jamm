@@ -170,10 +170,38 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <jdkToolchain>
+            <version>1.8</version>
+            <vendor>Oracle Corporation</vendor>
+          </jdkToolchain>
           <forkCount>1</forkCount>
           <reuseForks>false</reuseForks>
           <argLine> ${jvmArgs} -javaagent:${project.build.directory}/${project.build.finalName}-tests.${project.packaging}</argLine>
         </configuration>
+        <executions>
+          <execution>
+            <id>test-jdk11</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <jdkToolchain>
+                <version>11</version>
+              </jdkToolchain>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-jdk17</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <jdkToolchain>
+                <version>17</version>
+              </jdkToolchain>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
           <groupId>pw.krejci</groupId>
