@@ -21,6 +21,24 @@ mvn test -DjvmArgs="-Xmx64g"
 mvn test -DjvmArgs="-Xmx64g -XX:ObjectAlignmentInBytes=16 -XX:-UseCompressedClassPointers"
 ```
 
+`mvn test` runs all tests with JDK8, JDK11, and then with JDK17
+To run the tests with only one particular JDK version run:
+* for JDK8:
+```
+mvn surefire:test@test-default
+```
+or
+```
+mvn surefire:test
+```
+* for JDK11:
+```
+mvn surefire:test@test-jdk11
+```
+* for JDK17:
+```
+mvn surefire:test@test-jdk17
+```
 
 # Use
 
