@@ -69,20 +69,13 @@ public interface MemoryLayoutSpecification
         } else {
 
             heapWordSize = 8;
-            if (VM.useCompressedOops()) {
+            referenceSize = VM.useCompressedOops() ? 4 // compressed reference
+                                                   : 8; // uncompressed reference (it's a 64-bit uncompressed OOPs object model)
 
-                objectHeaderSize = 12; // mark word (8 bytes) + class word (4 bytes)
-                referenceSize = 4; // compressed reference
-
-            } else {
-
-                // In other cases, it's a 64-bit uncompressed OOPs object model
-                // Prior to Java 15, the use of compressed class pointers assumed the use of compressed oops.
-                // This was changed in Java 15 by JDK-8241825 (https://bugs.openjdk.org/browse/JDK-8241825).
-                objectHeaderSize = VM.useCompressedClassPointers() ? 12  // mark word (8 bytes) + class word (4 bytes)
-                                                                   : 16; // mark word (8 bytes) + class word (8 bytes)
-                referenceSize = 8; // uncompressed reference
-            }
+            // Prior to Java 15, the use of compressed class pointers assumed the use of compressed oops.
+            // This was changed in Java 15 by JDK-8241825 (https://bugs.openjdk.org/browse/JDK-8241825).
+            objectHeaderSize = VM.useCompressedClassPointers() ? 12  // mark word (8 bytes) + class word (4 bytes)
+                                                               : 16; // mark word (8 bytes) + class word (8 bytes)
         }
 
         final int objectAlignment = VM.getObjectAlignmentInBytes();
