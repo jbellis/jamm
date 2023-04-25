@@ -7,9 +7,18 @@ Jamm assume that the JVM running the code is an HotSpot JVM. It has not been tes
 
 # Building
 
-
 "mvn package"; optionally, "mvn install"
 
+# Setup your toolchains.xml
+
+We want to compile and test using different JVM versions.  Configuration option jdkToolchain can be used to supply an alternate 
+toolchain specification. To achieve our goal we need first to setup `toolchains.xml`.
+The `toolchains.xml` file is the configuration file where you set the installation paths of your toolchains. This file 
+should be put in your `${user.home}/.m2` directory. When the maven-toolchains-plugin executes, it looks for the `toolchains.xml`
+file, reads it and looks for a toolchain matching the toolchains requirements configured in the plugin.
+Jamm repo contains a `toolchains.example.xml` which you can use as a baseline for your own `toolchains.xml`. You need it
+to be able to run the tests. Copy `toolchains.example.xml` to `${user.home}/.m2`, rename the file to `toolchains.xml`.
+In `toolchains.xml`, check to update your vendor and jdkHome for JDK8, JDK11 and JDK17 which you have installed on your machine.
 
 # Running Tests
 
