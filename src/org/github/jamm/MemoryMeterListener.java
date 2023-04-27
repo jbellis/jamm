@@ -66,7 +66,7 @@ interface MemoryMeterListener {
      *
      * @param obj the object owning the field that could not be accessed
      * @param fieldName the field name
-     * @param fieldValue the field value
+     * @param fieldType the field type
      */
-    public void failedToAccessField(Object obj, String fieldName, Class<?> fieldType);
+    void failedToAccessField(Object obj, String fieldName, Class<?> fieldType);
 }

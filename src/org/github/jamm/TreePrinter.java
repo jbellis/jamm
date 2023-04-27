@@ -21,7 +21,7 @@ final class TreePrinter implements MemoryMeterListener {
     /**
      * Mapping between objects and their information
      */
-    private final Map<Object, ObjectInfo> mapping = new IdentityHashMap<Object, ObjectInfo>();
+    private final Map<Object, ObjectInfo> mapping = new IdentityHashMap<>();
 
     /**
      * The maximum depth of the trees to be printed
@@ -109,7 +109,7 @@ final class TreePrinter implements MemoryMeterListener {
             parent = parent.parent;
         }
 
-        System.err.println(builder.toString());
+        System.err.println(builder);
     }
 
     /**
@@ -183,7 +183,7 @@ final class TreePrinter implements MemoryMeterListener {
         public ObjectInfo addChild(String childName, Class<?> childClass) {
             ObjectInfo child = new ObjectInfo(this, childName, childClass, depth + 1);
             if (children.isEmpty()) {
-                children = new ArrayList<TreePrinter.ObjectInfo>();
+                children = new ArrayList<>();
             }
             children.add(child);
             return child;
@@ -310,7 +310,7 @@ final class TreePrinter implements MemoryMeterListener {
          * @param clazz the class
          * @return the name of the specified class
          */
-        public static String className(Class<? extends Object> clazz) {
+        public static String className(Class<?> clazz) {
 
             if (clazz.isArray())
             {

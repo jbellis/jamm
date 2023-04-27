@@ -67,7 +67,7 @@ public final class Filters
     public static final FieldFilter IGNORE_CLEANER_FIELDS = (c, f) -> c.equals(CLEANER_CLASS) && CLEANER_FIELDS_TO_IGNORE.contains(f.getName()) ;
 
     /**
-     * Filter excluding the {@code group} field from thread classes has that field has hold the references to all the other threads from the group to which the thread belong. 
+     * Filter excluding the {@code group} field from thread classes as that field holds the references to all the other threads from the group to which the thread belongs. 
      */
     public static final FieldFilter IGNORE_THREAD_FIELDS = (c, f) -> c.equals(Thread.class) && "group".equals(f.getName()) ;
 

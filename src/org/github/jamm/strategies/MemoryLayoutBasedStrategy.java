@@ -224,7 +224,7 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
      * @param f the field for which the contention group tag must be retrieved
      * @return the contention group tag of the {@code @Contended} annotation of the specified field
      */
-    private final String getContentionGroupTag(Field f) {
+    private String getContentionGroupTag(Field f) {
 
         try {
             if (mayBeContendedValueMH.isPresent())
@@ -234,12 +234,12 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
         }
 
         // We cannot retrieve the contention group tag as the annotation can only be used by internal classes.
-        // Up to Java 17 the only internal java classes using @Contended on fields were Threads.
+        // Up to Java 17 the only internal java class using @Contended on fields was Thread.
         if (f.getDeclaringClass().equals(Thread.class))
             return "tlr"; // for ThreadLocalRandom
 
         throw new CannotMeasureObjectException("The field " + f.getName() + " from the class " + f.getDeclaringClass() 
-                                                 + "cannot be measured as the @Contended contention group tag cannot be retrieves."
+                                                 + "cannot be measured as the @Contended contention group tag cannot be retrieved."
                                                  + " Consider using: --add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED to remove that problem");
     }
 }
