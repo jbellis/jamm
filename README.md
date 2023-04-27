@@ -91,7 +91,7 @@ changes at the API level.
 * Jamm is not trying anymore to support non Hotspot JVM (e.g. OpenJ9)
 * By default `MemoryMeter.measureDeep` is now ignoring the space occupied by known singletons such as `Class` objects, `enums`, `ClassLoaders`, `AccessControlContexts` as well as non-strong references
 (like weak/soft/phantom references). If you want `MemoryMeter` to measure them you need to enable those measurements through `MemoryMeter.builder().measureKnownSingletons()` and `MemoryMeter.builder().measureNonStrongReferences()`.
-* When measuring direct `ByteBuffer` objects `MemoryMeter` is ignoring some fields from the Cleaner as it might leads to some incorrect measurements by including references to other Cleaner instances
+* When measuring direct `ByteBuffer` objects `MemoryMeter` is ignoring some fields from the Cleaner as it might lead to some incorrect measurements by including references to other Cleaner instances
 * When measuring `Thread` objects `MemoryMeter` is ignoring the `group` field as it references the all the threads from the group
 
 # Supported Java versions
@@ -106,7 +106,7 @@ The 0.4.0 release has been tested with Java 8, 11 and 17 and the following JVM a
 * `ContendedPaddingWidth`
 * `UseEmptySlotsInSupers`
 
-The `Specification` strategy does not work correctly with `UseEmptySlotsInSupers` disabled for some classes like direct `ByteBuffer`
+The `Specification` strategy does not work correctly with `UseEmptySlotsInSupers` disabled for some classes (like direct `ByteBuffer`)
 that interleave fields from different classes when they should not.
 
 # The fine print
@@ -119,7 +119,7 @@ that interleave fields from different classes when they should not.
 
 If the JVM has been started with `-javaagent`, `MemoryMeter` will use 
 `java.lang.instrument.Instrumentation.getObjectSize` to get an estimate of the space required to store
-the given object. It is the safest strategies.
+the given object. It is the safest strategy.
 
 ### Unsafe
 
@@ -135,14 +135,14 @@ for record and hidden classes the unsafe strategy delegates the measurement to t
 ## Object graph crawling
 
 When `measureDeep` is called `MemoryMeter` will use reflection to crawl the object graph.
-In order to prevent infinite loops due to cycles in the object graph `MemoryMeter` track visited objects
+In order to prevent infinite loops due to cycles in the object graph `MemoryMeter` tracks visited objects
 imposing a memory cost of its own.
 
 Java 9 introduced the Java Platform Module System (JPMS) that made illegal reflective access between some modules. This is breaking
 the ability for Jamm to crawl the object graph. To avoid that problem, if Jamm detects that it cannot use reflection to retrieve
 field data it will rely on `Unsafe` to do it. Unfortunately, despite the fact that the code is designed to go around those 
 illegal accesses the JVM might emit some warning for access that only will be illegal in future versions. The `Unsafe` approach
- might also fails for some scenarios as `Unsafe.objectFieldOffset` do not work for `records` or `hidden` classes such 
+ might also fail for some scenarios as `Unsafe.objectFieldOffset` do not work for `records` or `hidden` classes such 
  as lambda expressions.
  
  By default `MemoryMeter.measureDeep` is ignoring known singletons such as `Class` objects, `enums`, `ClassLoaders`, `AccessControlContexts` as well as non-strong references
@@ -184,7 +184,7 @@ For a finer control on which classes and fields should be filtered out it is pos
 
 ## ByteBuffer measurements
 
-`MemoryMeter` has 2 way to measure ByteBuffers. The default one or the `omitSharedBufferOverhead` one.
+`MemoryMeter` has 2 ways to measure ByteBuffers. The default one or the `omitSharedBufferOverhead` one.
 By default, `MemoryMeter.measureDeep` will crawl the object graph and sum its different elements.
 For a `HeapByteBuffer` like `ByteBuffer.allocate(20)` the crawled graph will be:
 
@@ -221,21 +221,21 @@ root [java.nio.DirectByteBuffer] 200 bytes (64 bytes)
       +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
 ```
 
-In both cases, the size of the buffers include part of the size coming from the original buffer that we might not be interested in measuring.
+In both cases, the size of the buffers includes part of the size coming from the original buffer that we might not be interested in measuring.
 If the `omitSharedBufferOverhead` option is used `MemoryMeter` will try to remove the size of shared data from its measurements.
 For heap buffers, if only a portion of the array is used (capacity > remaining), `MemoryMeter` will only take into account the remaining bytes
 instead of the size of the array object. For direct buffer, `MemoryMeter` will ignore the field referencing the original buffer object in its computation.
 
 A read-only buffer might actually be the only representation of a `ByteBuffer` so `MemoryMeter` will not by default consider read-only buffers as shared.
 Pre-java 12, a read-only buffer created from a direct `ByteBuffer` was using the source buffer as an attachment for liveness rather than the source buffer's
- attachment (https://bugs.openjdk.org/browse/JDK-8208362). Therefore prior to Java 12, `MemoryMeter` could easy to determine for read-only direct buffers which part was shared.
-Unfortunately, the approach did not work anymore since Java 12. Due to that, for java versions >= 12, `MemoryMeter` use the same approach than the one used for heap buffers to determine
+ attachment (https://bugs.openjdk.org/browse/JDK-8208362). Therefore prior to Java 12, `MemoryMeter` could easily determine for read-only direct buffers which part was shared.
+Unfortunately, the approach did not work anymore since Java 12. Due to that, for java versions >= 12, `MemoryMeter` use the same approach as the one used for heap buffers to determine
 if the data of a read-only direct buffer is shared (capacity > remaining).
 
 ## @Contended
 
  `@Contended` was introduced in Java 8 as `sun.misc.Contended` but was repackaged in the `jdk.internal.vm.annotation` package in Java 9.
- Therefore in Java 9+ unless `-XX:-RestrictContended` or `--add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED` are specified `MemoryMeter` will not have access
+ Therefore, in Java 9+ unless `-XX:-RestrictContended` or `--add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED` are specified `MemoryMeter` will not have access
  to the `value()` method of `@Contended` and will be unable to retrieve the contention group tags. Making it potentially unable to computes the correct sizes with the `Unsafe` or `Spec` strategies.
  As it also means that only the internal Java classes will use that annotation, `MemoryMeter` will rely on its knowledge of those internal classes to try to go around that problem.
 

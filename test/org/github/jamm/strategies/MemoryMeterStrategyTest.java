@@ -65,12 +65,12 @@ public class MemoryMeterStrategyTest
     @Test
     public void testObjectArraySizes() {
 
-        checkMesureArray(new Object[0]);
-        checkMesureArray(new Object[1]);
-        checkMesureArray(new Object[256]);
+        checkMeasureArray(new Object[0]);
+        checkMeasureArray(new Object[1]);
+        checkMeasureArray(new Object[256]);
     }
 
-    private void checkMesureArray(Object[] array) {
+    private void checkMeasureArray(Object[] array) {
 
         String message = "Shallow size of Object[" + array.length + "] with guess= " + guess;
         assertEquals(message, reference.measure(array), tested.measure(array));
@@ -80,12 +80,12 @@ public class MemoryMeterStrategyTest
     @Test
     public void testByteArraySizes() {
 
-        checkMesureArray(new byte[0]);
-        checkMesureArray(new byte[1]);
-        checkMesureArray(new byte[256]);
+        checkMeasureArray(new byte[0]);
+        checkMeasureArray(new byte[1]);
+        checkMeasureArray(new byte[256]);
     }
 
-    private void checkMesureArray(byte[] array) {
+    private void checkMeasureArray(byte[] array) {
 
         String message = "Shallow size of byte[" + array.length + "] with guess= " + guess;
         assertEquals(message, reference.measure(array), tested.measure(array));
@@ -95,12 +95,12 @@ public class MemoryMeterStrategyTest
     @Test
     public void testBooleanArraySizes() {
 
-        checkMesureArray(new boolean[0]);
-        checkMesureArray(new boolean[1]);
-        checkMesureArray(new boolean[256]);
+        checkMeasureArray(new boolean[0]);
+        checkMeasureArray(new boolean[1]);
+        checkMeasureArray(new boolean[256]);
     }
 
-    private void checkMesureArray(boolean[] array) {
+    private void checkMeasureArray(boolean[] array) {
 
         String message = "Shallow size of boolean[" + array.length + "] with guess= " + guess;
         assertEquals(message, reference.measure(array), tested.measure(array));
@@ -110,12 +110,12 @@ public class MemoryMeterStrategyTest
     @Test
     public void testShortArraySizes() {
 
-        checkMesureArray(new short[0]);
-        checkMesureArray(new short[1]);
-        checkMesureArray(new short[256]);
+        checkMeasureArray(new short[0]);
+        checkMeasureArray(new short[1]);
+        checkMeasureArray(new short[256]);
     }
 
-    private void checkMesureArray(short[] array) {
+    private void checkMeasureArray(short[] array) {
 
         String message = "Shallow size of short[" + array.length + "] with guess= " + guess;
         assertEquals(message, reference.measure(array), tested.measure(array));
@@ -125,12 +125,12 @@ public class MemoryMeterStrategyTest
     @Test
     public void testCharArraySizes() {
 
-        checkMesureArray(new char[0]);
-        checkMesureArray(new char[1]);
-        checkMesureArray(new char[256]);
+        checkMeasureArray(new char[0]);
+        checkMeasureArray(new char[1]);
+        checkMeasureArray(new char[256]);
     }
 
-    private void checkMesureArray(char[] array) {
+    private void checkMeasureArray(char[] array) {
 
         String message = "Shallow size of char[" + array.length + "] with guess= " + guess;
         assertEquals(message, reference.measure(array), tested.measure(array));
@@ -140,12 +140,12 @@ public class MemoryMeterStrategyTest
     @Test
     public void testIntArraySizes() {
 
-        checkMesureArray(new int[0]);
-        checkMesureArray(new int[1]);
-        checkMesureArray(new int[256]);
+        checkMeasureArray(new int[0]);
+        checkMeasureArray(new int[1]);
+        checkMeasureArray(new int[256]);
     }
 
-    private void checkMesureArray(int[] array) {
+    private void checkMeasureArray(int[] array) {
 
         String message = "Shallow size of int[" + array.length + "] with guess= " + guess;
         assertEquals(message, reference.measure(array), tested.measure(array));
@@ -155,12 +155,12 @@ public class MemoryMeterStrategyTest
     @Test
     public void testFloatArraySizes() {
 
-        checkMesureArray(new float[0]);
-        checkMesureArray(new float[1]);
-        checkMesureArray(new float[256]);
+        checkMeasureArray(new float[0]);
+        checkMeasureArray(new float[1]);
+        checkMeasureArray(new float[256]);
     }
 
-    private void checkMesureArray(float[] array) {
+    private void checkMeasureArray(float[] array) {
 
         String message = "Shallow size of float[" + array.length + "] with guess= " + guess;
         assertEquals(message, reference.measure(array), tested.measure(array));
@@ -170,12 +170,12 @@ public class MemoryMeterStrategyTest
     @Test
     public void testLongArraySizes() {
 
-        checkMesureArray(new long[0]);
-        checkMesureArray(new long[1]);
-        checkMesureArray(new long[256]);
+        checkMeasureArray(new long[0]);
+        checkMeasureArray(new long[1]);
+        checkMeasureArray(new long[256]);
     }
 
-    private void checkMesureArray(long[] array) {
+    private void checkMeasureArray(long[] array) {
 
         String message = "Shallow size of long[" + array.length + "] with guess= " + guess;
         assertEquals(message, reference.measure(array), tested.measure(array));
@@ -185,12 +185,12 @@ public class MemoryMeterStrategyTest
     @Test
     public void testDoubleArraySizes() {
 
-        checkMesureArray(new double[0]);
-        checkMesureArray(new double[1]);
-        checkMesureArray(new double[256]);
+        checkMeasureArray(new double[0]);
+        checkMeasureArray(new double[1]);
+        checkMeasureArray(new double[256]);
     }
 
-    private void checkMesureArray(double[] array) {
+    private void checkMeasureArray(double[] array) {
 
         String message = "Shallow size of double[" + array.length + "] with guess= " + guess;
         assertEquals(message, reference.measure(array), tested.measure(array));
