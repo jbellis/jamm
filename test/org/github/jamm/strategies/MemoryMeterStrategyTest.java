@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Predicate;
 
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -532,6 +531,7 @@ public class MemoryMeterStrategyTest
     @Test
     public void testThread() throws Exception {
         Thread thread = new Thread();
+        assertEquals(reference.measure(thread), tested.measure(thread));
         assertEquals(reference.measureDeep(thread), tested.measureDeep(thread));
     }
 
@@ -561,10 +561,8 @@ public class MemoryMeterStrategyTest
         assertEquals(reference.measureDeep(map), tested.measureDeep(map));
     }
 
-    // Needs to be run with -XX:-RestrictContended in Java 8
     @Test
     public void testContendedForNonInternalClasses() throws Exception {
-        Assume.assumeFalse(VM.restrictContended());
 
         Object underTest = new WithMultipleAnonymousContendedAnnotations();
         assertEquals(reference.measureDeep(underTest), tested.measureDeep(underTest));
@@ -658,12 +656,9 @@ public class MemoryMeterStrategyTest
         private int fourth;
     }
 
-    // Needs to be run with -XX:-RestrictContended in Java 8
     @Test
     public void testHierachyPaddingWithContendedAnnotation()
     {
-        Assume.assumeFalse(VM.restrictContended());
-
         assertEquals(reference.measure(new F()), tested.measure(new F()));
         assertEquals(reference.measureDeep(new F()), tested.measureDeep(new F()));
         assertEquals(reference.measure(new G()), tested.measure(new G()));

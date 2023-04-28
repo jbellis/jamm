@@ -38,8 +38,8 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
                                    Unsafe unsafe,
                                    Class<? extends Annotation> contendedClass,
                                    Optional<MethodHandle> mayBeIsRecordMH,
-                                   MemoryLayoutBasedStrategy strategy)
-    {
+                                   MemoryLayoutBasedStrategy strategy) {
+
         super(memoryLayout, contendedClass, Optional.empty()); // The mayBeContendedValueMH is not needed for Unsafe strategies
         this.unsafe = unsafe;
         this.mayBeIsRecordMH = mayBeIsRecordMH;
@@ -66,15 +66,14 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
             while (type != null) {
 
                 long size = 0;
-
                 boolean isLastFieldWithinContentionGroup = false;
                 for (Field f : type.getDeclaredFields()) {
                     if (!Modifier.isStatic(f.getModifiers()))
                     {
                         long previousSize = size;
                         size = Math.max(size, unsafe.objectFieldOffset(f) + measureField(f.getType()));
-                        if (CONTENDED_ENABLED && previousSize < size)
-                            isLastFieldWithinContentionGroup = isFieldAnnotatedWithContended(f);
+                        if (previousSize < size)
+                            isLastFieldWithinContentionGroup = isFieldAnnotatedWithContended(f) && isContendedEnabled(type);
                     }
                 }
 
@@ -86,7 +85,7 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
                 // we know that all the other fields will have a smaller offset.
                 if (size > 0) {
                     // If the class is annotated with @Contended we need to add the end padding
-                    if (CONTENDED_ENABLED && isClassAnnotatedWithContended(type))
+                    if (isClassAnnotatedWithContended(type) && isContendedEnabled(type))
                         size += memoryLayout.getContendedPaddingWidth();
 
                     size += annotatedClassesWithoutFields * (memoryLayout.getContendedPaddingWidth() << 1);
@@ -95,7 +94,7 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
                 }
 
                 // The JVM will add padding even if the annotated class does not have any fields 
-                if (CONTENDED_ENABLED && isClassAnnotatedWithContended(type))
+                if (isClassAnnotatedWithContended(type) && isContendedEnabled(type))
                     annotatedClassesWithoutFields++;
 
                 type = type.getSuperclass();

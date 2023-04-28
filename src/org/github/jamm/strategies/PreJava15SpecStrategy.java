@@ -136,6 +136,8 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
 
     private long sizeOfFields(Class<?> type, boolean useFieldBlockAlignment) {
 
+        final boolean isContendedEnabled = isContendedEnabled(type); 
+
         if (type == Object.class)
             return memoryLayout.getObjectHeaderSize();
 
@@ -151,7 +153,7 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
                 sizeTakenBy8BytesFields += fieldSize & 8; // count only the 8 bytes fields
                 sizeOfDeclaredField += fieldSize;
                 // If some fields are annotated with @Contended we need to count the contention groups to know how much padding needs to be added
-                if (CONTENDED_ENABLED)
+                if (isContendedEnabled)
                     contentionGroupCounter = countContentionGroup(contentionGroupCounter, f);
             }
         }
@@ -172,10 +174,10 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
          * groups. Contention group tags are not inherited, and the same tag used
          * in a superclass and subclass, represent distinct contention groups.
          */
-        if (CONTENDED_ENABLED && isClassAnnotatedWithContended(type))
+        if (isContendedEnabled && isClassAnnotatedWithContended(type))
             size += (memoryLayout.getContendedPaddingWidth() << 1);
 
-        if (CONTENDED_ENABLED && contentionGroupCounter != null)
+        if (contentionGroupCounter != null)
             size += (contentionGroupCounter.count() + 1) * memoryLayout.getContendedPaddingWidth(); // 1 padding before each group + 1 at the end
 
         return size;

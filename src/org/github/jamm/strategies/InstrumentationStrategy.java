@@ -8,18 +8,16 @@ import org.github.jamm.MemoryMeterStrategy;
  * {@code MemoryMeterStrategy} relying on {@code Instrumentation} to measure object size.
  *
  */
-final class InstrumentationStrategy implements MemoryMeterStrategy
-{
+final class InstrumentationStrategy implements MemoryMeterStrategy {
+
     public final Instrumentation instrumentation;
 
-    public InstrumentationStrategy(Instrumentation instrumentation)
-    {
+    public InstrumentationStrategy(Instrumentation instrumentation) {
         this.instrumentation = instrumentation;
     }
 
     @Override
-    public long measure(Object object)
-    {
+    public long measure(Object object) {
         return instrumentation.getObjectSize(object);
     }
 }
