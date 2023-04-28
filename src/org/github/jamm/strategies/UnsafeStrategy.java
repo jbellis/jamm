@@ -90,7 +90,7 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
                     }
                 }
 
-                if (CONTENDED_ENABLED && isClassAnnotatedWithContended(type))
+                if (isClassAnnotatedWithContended(type) && isContendedEnabled(type))
                     size += memoryLayout.getContendedPaddingWidth();
 
                 type = type.getSuperclass();

@@ -68,7 +68,7 @@ class SpecStrategy extends MemoryLayoutBasedStrategy
          * groups. Contention group tags are not inherited, and the same tag used
          * in a superclass and subclass, represent distinct contention groups.
          */
-        if (CONTENDED_ENABLED && isClassAnnotatedWithContended(type))
+        if (isClassAnnotatedWithContended(type) && isContendedEnabled(type))
             size += (memoryLayout.getContendedPaddingWidth() << 1); 
 
         if (contentionGroupCounter != null)

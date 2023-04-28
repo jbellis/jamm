@@ -19,9 +19,14 @@ import static org.github.jamm.MathUtils.roundTo;
 public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
 {
     /**
-     * {@code true} if contended is enabled, false otherwise.
+     * {@code true} if contended is enabled, {@code false} otherwise.
      */
-    protected static final boolean CONTENDED_ENABLED = VM.enableContended();
+    private static final boolean CONTENDED_ENABLED = VM.enableContended();
+
+    /**
+     * {@code true} if contended is restricted, {@code false} otherwise.
+     */
+    private static final boolean CONTENDED_RESTRICTED = VM.restrictContended();
 
     /**
      * The memory layout to use when computing object sizes.
@@ -40,16 +45,15 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
 
     public MemoryLayoutBasedStrategy(MemoryLayoutSpecification memoryLayout,
                                      Class<? extends Annotation> contendedClass,
-                                     Optional<MethodHandle> mayBeContendedValueMH)
-    {
+                                     Optional<MethodHandle> mayBeContendedValueMH) {
+
         this.memoryLayout = memoryLayout;
         this.contendedClass = contendedClass;
         this.mayBeContendedValueMH = mayBeContendedValueMH;
     }
 
     @Override
-    public final long measure(Object object)
-    {
+    public final long measure(Object object) {
         Class<?> type = object.getClass();
          return type.isArray() ? measureArray(object, type) : measureInstance(type);
     }
@@ -196,7 +200,7 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
      * @param f the field
      * @return the {@code @Contended} annotation of the specified field 
      */
-    protected final Object getContendedAnnotation(Field f) {
+    private Object getContendedAnnotation(Field f) {
         return f.getAnnotation(contendedClass);
     }
 
@@ -241,5 +245,27 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
         throw new CannotMeasureObjectException("The field " + f.getName() + " from the class " + f.getDeclaringClass() 
                                                  + "cannot be measured as the @Contended contention group tag cannot be retrieved."
                                                  + " Consider using: --add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED to remove that problem");
+    }
+
+    /**
+     * Checks if a class is trusted (loaded by the root or platform ClassLoader) or not. 
+     *
+     * @param cls the class to check
+     * @return {@code true} if the class is trusted, {@code false} otherwise.
+     */
+    private final boolean isTrustedClass(Class<?> cls) {
+        ClassLoader classLoader = cls.getClassLoader();
+        return classLoader == null || classLoader.getParent() == null;
+    }
+
+    /**
+     * Checks if @Contended is enabled for the specified class
+     *
+     * @param cls the class
+     * @return {@code true} if @Contended is enabled, {@code false} otherwise.
+     */
+    protected final boolean isContendedEnabled(Class<?> cls) {
+
+        return CONTENDED_ENABLED && (isTrustedClass(cls) || !CONTENDED_RESTRICTED); 
     }
 }
