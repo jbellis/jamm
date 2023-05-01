@@ -8,8 +8,8 @@ import static org.junit.Assert.*;
 public class MathUtilsTest
 {
     @Test
-    public void testRoundToInt()
-    {
+    public void testRoundToInt() {
+
         assertEquals(0, roundTo(0, 8));
         assertEquals(8, roundTo(1, 8));
         assertEquals(8, roundTo(2, 8));
@@ -31,8 +31,8 @@ public class MathUtilsTest
     }
 
     @Test
-    public void testRoundToLong()
-    {
+    public void testRoundToLong() {
+
         assertEquals(0, roundTo(0L, 8));
         assertEquals(8, roundTo(1L, 8));
         assertEquals(8, roundTo(2L, 8));
@@ -54,8 +54,8 @@ public class MathUtilsTest
     }
 
     @Test
-    public void testModulo()
-    {
+    public void testModulo() {
+
         assertEquals(0, 0 & 7);
         assertEquals(1, 1 & 7);
         assertEquals(2, 2 & 7);

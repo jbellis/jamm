@@ -3,8 +3,6 @@ package org.github.jamm.strategies;
 import java.lang.annotation.Annotation;
 import java.lang.instrument.Instrumentation;
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.util.Optional;
 
 import org.github.jamm.MemoryLayoutSpecification;
@@ -13,6 +11,8 @@ import org.github.jamm.MemoryMeterStrategy;
 import org.github.jamm.VM;
 
 import sun.misc.Unsafe;
+
+import static org.github.jamm.strategies.MethodHandleUtils.mayBeMethodHandle;
 
 /**
  * The different strategies that can be used to measure object sizes.
@@ -129,8 +129,7 @@ public final class MemoryMeterStrategies
      * on a Java 15+ JVM.
      * @return an {@code Optional} for the {@code MethodHandle}
      */
-    private static Optional<MethodHandle> mayBeIsHiddenMethodHandle()
-    {
+    private static Optional<MethodHandle> mayBeIsHiddenMethodHandle() {
         return mayBeMethodHandle(Class.class, "isHidden");
     }
 
@@ -139,27 +138,8 @@ public final class MemoryMeterStrategies
      * on a Java 14+ JVM.
      * @return an {@code Optional} for the {@code MethodHandle}
      */
-    private static Optional<MethodHandle> mayBeIsRecordMethodHandle()
-    {
+    private static Optional<MethodHandle> mayBeIsRecordMethodHandle() {
         return mayBeMethodHandle(Class.class, "isRecord");
-    }
-
-    /**
-     * Returns the {@code MethodHandle} for the specified class and method if the method exists.
-     *
-     * @param klass the class
-     * @param methodName the method name
-     * @return an {@code Optional} for the {@code MethodHandle}
-     */
-    private static Optional<MethodHandle> mayBeMethodHandle(Class<?> klass, String methodName)
-    {
-        try {
-            Method method = klass.getMethod(methodName, new Class[0]);
-            MethodHandles.Lookup lookup = MethodHandles.lookup();
-            return Optional.of(lookup.unreflect(method));
-        } catch (Exception e) {
-            return Optional.empty();
-        }
     }
 
     private static MemoryMeterStrategy createInstrumentationStrategy() {
@@ -171,8 +151,7 @@ public final class MemoryMeterStrategies
      * @return the {@code Contended} class.
      */
     @SuppressWarnings("unchecked")
-    private static Class<? extends Annotation> loadContendedClass()
-    {
+    private static Class<? extends Annotation> loadContendedClass() {
         try {
             return (Class<? extends Annotation>) Class.forName("sun.misc.Contended");
         } catch (ClassNotFoundException e) {

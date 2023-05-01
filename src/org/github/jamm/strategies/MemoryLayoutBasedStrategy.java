@@ -5,6 +5,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import org.github.jamm.CannotMeasureObjectException;
 import org.github.jamm.MemoryLayoutSpecification;
@@ -12,6 +13,8 @@ import org.github.jamm.MemoryMeterStrategy;
 import org.github.jamm.VM;
 
 import static org.github.jamm.MathUtils.roundTo;
+
+import static org.github.jamm.strategies.MethodHandleUtils.mayBeMethodHandle;
 
 /**
  * Base class for strategies that need access to the {@code MemoryLayoutSpecification} for computing object size.
@@ -27,6 +30,11 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
      * {@code true} if contended is restricted, {@code false} otherwise.
      */
     private static final boolean CONTENDED_RESTRICTED = VM.restrictContended();
+
+    /**
+     * The predicate used to check if a ClassLoader is a platform one.
+     */
+    private static final Predicate<ClassLoader> PLATFORM_PREDICATE = platformClassLoaderPredicate();
 
     /**
      * The memory layout to use when computing object sizes.
@@ -248,14 +256,14 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
     }
 
     /**
-     * Checks if a class is trusted (loaded by the root or platform ClassLoader) or not. 
+     * Checks if a class is trusted (loaded by the root or platform (named extension in Java 8) ClassLoader) or not. 
      *
      * @param cls the class to check
      * @return {@code true} if the class is trusted, {@code false} otherwise.
      */
-    private final boolean isTrustedClass(Class<?> cls) {
+    private boolean isTrustedClass(Class<?> cls) {
         ClassLoader classLoader = cls.getClassLoader();
-        return classLoader == null || classLoader.getParent() == null;
+        return classLoader == null || PLATFORM_PREDICATE.test(classLoader);
     }
 
     /**
@@ -267,5 +275,27 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
     protected final boolean isContendedEnabled(Class<?> cls) {
 
         return CONTENDED_ENABLED && (isTrustedClass(cls) || !CONTENDED_RESTRICTED); 
+    }
+
+    /**
+     * Returns the predicate used to determine if a ClassLoader is a Platform one (Extension in Java 8).
+     * @return the predicate used to determine if a ClassLoader is a Platform one.
+     */
+    private static Predicate<ClassLoader> platformClassLoaderPredicate() {
+
+        Optional<MethodHandle> mayBeMethodHandle = mayBeMethodHandle(ClassLoader.class, "getPlatformClassLoader()");
+
+        // The getPlatformClassLoader method was added in Java 9
+        if (mayBeMethodHandle.isPresent()) {
+            try {
+                ClassLoader platformClassLoader = (ClassLoader) mayBeMethodHandle.get().invoke();
+                return cl -> platformClassLoader == cl;
+            } catch (Throwable e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        // For Java 8, we have to check the class name. A bit fragile but did not find another robust way.
+        return cl -> cl.toString().startsWith("sun.misc.Launcher$ExtClassLoader");
     }
 }
