@@ -85,6 +85,7 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
                     if (!Modifier.isStatic(f.getModifiers())) {
                         long previousSize = size;
                         size = Math.max(size, unsafe.objectFieldOffset(f) + measureField(f.getType()));
+                        // In Java 17, disabling Contended has no effect on field level annotations
                         if (previousSize < size)
                             isLastFieldWithinContentionGroup = isFieldAnnotatedWithContended(f);
                     }

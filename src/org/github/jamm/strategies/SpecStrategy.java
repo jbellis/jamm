@@ -56,6 +56,7 @@ class SpecStrategy extends MemoryLayoutBasedStrategy
             if (!Modifier.isStatic(f.getModifiers())) {
                 size += measureField(f.getType());
                 // If some fields are annotated with @Contended we need to count the contention groups to know how much padding needs to be added
+                // In Java 17, disabling Contended has no effect on field level annotations
                 contentionGroupCounter = countContentionGroup(contentionGroupCounter, f);
             }
         }
