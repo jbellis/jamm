@@ -42,21 +42,18 @@ public class MemoryMeterStrategyTest
         return Arrays.asList(MemoryMeter.Guess.ALWAYS_UNSAFE, MemoryMeter.Guess.ALWAYS_SPEC);
     }
 
-    public MemoryMeterStrategyTest(MemoryMeter.Guess guess)
-    {
+    public MemoryMeterStrategyTest(MemoryMeter.Guess guess) {
         this.guess = guess;
     }
 
     @Before
-    public void setUp()
-    {
+    public void setUp() {
         reference = MemoryMeter.builder().withGuessing(Guess.ALWAYS_INSTRUMENTATION).build();
         tested = MemoryMeter.builder().withGuessing(guess).build();
     }
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         reference = null;
         tested = null;
     }
@@ -319,7 +316,7 @@ public class MemoryMeterStrategyTest
 
         assertEquals(sizeShallowEmptyBuffer, m2.measure(empty));
 
-        expected = sizeShallowEmptyBuffer + reference.measureArray(empty.array()); // The buffer represent the full array therefore nothing is shared
+        expected = sizeShallowEmptyBuffer + reference.measureArray(empty.array()); // The buffer represents the full array therefore nothing is shared
         assertEquals(expected, m2.measureDeep(empty));
         assertEquals(expected, m2.measureDeep(readOnlyEmpty));
 
@@ -328,7 +325,7 @@ public class MemoryMeterStrategyTest
         assertEquals("Deep duplicated 1-byte ByteBuffer", expected, m2.measureDeep(readOnlyEmptyOne));
 
         expected = sizeShallowEmptyBuffer + reference.measureArray(twenty.array());
-        assertEquals("Twenty bytes ByteBuffer", expected, m2.measureDeep(twenty)); // The buffer represent the full array therefore nothing is shared
+        assertEquals("Twenty bytes ByteBuffer", expected, m2.measureDeep(twenty)); // The buffer represents the full array therefore nothing is shared
         assertEquals("Twenty bytes ByteBuffer", expected, m2.measureDeep(readOnlyTwenty));
 
         expected = sizeShallowEmptyBuffer + five.remaining();
@@ -397,7 +394,7 @@ public class MemoryMeterStrategyTest
         assertEquals("empty ByteBuffer", sizeShallowBuffer, m2.measure(empty));
         assertEquals("empty ByteBuffer", sizeShallowBuffer, m2.measure(readOnlyEmpty));
 
-        // Measure deep is unaffected by the option as long as their is no shared buffer
+        // Measure deep is unaffected by the option as long as there is no shared buffer
         assertEquals("Deep empty ByteBuffer", sizeDeepRwBuffer, m2.measureDeep(empty));
         assertEquals("Deep 1-byte ByteBuffer", sizeDeepRwBuffer, m2.measureDeep(one));
         assertEquals("Twenty bytes ByteBuffer", sizeDeepRwBuffer, m2.measureDeep(twenty));
