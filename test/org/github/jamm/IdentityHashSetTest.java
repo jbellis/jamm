@@ -58,7 +58,7 @@ public class IdentityHashSetTest
             assertFalse(s.add(o));
     }
 
-    private int expectedCapacity(int i)
+    private static int expectedCapacity(int i)
     {
         // the backing array must be at most 2/3 full in order to have enough 'null's in the open-addressing-map
         i = (i * 3) / 2;

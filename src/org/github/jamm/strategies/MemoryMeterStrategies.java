@@ -176,7 +176,7 @@ public final class MemoryMeterStrategies
         switch (guess) {
             case ALWAYS_UNSAFE:
                 if (!hasUnsafe())
-                    throw new IllegalStateException("sun.misc.Unsafe could not be obtained");
+                    throw new IllegalStateException("sun.misc.Unsafe could not be obtained. The SecurityManager must permit access to sun.misc.Unsafe");
                 return unsafeStrategy;
             case ALWAYS_SPEC:
                 return specStrategy;

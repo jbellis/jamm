@@ -109,6 +109,13 @@ The 0.4.0 release has been tested with Java 8, 11 and 17 and the following JVM a
 The `Specification` strategy does not work correctly with `UseEmptySlotsInSupers` disabled for some classes (like direct `ByteBuffer`)
 that interleave fields from different classes when they should not.
 
+The `ContendedPaddingWidth` and `EnableContended` arguments are broken in Java 17. Changing the padding width has no effect and disabling @Contended 
+(`-XX:-EnableContended`) has 2 bugs:
+* It does not work for contended annotation on fields
+* It does not work for the `ConcurrentHashMap` use of the class Contended annotation
+
+Those bugs might caused the `Unsafe` and `Specification` strategies to return wrong results when the classes are using `@Contended` and those JVM arguments are used.
+
 # The fine print
 
 ## Measurement strategies
@@ -143,7 +150,7 @@ the ability for Jamm to crawl the object graph. To avoid that problem, if Jamm d
 field data it will rely on `Unsafe` to do it. Unfortunately, despite the fact that the code is designed to go around those 
 illegal accesses the JVM might emit some warning for access that only will be illegal in future versions. The `Unsafe` approach
  might also fail for some scenarios as `Unsafe.objectFieldOffset` do not work for `records` or `hidden` classes such 
- as lambda expressions.
+ as lambda expressions. In such cases `add-exports` or `add-opens` should be used.
  
  By default `MemoryMeter.measureDeep` is ignoring known singletons such as `Class` objects, `enums`, `ClassLoaders`, `AccessControlContexts` as well as non-strong references
 (like weak/soft/phantom references). If you want `MemoryMeter` to measure them you need to enable those measurements through
@@ -238,6 +245,8 @@ if the data of a read-only direct buffer is shared (capacity > remaining).
  Therefore, in Java 9+ unless `-XX:-RestrictContended` or `--add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED` are specified `MemoryMeter` will not have access
  to the `value()` method of `@Contended` and will be unable to retrieve the contention group tags. Making it potentially unable to computes the correct sizes with the `Unsafe` or `Spec` strategies.
  As it also means that only the internal Java classes will use that annotation, `MemoryMeter` will rely on its knowledge of those internal classes to try to go around that problem.
+
+Moreover as specified in the `Supported Java versions` section the `ContendedPaddingWidth` and `EnableContended` arguments logics are broken in Java 17. Therefore the use of the `ContendedPaddingWidth` argument or of `-XX:-EnableContended` might caused the `Unsafe` and `Specification` strategies to return wrong results when the classes are using `@Contended`.
 
 ## Debugging
 
