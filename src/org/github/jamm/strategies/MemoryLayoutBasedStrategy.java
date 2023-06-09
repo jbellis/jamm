@@ -50,12 +50,20 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
      * The {@code MethodHandle} used to invoke the value method from {@code @Contended} if it is accessible.
      */
     private final Optional<MethodHandle> mayBeContendedValueMH;
+    
+    /**
+     * Array base is aligned based on heap word. It is not visible by default as compressed references are used and the
+     * header size is 16 but becomes visible when they are disabled.
+     */
+    private final int arrayBaseOffset;
 
     public MemoryLayoutBasedStrategy(MemoryLayoutSpecification memoryLayout,
+                                     int arrayBaseOffset,
                                      Class<? extends Annotation> contendedClass,
                                      Optional<MethodHandle> mayBeContendedValueMH) {
 
         this.memoryLayout = memoryLayout;
+        this.arrayBaseOffset = arrayBaseOffset;
         this.contendedClass = contendedClass;
         this.mayBeContendedValueMH = mayBeContendedValueMH;
     }
@@ -68,47 +76,47 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
 
     @Override
     public long measureArray(Object[] array) {
-        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, memoryLayout.getReferenceSize());
+        return computeArraySize(arrayBaseOffset , array.length, memoryLayout.getReferenceSize());
     }
 
     @Override
     public long measureArray(byte[] array) {
-        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Byte.BYTES);
+        return computeArraySize(arrayBaseOffset , array.length, Byte.BYTES);
     }
 
     @Override
     public long measureArray(boolean[] array) {
-        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, 1);
+        return computeArraySize(arrayBaseOffset , array.length, 1);
     }
 
     @Override
     public long measureArray(short[] array) {
-        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Short.BYTES);
+        return computeArraySize(arrayBaseOffset , array.length, Short.BYTES);
     }
 
     @Override
     public long measureArray(char[] array) {
-        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Character.BYTES);
+        return computeArraySize(arrayBaseOffset , array.length, Character.BYTES);
     }
 
     @Override
     public long measureArray(int[] array) {
-        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Integer.BYTES);
+        return computeArraySize(arrayBaseOffset , array.length, Integer.BYTES);
     }
 
     @Override
     public long measureArray(float[] array) {
-        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Float.BYTES);
+        return computeArraySize(arrayBaseOffset, array.length, Float.BYTES);
     }
 
     @Override
     public long measureArray(long[] array) {
-        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Long.BYTES);
+        return computeArraySize(arrayBaseOffset, array.length, Long.BYTES);
     }
 
     @Override
     public long measureArray(double[] array) {
-        return computeArraySize(arrayBaseOffset(array.getClass()) , array.length, Double.BYTES);
+        return computeArraySize(arrayBaseOffset, array.length, Double.BYTES);
     }
 
     @Override
@@ -134,7 +142,7 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
     protected final long measureArray(Object instance, Class<?> type) {
         int length = Array.getLength(instance);
         int elementSize = measureField(type.getComponentType());
-        return computeArraySize(arrayBaseOffset(type), length, elementSize);
+        return computeArraySize(arrayBaseOffset, length, elementSize);
     }
 
     /**
@@ -148,16 +156,6 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
     private long computeArraySize(int arrayBaseOffset, int length, int elementSize) {
         return roundTo(arrayBaseOffset + length * (long) elementSize, memoryLayout.getObjectAlignment());
     }
-
-    /**
-     * Returns the array base offset.
-     * <p>Array base is aligned based on heap word. It is not visible by default as compressed references are used and the
-     * header size is 16 but becomes visible when they are disabled. 
-     *
-     * @param type the array type
-     * @return the array base offset.
-     */
-    protected abstract int arrayBaseOffset(Class<?> type);
 
     /**
      * @return The memory size of a field of a class of the provided type; for Objects this is the size of the reference only

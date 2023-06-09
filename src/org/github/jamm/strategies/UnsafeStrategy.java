@@ -54,17 +54,11 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
                           MethodHandle isHiddenMH,
                           MemoryLayoutBasedStrategy strategy)
     {
-        super(memoryLayout, contendedClass, Optional.empty()); // The mayBeContendedValueMH is not needed for Unsafe strategies
+        super(memoryLayout, unsafe.arrayBaseOffset(Object[].class), contendedClass, Optional.empty()); // The mayBeContendedValueMH is not needed for Unsafe strategies
         this.unsafe = unsafe;
         this.isRecordMH = isRecordMH;
         this.isHiddenMH = isHiddenMH;
         this.hiddenClassesOrRecordsStrategy = strategy;
-    }
-
-    @Override
-    protected int arrayBaseOffset(Class<?> type)
-    {
-        return unsafe.arrayBaseOffset(type);
     }
 
     @Override

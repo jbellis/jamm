@@ -40,16 +40,10 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
                                    Optional<MethodHandle> mayBeIsRecordMH,
                                    MemoryLayoutBasedStrategy strategy) {
 
-        super(memoryLayout, contendedClass, Optional.empty()); // The mayBeContendedValueMH is not needed for Unsafe strategies
+        super(memoryLayout, unsafe.arrayBaseOffset(Object[].class), contendedClass, Optional.empty()); // The mayBeContendedValueMH is not needed for Unsafe strategies
         this.unsafe = unsafe;
         this.mayBeIsRecordMH = mayBeIsRecordMH;
         this.recordsStrategy = strategy;
-    }
-
-    @Override
-    protected int arrayBaseOffset(Class<?> type)
-    {
-        return unsafe.arrayBaseOffset(type);
     }
 
     @Override
