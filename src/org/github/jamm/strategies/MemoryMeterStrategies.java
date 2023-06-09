@@ -27,6 +27,11 @@ public final class MemoryMeterStrategies
     private static MemoryMeterStrategies instance; 
 
     /**
+     * Information about the memory layout used by the JVM running the code.
+     */
+    private final MemoryLayoutSpecification memoryLayoutSpecification;
+
+    /**
      * Strategy relying on instrumentation or {@code null} if the instrumentation was not provided
      */
     private final MemoryMeterStrategy instrumentationStrategy;
@@ -41,10 +46,12 @@ public final class MemoryMeterStrategies
      */
     private final MemoryMeterStrategy specStrategy;
 
-    private MemoryMeterStrategies(MemoryMeterStrategy instrumentationStrategy,
+    private MemoryMeterStrategies(MemoryLayoutSpecification memoryLayoutSpecification,
+                                  MemoryMeterStrategy instrumentationStrategy,
                                   MemoryMeterStrategy unsafeStrategy,
                                   MemoryMeterStrategy specStrategy) {
 
+        this.memoryLayoutSpecification = memoryLayoutSpecification;
         this.instrumentationStrategy = instrumentationStrategy;
         this.unsafeStrategy = unsafeStrategy;
         this.specStrategy = specStrategy;
@@ -80,7 +87,7 @@ public final class MemoryMeterStrategies
                             + ", unsafe=" + (unsafeStrategy != null)
                             + ", " + specification);
  
-        return new MemoryMeterStrategies(instrumentationStrategy, unsafeStrategy, specStrategy);
+        return new MemoryMeterStrategies(specification, instrumentationStrategy, unsafeStrategy, specStrategy);
     }
 
     private static MemoryMeterStrategy createSpecStrategy(MemoryLayoutSpecification specification,
@@ -169,6 +176,14 @@ public final class MemoryMeterStrategies
 
     public boolean hasUnsafe() {
         return unsafeStrategy != null;
+    }
+
+    /**
+     * Provides information about the memory layout used by the JVM.
+     * @return information about the memory layout used by the JVM
+     */
+    public MemoryLayoutSpecification getMemoryLayoutSpecification() {
+        return this.memoryLayoutSpecification;
     }
 
     @SuppressWarnings("incomplete-switch")
