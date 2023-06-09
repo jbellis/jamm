@@ -22,7 +22,7 @@ class SpecStrategy extends MemoryLayoutBasedStrategy
                         Class<? extends Annotation> contendedClass,
                         Optional<MethodHandle> mayBeContendedValueMH)
     {
-        super(memoryLayout, contendedClass, mayBeContendedValueMH);
+        super(memoryLayout, memoryLayout.getArrayHeaderSize(), contendedClass, mayBeContendedValueMH);
     }
 
     @Override
@@ -33,12 +33,6 @@ class SpecStrategy extends MemoryLayoutBasedStrategy
             size += sizeOfDeclaredFields(type);
 
         return roundTo(size, memoryLayout.getObjectAlignment());
-    }
-
-    @Override
-    protected int arrayBaseOffset(Class<?> type)
-    {
-        return memoryLayout.getArrayHeaderSize();
     }
 
     /**

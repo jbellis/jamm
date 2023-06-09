@@ -107,7 +107,7 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
     public PreJava15SpecStrategy(MemoryLayoutSpecification memoryLayout,
                                  Class<? extends Annotation> contendedClass,
                                  Optional<MethodHandle> mayBeContendedValueMH) {
-        super(memoryLayout, contendedClass, mayBeContendedValueMH);
+        super(memoryLayout, memoryLayout.getArrayHeaderSize(), contendedClass, mayBeContendedValueMH);
     }
 
     /**
@@ -120,11 +120,6 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
      */
     protected long alignFieldBlock(long sizeOfDeclaredFields) {
         return roundTo(sizeOfDeclaredFields, memoryLayout.getReferenceSize());
-    }
-
-    @Override
-    protected final int arrayBaseOffset(Class<?> type) {
-        return memoryLayout.getArrayHeaderSize();
     }
 
     @Override
