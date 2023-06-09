@@ -113,6 +113,14 @@ public final class MemoryMeter {
     }
 
     /**
+     * Provides information about the memory layout used by the JVM.
+     * @return information about the memory layout used by the JVM
+     */
+    public static MemoryLayoutSpecification getMemoryLayoutSpecification() {
+        return MemoryMeterStrategies.getInstance().getMemoryLayoutSpecification();
+    }
+
+    /**
      * Measures the shallow memory usage of the object.
      *
      * <p>If the object is {@code null} the value returned will be zero.</p>
