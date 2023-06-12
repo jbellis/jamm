@@ -1,9 +1,5 @@
 package org.github.jamm.strategies;
 
-import java.lang.annotation.Annotation;
-import java.lang.invoke.MethodHandle;
-import java.util.Optional;
-
 import org.github.jamm.MemoryLayoutSpecification;
 
 import static org.github.jamm.MathUtils.roundTo;
@@ -19,10 +15,8 @@ import static org.github.jamm.MathUtils.roundTo;
  */
 final class DoesNotUseEmptySlotInSuperSpecStrategy extends PreJava15SpecStrategy
 {
-    public DoesNotUseEmptySlotInSuperSpecStrategy(MemoryLayoutSpecification memoryLayout,
-                                                  Class<? extends Annotation> contendedClass,
-                                                  Optional<MethodHandle> mayBeContendedValueMH) {
-        super(memoryLayout, contendedClass, mayBeContendedValueMH);
+    public DoesNotUseEmptySlotInSuperSpecStrategy(MemoryLayoutSpecification memoryLayout) {
+        super(memoryLayout);
     }
 
     @Override

@@ -1,14 +1,14 @@
 package org.github.jamm.strategies;
 
-import java.lang.annotation.Annotation;
-import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.Optional;
 
 import org.github.jamm.MemoryLayoutSpecification;
 
 import static org.github.jamm.MathUtils.roundTo;
+import static org.github.jamm.strategies.ContendedUtils.countContentionGroup;
+import static org.github.jamm.strategies.ContendedUtils.isClassAnnotatedWithContended;
+import static org.github.jamm.strategies.ContendedUtils.isContendedEnabled;
 
 /**
  * {@code MemoryMeterStrategy} that computes the size of the memory occupied by an object, in a Java 15+ JVM, based on 
@@ -18,11 +18,9 @@ import static org.github.jamm.MathUtils.roundTo;
  */
 class SpecStrategy extends MemoryLayoutBasedStrategy
 {
-    public SpecStrategy(MemoryLayoutSpecification memoryLayout,
-                        Class<? extends Annotation> contendedClass,
-                        Optional<MethodHandle> mayBeContendedValueMH)
+    public SpecStrategy(MemoryLayoutSpecification memoryLayout)
     {
-        super(memoryLayout, memoryLayout.getArrayHeaderSize(), contendedClass, mayBeContendedValueMH);
+        super(memoryLayout, memoryLayout.getArrayHeaderSize());
     }
 
     @Override
