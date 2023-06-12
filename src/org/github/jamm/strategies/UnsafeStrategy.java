@@ -1,15 +1,16 @@
 package org.github.jamm.strategies;
 
-import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.Optional;
 
 import org.github.jamm.CannotMeasureObjectException;
 import org.github.jamm.MemoryLayoutSpecification;
 
 import static org.github.jamm.MathUtils.roundTo;
+import static org.github.jamm.strategies.ContendedUtils.isClassAnnotatedWithContended;
+import static org.github.jamm.strategies.ContendedUtils.isContendedEnabled;
+import static org.github.jamm.strategies.ContendedUtils.isFieldAnnotatedWithContended;
 
 import sun.misc.Unsafe;
 
@@ -49,12 +50,11 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
 
     public UnsafeStrategy(MemoryLayoutSpecification memoryLayout,
                           Unsafe unsafe,
-                          Class<? extends Annotation> contendedClass,
                           MethodHandle isRecordMH,
                           MethodHandle isHiddenMH,
                           MemoryLayoutBasedStrategy strategy)
     {
-        super(memoryLayout, unsafe.arrayBaseOffset(Object[].class), contendedClass, Optional.empty()); // The mayBeContendedValueMH is not needed for Unsafe strategies
+        super(memoryLayout, unsafe.arrayBaseOffset(Object[].class));
         this.unsafe = unsafe;
         this.isRecordMH = isRecordMH;
         this.isHiddenMH = isHiddenMH;

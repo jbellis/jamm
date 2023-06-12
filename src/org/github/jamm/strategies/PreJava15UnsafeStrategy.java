@@ -1,6 +1,5 @@
 package org.github.jamm.strategies;
 
-import java.lang.annotation.Annotation;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -12,6 +11,9 @@ import org.github.jamm.MemoryLayoutSpecification;
 import sun.misc.Unsafe;
 
 import static org.github.jamm.MathUtils.roundTo;
+import static org.github.jamm.strategies.ContendedUtils.isClassAnnotatedWithContended;
+import static org.github.jamm.strategies.ContendedUtils.isContendedEnabled;
+import static org.github.jamm.strategies.ContendedUtils.isFieldAnnotatedWithContended;
 
 /**
  * {@code MemoryMeterStrategy} relying on {@code Unsafe} to measure object sizes for Java version pre-15.
@@ -36,11 +38,10 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
 
     public PreJava15UnsafeStrategy(MemoryLayoutSpecification memoryLayout,
                                    Unsafe unsafe,
-                                   Class<? extends Annotation> contendedClass,
                                    Optional<MethodHandle> mayBeIsRecordMH,
                                    MemoryLayoutBasedStrategy strategy) {
 
-        super(memoryLayout, unsafe.arrayBaseOffset(Object[].class), contendedClass, Optional.empty()); // The mayBeContendedValueMH is not needed for Unsafe strategies
+        super(memoryLayout, unsafe.arrayBaseOffset(Object[].class)); 
         this.unsafe = unsafe;
         this.mayBeIsRecordMH = mayBeIsRecordMH;
         this.recordsStrategy = strategy;
