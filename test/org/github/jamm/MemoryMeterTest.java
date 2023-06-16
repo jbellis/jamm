@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.function.Predicate;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -290,5 +291,75 @@ public class MemoryMeterTest
         PublicClassWithPackageProtectedClassField object = new PublicClassWithPackageProtectedClassField("publicField", "packageProtected", "protected", "private");
         long expected = object.measureDeep(meter);
         assertEquals(expected, meter.measureDeep(object));
+    }
+
+    @Test
+    public void testMeasurableInstance() {
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
+
+        ChildMeasurable bart = new ChildMeasurable("Bart");
+        ChildMeasurable lisa = new ChildMeasurable("Lisa");
+        ChildMeasurable maggie = new ChildMeasurable("Maggie");
+        ParentMeasurable homer = new ParentMeasurable("Homer", bart, lisa, maggie);
+
+        long expectedSize = meter.measure(homer) 
+                + meter.measureDeep("Homer")
+                + meter.measureArray(new Object[3])
+                + meter.measure(bart)
+                + meter.measureDeep("Bart")
+                + meter.measure(lisa)
+                + meter.measureDeep("Lisa")
+                + meter.measure(maggie)
+                + meter.measureDeep("Maggie");
+
+        assertEquals(expectedSize, meter.measureDeep(homer));
+        Assert.assertTrue("the addChildrenTo method has not been called", homer.checkUsage());
+    }
+
+    private static class ParentMeasurable implements Measurable
+    {
+        private final String name;
+
+        private final ChildMeasurable[] children;
+
+        boolean hasAddChildrenBeenUsed; 
+
+        public ParentMeasurable(String name, ChildMeasurable... children) {
+            this.name = name;
+            this.children = children;
+        }
+
+        @Override
+        public void addChildrenTo(MeasurementStack stack) {
+            hasAddChildrenBeenUsed = true;
+
+            stack.pushObject(this, "name", name);
+            stack.pushObject(this, "children", children);
+        }
+
+        public boolean checkUsage() {
+
+            boolean check = hasAddChildrenBeenUsed;
+            for (ChildMeasurable child : children)
+                check &= child.hasAddChildrenBeenUsed;
+            return check;
+        }
+    }
+
+    private static class ChildMeasurable implements Measurable
+    {
+        private String name;
+        boolean hasAddChildrenBeenUsed; 
+
+        public ChildMeasurable(String name) {
+            this.name = name;
+        }
+ 
+        @Override
+        public void addChildrenTo(MeasurementStack stack) {
+            hasAddChildrenBeenUsed = true;
+
+            stack.pushObject(this, "name", name);
+        }
     }
 }
