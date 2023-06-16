@@ -3,8 +3,6 @@ package org.github.jamm;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
-import java.util.Deque;
 
 import org.github.jamm.strategies.MemoryMeterStrategies;
 
@@ -297,15 +295,11 @@ public final class MemoryMeter {
         if (classFilter.ignore(object.getClass()))
             return 0;
 
-        IdentityHashSet tracker = new IdentityHashSet();
         MemoryMeterListener listener = listenerFactory.newInstance();
 
-        tracker.add(object);
-        listener.started(object);
-
         // track stack manually, so we can handle deeper hierarchies than recursion
-        Deque<Object> stack = new ArrayDeque<Object>();
-        stack.push(object);
+        MeasurementStack stack = new MeasurementStack(classFilter, listener);
+        stack.pushRoot(object);
 
         long total = 0;
         while (!stack.isEmpty()) {
@@ -320,8 +314,10 @@ public final class MemoryMeter {
             if (cls.isArray()) {
 
                 if (!cls.getComponentType().isPrimitive())
-                    addArrayChildren((Object[]) current, stack, tracker, listener);
+                    addArrayChildren((Object[]) current, stack);
 
+            } else if (current instanceof Measurable) {
+                ((Measurable) current).addChildrenTo(stack);
             } else {
 
                 if (current instanceof ByteBuffer && omitSharedBufferOverhead) {
@@ -342,14 +338,14 @@ public final class MemoryMeter {
                         }
                     }
                 }
-                addFieldChildren(current, cls, stack, tracker, listener);
+                addFieldChildren(current, cls, stack, listener);
             }
         } 
         listener.done(total);
         return total;
     }
 
-    private void addFieldChildren(Object obj, Class<?> cls, Deque<Object> stack, IdentityHashSet tracker, MemoryMeterListener listener) {
+    private void addFieldChildren(Object obj, Class<?> cls, MeasurementStack stack, MemoryMeterListener listener) {
         Class<?> type = cls;
         while (type != null) {
             for (Field field : type.getDeclaredFields()) {
@@ -364,9 +360,8 @@ public final class MemoryMeter {
                     continue;
                 }
 
-                if (child != null && tracker.add(child)) {
-                    stack.push(child);
-                    listener.fieldAdded(obj, field.getName(), child);
+                if (child != null) {
+                    stack.pushObject(obj, field.getName(), child);
                 }
             }
 
@@ -427,14 +422,9 @@ public final class MemoryMeter {
                 && child != null;
     }
 
-    private void addArrayChildren(Object[] current, Deque<Object> stack, IdentityHashSet tracker, MemoryMeterListener listener) {
+    private void addArrayChildren(Object[] current, MeasurementStack stack) {
         for (int i = 0; i < current.length; i++) {
-            Object child = current[i];
-            if (child != null && !classFilter.ignore(child.getClass()) && tracker.add(child)) {
-
-                stack.push(child);
-                listener.arrayElementAdded(current, i , child);
-            }
+            stack.pushArrayElement(current, i);
         }
     }
 

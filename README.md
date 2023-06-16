@@ -141,7 +141,9 @@ for record and hidden classes the unsafe strategy delegates the measurement to t
 
 ## Object graph crawling
 
-When `measureDeep` is called `MemoryMeter` will use reflection to crawl the object graph.
+### Default crawling approach
+
+When `measureDeep` is called by default `MemoryMeter` will use reflection to crawl the object graph.
 In order to prevent infinite loops due to cycles in the object graph `MemoryMeter` tracks visited objects
 imposing a memory cost of its own.
 
@@ -151,6 +153,14 @@ field data it will rely on `Unsafe` to do it. Unfortunately, despite the fact th
 illegal accesses the JVM might emit some warning for access that only will be illegal in future versions. The `Unsafe` approach
  might also fail for some scenarios as `Unsafe.objectFieldOffset` do not work for `records` or `hidden` classes such 
  as lambda expressions. In such cases `add-exports` or `add-opens` should be used.
+ 
+### Optimized crawling approach
+ 
+For your own classes, `MemoryMeter` provide a way to avoid the use of reflections by having the class implementing the `Measurable`
+interface. When `MemoryMeter` encounter a class that implements the `Measurable` interface it will call the `addChildrenTo` to let
+the class adds its fields to the stack of objects than need to be measured instead of using reflection. Therefore avoiding the reflection cost.
+
+### Filtering
  
  By default `MemoryMeter.measureDeep` is ignoring known singletons such as `Class` objects, `enums`, `ClassLoaders`, `AccessControlContexts` as well as non-strong references
 (like weak/soft/phantom references). If you want `MemoryMeter` to measure them you need to enable those measurements through
