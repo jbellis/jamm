@@ -423,7 +423,7 @@ public final class MemoryMeter {
         if (byteBuffer.isReadOnly())
             return !VM.isPreJava12JVM() && byteBuffer.remaining() < byteBuffer.capacity();
 
-        return  field.getName().equals("att") 
+        return field.getName().equals("att")
                 && child != null;
     }
 
