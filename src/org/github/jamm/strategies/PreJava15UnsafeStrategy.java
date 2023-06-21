@@ -48,14 +48,14 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
     }
 
     @Override
-    public long measureInstance(Class<?> type) {
+    public long measureInstance(Object instance, Class<?> type) {
 
         try {
 
             // If the class is a record 'unsafe.objectFieldOffset(f)' will throw an UnsupportedOperationException
             // In those cases, rather than failing, we rely on the Spec strategy to provide the measurement.
             if (mayBeIsRecordMH.isPresent() &&  ((Boolean) mayBeIsRecordMH.get().invoke(type)))
-                return recordsStrategy.measureInstance(type);
+                return recordsStrategy.measureInstance(instance, type);
 
             int annotatedClassesWithoutFields = 0; // Keep track of the @Contended annotated classes without fields
             while (type != null) {

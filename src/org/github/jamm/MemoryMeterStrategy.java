@@ -4,8 +4,8 @@ package org.github.jamm;
  * Represents a strategy to measure the shallow memory used by a Java object. 
  */
 @FunctionalInterface
-public interface MemoryMeterStrategy
-{
+public interface MemoryMeterStrategy {
+
     /**
      * Measures the shallow memory used by the specified object.
      *
@@ -13,6 +13,17 @@ public interface MemoryMeterStrategy
      * @return the shallow memory usage of the specified object
      */
     long measure(Object object);
+
+    /**
+     * Measures the shallow memory used by the specified array.
+     *
+     * @param array the array to measure
+     * @param type the array type
+     * @return the shallow memory usage of the specified array
+     */
+    default long measureArray(Object array, Class<?> type) {
+        return measure(array);
+    }
 
     /**
      * Measures the shallow memory used by the specified array.

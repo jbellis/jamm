@@ -10,7 +10,7 @@ import org.github.jamm.MemoryMeterStrategy;
  */
 final class InstrumentationStrategy implements MemoryMeterStrategy {
 
-    public final Instrumentation instrumentation;
+    private final Instrumentation instrumentation;
 
     public InstrumentationStrategy(Instrumentation instrumentation) {
         this.instrumentation = instrumentation;

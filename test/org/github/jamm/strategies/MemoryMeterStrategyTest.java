@@ -39,7 +39,7 @@ public class MemoryMeterStrategyTest
     @Parameterized.Parameters
     public static Collection<MemoryMeter.Guess> guesses() {
 
-        return Arrays.asList(MemoryMeter.Guess.ALWAYS_UNSAFE, MemoryMeter.Guess.ALWAYS_SPEC);
+        return Arrays.asList(MemoryMeter.Guess.INSTRUMENTATION_AND_SPEC, MemoryMeter.Guess.UNSAFE, MemoryMeter.Guess.SPEC);
     }
 
     public MemoryMeterStrategyTest(MemoryMeter.Guess guess) {
@@ -48,7 +48,7 @@ public class MemoryMeterStrategyTest
 
     @Before
     public void setUp() {
-        reference = MemoryMeter.builder().withGuessing(Guess.ALWAYS_INSTRUMENTATION).build();
+        reference = MemoryMeter.builder().withGuessing(Guess.INSTRUMENTATION).build();
         tested = MemoryMeter.builder().withGuessing(guess).build();
     }
 

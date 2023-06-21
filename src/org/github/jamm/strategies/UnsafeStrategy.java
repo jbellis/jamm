@@ -62,14 +62,14 @@ public final class UnsafeStrategy extends MemoryLayoutBasedStrategy
     }
 
     @Override
-    public long measureInstance(Class<?> type) {
+    public long measureInstance(Object instance, Class<?> type) {
 
         try {
 
             // If the class is a hidden class ore a record 'unsafe.objectFieldOffset(f)' will throw an UnsupportedOperationException
             // In those cases, rather than failing, we rely on the Spec strategy to provide the measurement.
             if ((Boolean) isRecordMH.invoke(type) || (Boolean) isHiddenMH.invoke(type))
-                return hiddenClassesOrRecordsStrategy.measureInstance(type);
+                return hiddenClassesOrRecordsStrategy.measureInstance(instance, type);
 
             long size = 0;
             boolean isLastFieldWithinContentionGroup = false;
