@@ -84,7 +84,7 @@ The 0.4.0 version comes with speed improvements and support java versions up to 
 changes at the API level. 
 * The `MemoryMeter` constructor and the static methods used to configure the different options (`omitSharedBufferOverhead`, `withGuessing`, `ignoreOuterClassReference`, `ignoreKnownSingletons`, `ignoreNonStrongReferences`, `enableDebug`) have been removed. Instead `MemoryMeter` instances must be created through a `Builder`.
 * The ability to provide a tracker for visited object has been removed.
-* `Guess.NEVER` has been renamed `Guess.ALWAYS_INSTRUMENTATION` for more clarity.
+* `Guess` values have been changed to each represent a single strategy. Fallback strategies can be defined through the `MemoryMeter.Builder::withGuessing` method.
 * `MemoryMeter.countChildren` has been removed.
 * The `MemoryMeter.measure` and `MemoryMeter.measureDeep` now accept `null` parameters
 * The behavior of the `omitSharedBufferOverhead` has been changed as it was incorrect. It was not counting correctly for direct ByteBuffers and considering some buffer has shared even if they were not.
@@ -128,6 +128,13 @@ If the JVM has been started with `-javaagent`, `MemoryMeter` will use
 `java.lang.instrument.Instrumentation.getObjectSize` to get an estimate of the space required to store
 the given object. It is the safest strategy.
 
+### Instrumentation and specification
+
+This strategy requires `java.lang.instrument.Instrumentation` as the `Instrumentation` strategy and will use it 
+to measure non array object. For measuring arrays it will use the `Specification` strategy way.
+This strategy tries to combine the best of both strategies the accuracy and speed of `Instrumentation` for non array object
+and the speed of SPEC for measuring array objects for which all strategy are accurate. For some reason `Instrumentation` is slower for arrays.
+
 ### Unsafe
 
 `MemoryMeter` will use `Unsafe.objectFieldOffset` to guess the object offset.
@@ -156,9 +163,9 @@ illegal accesses the JVM might emit some warning for access that only will be il
  
 ### Optimized crawling approach
  
-For your own classes, `MemoryMeter` provide a way to avoid the use of reflections by having the class implementing the `Measurable`
+For your own classes, `MemoryMeter` provides a way to avoid the use of reflections by having the class implement the `Measurable`
 interface. When `MemoryMeter` encounter a class that implements the `Measurable` interface it will call the `addChildrenTo` to let
-the class adds its fields to the stack of objects than need to be measured instead of using reflection. Therefore avoiding the reflection cost.
+the class adds its fields to the stack of objects that need to be measured instead of using reflection. Therefore avoiding the reflection cost.
 
 ### Filtering
  

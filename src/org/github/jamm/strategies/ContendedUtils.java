@@ -62,7 +62,7 @@ public final class ContendedUtils {
      * @param f the field to check
      * @return {@code true} if the specified field is annotated with {@code Contended}, {@code false} otherwise. 
      */
-    public static final boolean isFieldAnnotatedWithContended(Field f) {
+    public static boolean isFieldAnnotatedWithContended(Field f) {
         return f.isAnnotationPresent(CONTENDED_CLASS);
     }
 

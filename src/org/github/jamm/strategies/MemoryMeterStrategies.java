@@ -2,7 +2,10 @@ package org.github.jamm.strategies;
 
 import java.lang.instrument.Instrumentation;
 import java.lang.invoke.MethodHandle;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Queue;
 
 import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.MemoryMeter.Guess;
@@ -36,6 +39,12 @@ public final class MemoryMeterStrategies
     private final MemoryMeterStrategy instrumentationStrategy;
 
     /**
+     * Strategy relying on instrumentation to measure non array object and the SPEC approach to measure arrays.
+     * {@code null} if the instrumentation was not provided
+     */
+    private final MemoryMeterStrategy instrumentationAndSpecStrategy;
+
+    /**
      * Strategy relying on unsafe or {@code null} if unsafe could not be loaded
      */
     private final MemoryMeterStrategy unsafeStrategy;
@@ -47,11 +56,13 @@ public final class MemoryMeterStrategies
 
     private MemoryMeterStrategies(MemoryLayoutSpecification memoryLayoutSpecification,
                                   MemoryMeterStrategy instrumentationStrategy,
+                                  MemoryMeterStrategy instrumentationAndSpecStrategy,
                                   MemoryMeterStrategy unsafeStrategy,
                                   MemoryMeterStrategy specStrategy) {
 
         this.memoryLayoutSpecification = memoryLayoutSpecification;
         this.instrumentationStrategy = instrumentationStrategy;
+        this.instrumentationAndSpecStrategy = instrumentationAndSpecStrategy;
         this.unsafeStrategy = unsafeStrategy;
         this.specStrategy = specStrategy;
     }
@@ -75,6 +86,7 @@ public final class MemoryMeterStrategies
         Optional<MethodHandle> mayBeIsHiddenMH = mayBeIsHiddenMethodHandle();
 
         MemoryMeterStrategy instrumentationStrategy = createInstrumentationStrategy();
+        MemoryMeterStrategy instrumentationAndSpecStrategy = createInstrumentationAndSpecStrategy(specification);
         MemoryMeterStrategy specStrategy = createSpecStrategy(specification, mayBeIsHiddenMH);
         MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(specification, mayBeIsHiddenMH, (MemoryLayoutBasedStrategy) specStrategy);
 
@@ -85,7 +97,7 @@ public final class MemoryMeterStrategies
                             + ", unsafe=" + (unsafeStrategy != null)
                             + ", " + specification);
  
-        return new MemoryMeterStrategies(specification, instrumentationStrategy, unsafeStrategy, specStrategy);
+        return new MemoryMeterStrategies(specification, instrumentationStrategy, instrumentationAndSpecStrategy, unsafeStrategy, specStrategy);
     }
 
     private static MemoryMeterStrategy createSpecStrategy(MemoryLayoutSpecification specification,
@@ -143,6 +155,10 @@ public final class MemoryMeterStrategies
         return instrumentation != null ? new InstrumentationStrategy(instrumentation) : null;
     }
 
+    private static MemoryMeterStrategy createInstrumentationAndSpecStrategy(MemoryLayoutSpecification specification) {
+        return instrumentation != null ? new InstrumentationAndSpecStrategy(specification, instrumentation) : null;
+    }
+
     public boolean hasInstrumentation() {
         return instrumentationStrategy != null;
     }
@@ -159,31 +175,35 @@ public final class MemoryMeterStrategies
         return this.memoryLayoutSpecification;
     }
 
-    @SuppressWarnings("incomplete-switch")
-    public MemoryMeterStrategy getStrategy(Guess guess) {
-        switch (guess) {
-            case ALWAYS_UNSAFE:
-                if (!hasUnsafe())
+    public MemoryMeterStrategy getStrategy(List<Guess> guessList) {
+
+        Queue<Guess> guesses = new LinkedList<>(guessList);
+
+        while (true) {
+
+            Guess guess = guesses.poll();
+
+            if (guess.requireInstrumentation()) {
+
+                if (hasInstrumentation())
+                    return guess == Guess.INSTRUMENTATION_AND_SPEC ? instrumentationAndSpecStrategy
+                                                                   : instrumentationStrategy;
+
+                if (guesses.isEmpty())
+                    throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
+
+            } else if (guess.requireUnsafe()) {
+
+                if (hasUnsafe())
+                    return unsafeStrategy;
+
+                if (guesses.isEmpty())
                     throw new IllegalStateException("sun.misc.Unsafe could not be obtained. The SecurityManager must permit access to sun.misc.Unsafe");
-                return unsafeStrategy;
-            case ALWAYS_SPEC:
+
+            } else {
+
                 return specStrategy;
-            default:
-                if (!hasInstrumentation()) {
-                    switch (guess) {
-                        case ALWAYS_INSTRUMENTATION:
-                            throw new IllegalStateException("Instrumentation is not set; Jamm must be set as -javaagent");
-                        case FALLBACK_UNSAFE:
-                            if (!hasUnsafe())
-                                throw new IllegalStateException("Instrumentation is not set and sun.misc.Unsafe could not be obtained; Jamm must be set as -javaagent, or the SecurityManager must permit access to sun.misc.Unsafe");
-                        case FALLBACK_BEST:
-                            if (hasUnsafe())
-                                return unsafeStrategy;
-                        case FALLBACK_SPEC:
-                            return specStrategy;
-                    }
-                }
-                return instrumentationStrategy;
+            }
         }
     }
 }

@@ -24,7 +24,7 @@ public final class MeasurementStack {
     private final FieldAndClassFilter classFilter;
 
     /**
-     * Stack of object that need to be measured.
+     * Stack of objects that need to be measured.
      */
     private final Deque<Object> stack = new ArrayDeque<Object>();
 
@@ -38,7 +38,7 @@ public final class MeasurementStack {
      *
      * @param parent the parent object
      * @param name the field name
-     * @param child the 
+     * @param child the child to be added
      */
     public void pushObject(Object parent, String name, Object child) {
         if (tracker.add(child)) {
@@ -64,7 +64,6 @@ public final class MeasurementStack {
      * @param index the element index
      */
     void pushArrayElement(Object[] array, int index) {
-
         Object child = array[index];
         if (child != null && !classFilter.ignore(child.getClass()) && tracker.add(child)) {
             stack.push(child);

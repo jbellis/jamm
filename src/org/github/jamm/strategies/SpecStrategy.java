@@ -24,7 +24,7 @@ class SpecStrategy extends MemoryLayoutBasedStrategy
     }
 
     @Override
-    public final long measureInstance(Class<?> type) {
+    public final long measureInstance(Object instance, Class<?> type) {
 
         long size = memoryLayout.getObjectHeaderSize() + sizeOfDeclaredFields(type);
         while ((type = type.getSuperclass()) != Object.class && type != null)

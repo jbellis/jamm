@@ -3,8 +3,13 @@ package org.github.jamm;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.github.jamm.strategies.MemoryMeterStrategies;
+
+import static java.util.Collections.singletonList;
+import static java.util.Collections.unmodifiableList;
 
 public final class MemoryMeter {
 
@@ -24,20 +29,82 @@ public final class MemoryMeter {
         return MemoryMeterStrategies.getInstance().hasUnsafe();
     }
 
+    /**
+     * The different strategies that can be used by a {@code MemoryMeter} instance to measure the shallow size of an object.
+     */
     public enum Guess {
-        /* If instrumentation is not available, error when measuring */
-        ALWAYS_INSTRUMENTATION,
-        /* If instrumentation is available, use it, otherwise guess the size using predefined specifications */
-        FALLBACK_SPEC,
-        /* If instrumentation is available, use it, otherwise guess the size using sun.misc.Unsafe */
-        FALLBACK_UNSAFE,
-        /* If instrumentation is available, use it, otherwise guess the size using sun.misc.Unsafe; if that is unavailable,
-         * guess using predefined specifications.*/
-        FALLBACK_BEST,
-        /* Always guess the size of measured objects using predefined specifications*/
-        ALWAYS_SPEC,
-        /* Always guess the size of measured objects using sun.misc.Unsafe */
-        ALWAYS_UNSAFE;
+        /**
+         * Relies on {@code java.lang.instrument.Instrumentation} to measure shallow object size.
+<<<<<<< 0bcfac1a30229a269d9a5b1f54f6c68100a5b067
+         * It requires {@code Instrumentation} to be available, but it is the most accurate strategy.
+=======
+         * It requires {@code Instrumentation} to be available but is the most accurate strategy.
+>>>>>>> Add a new IMSTRUMENTATION_AND_SPEC strategy
+         */
+        INSTRUMENTATION {
+
+            public boolean requireInstrumentation() {
+                return true;
+            }
+        },
+        /**
+         * Relies on {@code java.lang.instrument.Instrumentation} to measure non array object and the SPEC approach to measure arrays.
+         * This strategy tries to combine the best of both strategies the accuracy and speed of {@code Instrumentation} for non array object
+         * and the speed of SPEC for measuring array objects for which all strategy are accurate. For some reason {@code Instrumentation} is slower for arrays.
+         */
+        INSTRUMENTATION_AND_SPEC {
+
+            public boolean requireInstrumentation() {
+                return true;
+            }
+        },
+        /**
+         * Relies on {@code Unsafe} to measure shallow object size.
+         * It requires {@code Unsafe} to be available. After INSTRUMENTATION based strategy UNSAFE is the most accurate strategy.
+         */
+        UNSAFE {
+
+            public boolean requireUnsafe() {
+                return true;
+            }
+
+            public boolean canBeUsedAsFallbackFrom(Guess strategy) {
+                return strategy.requireInstrumentation();
+            }
+        },
+        /**
+         * Computes the shallow size of objects using VM information.
+         */
+        SPEC {
+
+            public boolean requireUnsafe() {
+                return true;
+            }
+
+            public boolean canBeUsedAsFallbackFrom(Guess guess) {
+                return true;
+            }
+        };
+
+        /**
+         * Checks if this strategy requires {@code Instrumentation} to be present.
+         * @return {@code true} if this strategy requires {@code Instrumentation} to be present, {@code false} otherwise.
+         */
+        public boolean requireInstrumentation() {
+            return false;
+        }
+
+        /**
+         * Checks if this strategy requires {@code Unsafe} to be present.
+         * @return {@code true} if this strategy requires {@code Unsafe} to be present, {@code false} otherwise.
+         */
+        public boolean requireUnsafe() {
+            return false;
+        }
+
+        public boolean canBeUsedAsFallbackFrom(Guess guess) {
+            return false;
+        }
     }
 
     /**
@@ -72,7 +139,7 @@ public final class MemoryMeter {
 
     private MemoryMeter(Builder builder) {
 
-        this(MemoryMeterStrategies.getInstance().getStrategy(builder.guess),
+        this(MemoryMeterStrategies.getInstance().getStrategy(builder.guesses),
              Filters.getClassFilters(builder.ignoreKnownSingletons),
              Filters.getFieldFilters(builder.ignoreKnownSingletons, builder.ignoreOuterClassReference, builder.ignoreNonStrongReferences),
              builder.omitSharedBufferOverhead,
@@ -433,7 +500,15 @@ public final class MemoryMeter {
      */
     public static final class Builder {
 
-        private Guess guess = Guess.ALWAYS_INSTRUMENTATION;
+        /**
+         * The default strategy
+         */
+        private static final List<Guess> DEFAULT_GUESSES = unmodifiableList(singletonList(Guess.INSTRUMENTATION));
+
+        /**
+         * The strategy to perform shallow measurements and its fallback strategies in case the required classes are not available. 
+         */
+        private List<Guess> guesses = DEFAULT_GUESSES;
         private boolean ignoreOuterClassReference;
         private boolean ignoreKnownSingletons = true;
         private boolean ignoreNonStrongReferences = true;
@@ -449,10 +524,20 @@ public final class MemoryMeter {
         }
 
         /**
-         * See {@link Guess} for possible guess-modes.
+         * Specify what should be the strategy used to measure the shallow size of object.
          */
-        public Builder withGuessing(Guess guess) {
-            this.guess = guess;
+        public Builder withGuessing(Guess measurementStrategy, Guess... fallbacks) {
+
+            List<Guess> guessList = new ArrayList<>(fallbacks.length + 1);
+            guessList.add(measurementStrategy);
+            Guess previous = measurementStrategy;
+            for (Guess fallback : fallbacks) {
+                if (!fallback.canBeUsedAsFallbackFrom(previous)) {
+                    throw new IllegalArgumentException("The " + fallback + " strategy cannot be used as fallback for the " + previous + " strategy.");
+                }
+                guessList.add(fallback);
+            }
+            this.guesses = guessList;
             return this;
         }
 

@@ -26,7 +26,7 @@ public class MemoryMeterTest
     @Parameterized.Parameters
     public static Collection<MemoryMeter.Guess> guesses() {
 
-        return Arrays.asList(MemoryMeter.Guess.ALWAYS_INSTRUMENTATION, MemoryMeter.Guess.ALWAYS_UNSAFE, MemoryMeter.Guess.ALWAYS_SPEC);
+        return Arrays.asList(MemoryMeter.Guess.INSTRUMENTATION, MemoryMeter.Guess.UNSAFE, MemoryMeter.Guess.SPEC);
     }
 
     private final MemoryMeter.Guess guess;
