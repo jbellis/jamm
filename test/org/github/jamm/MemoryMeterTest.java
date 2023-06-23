@@ -26,7 +26,10 @@ public class MemoryMeterTest
     @Parameterized.Parameters
     public static Collection<MemoryMeter.Guess> guesses() {
 
-        return Arrays.asList(MemoryMeter.Guess.INSTRUMENTATION, MemoryMeter.Guess.UNSAFE, MemoryMeter.Guess.SPEC);
+        return Arrays.asList(MemoryMeter.Guess.INSTRUMENTATION,
+                             MemoryMeter.Guess.INSTRUMENTATION_AND_SPECIFICATION,
+                             MemoryMeter.Guess.UNSAFE,
+                             MemoryMeter.Guess.SPECIFICATION);
     }
 
     private final MemoryMeter.Guess guess;
@@ -117,6 +120,18 @@ public class MemoryMeterTest
     }
 
     @Test
+    public void testClassFilteringWithObjectField() {
+        // Measure excluding class and enum object
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
+
+        HasObjectField withClass = new HasObjectField(String.class);
+        HasObjectField withString = new HasObjectField(1);
+
+        assertEquals(meter.measure(withClass), meter.measureDeep(withClass));
+        assertEquals(meter.measure(withString) + meter.measure(1), meter.measureDeep(withString));
+    }
+
+    @Test
     public void testIgnoreNonStrongReferences() {
         MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).measureNonStrongReferences().build();
 
@@ -125,6 +140,15 @@ public class MemoryMeterTest
         meter = MemoryMeter.builder().withGuessing(guess).build();
 
         assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
+    }
+
+    @SuppressWarnings("unused")
+    private static class HasObjectField {
+        private Object obj = String.class;
+
+        public HasObjectField(Object obj) {
+            this.obj = obj;
+        }
     }
 
     @SuppressWarnings("unused")
@@ -399,4 +423,24 @@ public class MemoryMeterTest
             stack.pushObject(this, "name", name);
         }
     }
+
+//    @Test
+//    public void testMeasureDeepString() {
+//
+//        String[] strings = new String[] {null,
+//                                         "",
+//                                         "a",
+//                                         "a bit longuer",
+//                                         "significantly longuer",
+//                                         "...... really ...... really .... really ... really .... longuer",
+//                                         "with a chinese character: 我"};
+//
+//        MemoryMeter reference = MemoryMeter.builder().withGuessing(Guess.INSTRUMENTATION).build();
+//        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
+//
+//        for (String string : strings) {
+//            assertEquals(reference.measureDeep(string), meter.measureDeep(string));
+//            assertEquals(reference.measureDeep(string), meter.measureStringDeep(string));
+//        }
+//     }
 }

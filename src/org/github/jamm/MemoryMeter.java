@@ -6,11 +6,20 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.github.jamm.accessors.FieldAccessor;
+import org.github.jamm.listeners.NoopMemoryMeterListener;
+import org.github.jamm.listeners.TreePrinter;
 import org.github.jamm.strategies.MemoryMeterStrategies;
+import org.github.jamm.string.StringMeter;
+import org.github.jamm.utils.ByteBufferMeasurementUtils;
 
-import static java.util.Collections.singletonList;
+import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
 
+/**
+ * Utility to measure the heap space used by java objects.
+ * <p>This class support multithreading and can be reused safely.</p>
+ */
 public final class MemoryMeter {
 
     public static void premain(String options, Instrumentation inst) {
@@ -35,11 +44,7 @@ public final class MemoryMeter {
     public enum Guess {
         /**
          * Relies on {@code java.lang.instrument.Instrumentation} to measure shallow object size.
-<<<<<<< 0bcfac1a30229a269d9a5b1f54f6c68100a5b067
          * It requires {@code Instrumentation} to be available, but it is the most accurate strategy.
-=======
-         * It requires {@code Instrumentation} to be available but is the most accurate strategy.
->>>>>>> Add a new IMSTRUMENTATION_AND_SPEC strategy
          */
         INSTRUMENTATION {
 
@@ -52,7 +57,7 @@ public final class MemoryMeter {
          * This strategy tries to combine the best of both strategies the accuracy and speed of {@code Instrumentation} for non array object
          * and the speed of SPEC for measuring array objects for which all strategy are accurate. For some reason {@code Instrumentation} is slower for arrays.
          */
-        INSTRUMENTATION_AND_SPEC {
+        INSTRUMENTATION_AND_SPECIFICATION {
 
             public boolean requireInstrumentation() {
                 return true;
@@ -75,7 +80,7 @@ public final class MemoryMeter {
         /**
          * Computes the shallow size of objects using VM information.
          */
-        SPEC {
+        SPECIFICATION {
 
             public boolean requireUnsafe() {
                 return true;
@@ -108,9 +113,53 @@ public final class MemoryMeter {
     }
 
     /**
-     * The strategy used to measure the objects.
+     * The different way of measuring deeply a ByteBuffer.
      */
-    private final MemoryMeterStrategy strategy;
+    public enum ByteBufferMode {
+        /**
+         * Default mode, measure the ByteBuffer and all of its children
+         */
+        NORMAL {
+            @Override
+            public boolean isSlab(ByteBuffer buffer) {
+                return false;
+            }
+        },
+        /**
+         * Mode used to handle SLAB allocated {@code ByteBuffers}, without slices, where the overhead amortized over all
+         * the allocations is negligible and we prefer to under count than over count.
+         */
+        SLAB_ALLOCATION_NO_SLICE {
+            @Override
+            public boolean isSlab(ByteBuffer buffer) {
+                // No slice, means that SLAB are only allocated by duplicating the buffer and changing its position and limit.
+                return buffer.capacity() > buffer.remaining();
+            }
+        },
+        /**
+         * Mode used to handle SLAB allocated {@code ByteBuffers}, with slices, where the overhead amortized over all
+         * the allocations is negligible and we prefer to under count than over count.
+         */
+        SLAB_ALLOCATION_SLICE {
+            @Override
+            public boolean isSlab(ByteBuffer buffer) {
+                return buffer.capacity() < ByteBufferMeasurementUtils.underlyingCapacity(buffer, ACCESSOR) ;
+            }
+        };
+
+        /**
+         * Checks if this buffer can be considered as a SLAB according to this mode.
+         *
+         * @param buffer the buffer to check.
+         * @return {@code true} if this buffer can be considered as a SLAB according to this mode, {@code false} otherwise.
+         */
+        public abstract boolean isSlab(ByteBuffer buffer);
+    }
+
+    /**
+     * The default guesses in accuracy order.
+     */
+    public static final List<Guess> BEST = unmodifiableList(asList(Guess.INSTRUMENTATION, Guess.UNSAFE, Guess.SPECIFICATION));
 
     /**
      * The accessor used to retrieve field values.
@@ -118,8 +167,13 @@ public final class MemoryMeter {
      * <p>For JDK prior to Java 9, {@code MemoryMeter} will use plain reflection. From Java 9 onward {@code MemoryMeter}
      * will use reflection if the object is within an accessible module otherwise it will rely on Unsafe to access the field value.</p>
      */
-    private final FieldAccessor accessor;
-    
+    private static final FieldAccessor ACCESSOR = FieldAccessor.newInstance();
+
+    /**
+     * The strategy used to measure the objects.
+     */
+    private final MemoryMeterStrategy strategy;
+
     /**
      * Filter used to determine which classes should be ignored.
      */
@@ -128,9 +182,12 @@ public final class MemoryMeter {
     /**
      * Filter used to determine which field should be ignored.
      */
-    private final FieldFilter fieldFilters;
+    protected final FieldFilter fieldFilter;
 
-    private final boolean omitSharedBufferOverhead;
+    /**
+     * Utility used to optimize the deep measurement of String objects.
+     */
+    private final StringMeter STRING_METER = StringMeter.newInstance();
 
     /**
      * The factory used to create the listener listening to the object graph traversal.
@@ -142,7 +199,6 @@ public final class MemoryMeter {
         this(MemoryMeterStrategies.getInstance().getStrategy(builder.guesses),
              Filters.getClassFilters(builder.ignoreKnownSingletons),
              Filters.getFieldFilters(builder.ignoreKnownSingletons, builder.ignoreOuterClassReference, builder.ignoreNonStrongReferences),
-             builder.omitSharedBufferOverhead,
              builder.listenerFactory);
     }
 
@@ -155,25 +211,20 @@ public final class MemoryMeter {
      * @param strategy the {@code MemoryMeterStrategy} to use for measuring object shallow size.
      * @param classFilter the filter used to filter out classes from the measured object graph
      * @param fieldFilter the filter used to filter out fields from the measured object graph
-     * @param omitSharedBufferOverhead
      * @param listenerFactory the factory used to create the listener listening to the object graph traversal
      */
     public MemoryMeter(MemoryMeterStrategy strategy,
                        FieldAndClassFilter classFilter,
                        FieldFilter fieldFilter,
-                       boolean omitSharedBufferOverhead,
                        MemoryMeterListener.Factory listenerFactory) {
 
         this.strategy = strategy;
-        this.accessor = FieldAccessor.getInstance();
         this.classFilter = classFilter;
-        this.fieldFilters = fieldFilter;
-        this.omitSharedBufferOverhead = omitSharedBufferOverhead;
+        this.fieldFilter = fieldFilter;
         this.listenerFactory = listenerFactory;
     }
 
-    public static Builder builder()
-    {
+    public static Builder builder() {
         return new Builder();
     }
 
@@ -346,6 +397,20 @@ public final class MemoryMeter {
     }
 
     /**
+     * Measures the deep memory usage of the specified {@code String}
+     *
+     * @param s the {@code String} to measure
+     * @return the deep memory usage of the specified string
+     */
+    public long measureStringDeep(String s) {
+
+        if (s == null)
+            return 0L;
+
+        return STRING_METER.measure(strategy, s);
+    }
+
+    /**
      * Measures the memory usage of the object including referenced objects.
      *
      * <p>If the object is {@code null} the value returned will be zero.</p>
@@ -354,6 +419,19 @@ public final class MemoryMeter {
      * @return the memory usage of @param object including referenced objects
      */
     public long measureDeep(Object object) {
+        return measureDeep(object, ByteBufferMode.NORMAL);
+    }
+
+    /**
+     * Measures the memory usage of the object including referenced objects.
+     *
+     * <p>If the object is {@code null} the value returned will be zero.</p>
+     *
+     * @param object the object to measure
+     * @param bbMode the mode that should be used to measure ByteBuffers.
+     * @return the memory usage of @param object including referenced objects
+     */
+    public long measureDeep(Object object, ByteBufferMode bbMode) {
 
         if (object == null) {
             return 0L;
@@ -372,6 +450,13 @@ public final class MemoryMeter {
         while (!stack.isEmpty()) {
 
             Object current = stack.pop();
+
+            // Deal with optimizations first.
+            if (current instanceof String) {
+                total += measureStringWithChild((String) current, listener);
+                continue;
+            }
+
             long size = strategy.measure(current);
             listener.objectMeasured(current, size);
             total += size;
@@ -379,60 +464,63 @@ public final class MemoryMeter {
             Class<?> cls = current.getClass();
 
             if (cls.isArray()) {
-
                 if (!cls.getComponentType().isPrimitive())
-                    addArrayChildren((Object[]) current, stack);
-
-            } else if (current instanceof Measurable) {
-                ((Measurable) current).addChildrenTo(stack);
-            } else {
-
-                if (current instanceof ByteBuffer && omitSharedBufferOverhead) {
-
-                    ByteBuffer buffer = (ByteBuffer) current;
-
-                    if (!buffer.isDirect()) {
-
-                        int arrayLength = buffer.capacity();
-                        int bufferLength = buffer.remaining();
-
-                        // if we're only referencing a sub-portion of the ByteBuffer, we do not count the array overhead as we assume that it is SLAB
-                        // allocated - the overhead amortized over all the allocations is negligible and better to undercount than over count.
-                        if (arrayLength > bufferLength) {
-                            total += bufferLength;
-                            listener.byteBufferRemainingMeasured(buffer, bufferLength);
-                            continue;
+                    addArrayElements((Object[]) current, stack);
+             } else {
+                 if (current instanceof Measurable) {
+                     ((Measurable) current).addChildrenTo(stack);
+                } else {
+                    if (current instanceof ByteBuffer && bbMode.isSlab((ByteBuffer) current)) {
+                        ByteBuffer buffer = (ByteBuffer) current;
+                        if (!buffer.isDirect()) { // If direct we should simply not measure the fields
+                            long remaining = buffer.remaining();
+                            listener.byteBufferRemainingMeasured(buffer, remaining);
+                            total += remaining;
                         }
+                        continue;
                     }
+                    addFields(current, cls, stack);
                 }
-                addFieldChildren(current, cls, stack, listener);
             }
         } 
         listener.done(total);
         return total;
     }
 
-    private void addFieldChildren(Object obj, Class<?> cls, MeasurementStack stack, MemoryMeterListener listener) {
+    private long measureStringWithChild(String s, MemoryMeterListener listener) {
+        long size = STRING_METER.measure(strategy, s);
+        listener.objectMeasured(s, size);
+        return size;
+    }
+
+    private void addFields(Object obj, Class<?> cls, MeasurementStack stack) {
         Class<?> type = cls;
         while (type != null) {
-            for (Field field : type.getDeclaredFields()) {
-
-                if (fieldFilters.ignore(cls, field)) {
-                    continue;
-                }
-
-                Object child = getFieldValue(obj, field, listener);
-
-                if (omitSharedBufferOverhead && isDirectBufferView(obj, field, child)) {
-                    continue;
-                }
-
-                if (child != null) {
-                    stack.pushObject(obj, field.getName(), child);
-                }
-            }
-
+            addDeclaredFields(obj, type, stack);
             type = type.getSuperclass();
+        }
+    }
+
+    private void addDeclaredFields(Object obj, Class<?> type, MeasurementStack stack) {
+        for (Field field : type.getDeclaredFields()) {
+            if (!fieldFilter.ignore(obj.getClass(), field)) {
+                addField(obj, field, stack);
+            }
+        }
+    }
+
+    /**
+     * Adds the object field value to the stack.
+     *
+     * @param obj the object from which the field value must be retrieved
+     * @param field the field
+     * @param stack
+     */
+    private void addField(Object obj, Field field, MeasurementStack stack) {
+        Object child = getFieldValue(obj, field, stack.listener());
+
+        if (child != null && (!classFilter.ignore(child.getClass()))) {
+            stack.pushObject(obj, field.getName(), child);
         }
     }
 
@@ -445,53 +533,18 @@ public final class MemoryMeter {
      * @return the field value if it was possible to retrieve it
      * @throws CannotAccessFieldException if the field could not be accessed
      */
-    private Object getFieldValue(Object obj, Field field, MemoryMeterListener listener)
-    {
+    private Object getFieldValue(Object obj, Field field, MemoryMeterListener listener) {
         try {
-            return accessor.getFieldValue(obj, field);
+            return ACCESSOR.getFieldValue(obj, field);
         } catch (CannotAccessFieldException e) {
             listener.failedToAccessField(obj, field.getName(), field.getType());
             throw e;
         }
     }
 
-    /**
-     * Checks if the object is a direct {@code ByteBuffer} which is the view of another buffer.
-     *
-     * <p>When a {@code DirectByteBuffer} is a view of another buffer, it uses the {@code att} field 
-     * to keep a reference to that buffer.
-     * 
-     * @param obj The object to check
-     * @param field the field
-     * @param child the field value
-     * @return {@code true} if the object is a direct {@code ByteBuffer} which is the view of another buffer,
-     * {@code false} otherwise.
-     */
-    private boolean isDirectBufferView(Object obj, Field field, Object child)
-    {
-        if (!(obj instanceof ByteBuffer))
-            return false;
-
-        ByteBuffer byteBuffer = (ByteBuffer) obj;
-
-        if (!byteBuffer.isDirect())
-            return false;
-
-        // Read-only buffer might actually be the only representation of a ByteBuffer so we cannot simply consider them as shared.
-        // Pre java 12, a DirectByteBuffer created from another DirectByteBuffer was using the source buffer as an attachment 
-        // for liveness rather than the source buffer's attachment (https://bugs.openjdk.org/browse/JDK-8208362). 
-        // Therefore, prior to Java 12 it was easy to determine which part was shared but that approach did not work anymore
-        // since Java 12 so we have to rely on the usage to guess if it is shared or not
-        if (byteBuffer.isReadOnly())
-            return !VM.isPreJava12JVM() && byteBuffer.remaining() < byteBuffer.capacity();
-
-        return field.getName().equals("att")
-                && child != null;
-    }
-
-    private void addArrayChildren(Object[] current, MeasurementStack stack) {
-        for (int i = 0; i < current.length; i++) {
-            stack.pushArrayElement(current, i);
+    private void addArrayElements(Object[] array, MeasurementStack stack) {
+        for (int i = 0; i < array.length; i++) {
+            stack.pushArrayElement(array, i);
         }
     }
 
@@ -501,18 +554,17 @@ public final class MemoryMeter {
     public static final class Builder {
 
         /**
-         * The default strategy
+         * The default guesses in accuracy order.
          */
-        private static final List<Guess> DEFAULT_GUESSES = unmodifiableList(singletonList(Guess.INSTRUMENTATION));
+        private static final List<Guess> BEST = unmodifiableList(asList(Guess.INSTRUMENTATION, Guess.UNSAFE, Guess.SPECIFICATION));
 
         /**
          * The strategy to perform shallow measurements and its fallback strategies in case the required classes are not available. 
          */
-        private List<Guess> guesses = DEFAULT_GUESSES;
+        private List<Guess> guesses = BEST;
         private boolean ignoreOuterClassReference;
         private boolean ignoreKnownSingletons = true;
         private boolean ignoreNonStrongReferences = true;
-        private boolean omitSharedBufferOverhead;
         private MemoryMeterListener.Factory listenerFactory = NoopMemoryMeterListener.FACTORY;
 
         private Builder() {
@@ -572,20 +624,6 @@ public final class MemoryMeter {
          */
         public Builder measureNonStrongReferences() {
             ignoreNonStrongReferences = false;
-            return this;
-        }
-
-        /**
-         * Counts only the bytes remaining in a {@code ByteBuffer} in measureDeep if the buffer only reference a
-         * sub-portion of the backing array.
-         *
-         * <p>This option is to handle SLAB allocated {@code ByteBuffer} where the overhead amortized over all
-         * the allocations is negligible and we prefer to under count than over count. </p>
-         *
-         * @return this builder
-         */
-        public Builder omitSharedBufferOverhead() {
-            omitSharedBufferOverhead = true;
             return this;
         }
 

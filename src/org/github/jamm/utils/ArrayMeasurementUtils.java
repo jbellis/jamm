@@ -1,6 +1,6 @@
-package org.github.jamm;
+package org.github.jamm.utils;
 
-import static org.github.jamm.MathUtils.roundTo;
+import static org.github.jamm.utils.MathUtils.roundTo;
 
 /**
  * Utility methods to measure arrays.

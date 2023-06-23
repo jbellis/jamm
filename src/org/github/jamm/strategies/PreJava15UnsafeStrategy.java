@@ -10,10 +10,10 @@ import org.github.jamm.MemoryLayoutSpecification;
 
 import sun.misc.Unsafe;
 
-import static org.github.jamm.MathUtils.roundTo;
 import static org.github.jamm.strategies.ContendedUtils.isClassAnnotatedWithContended;
 import static org.github.jamm.strategies.ContendedUtils.isContendedEnabled;
 import static org.github.jamm.strategies.ContendedUtils.isFieldAnnotatedWithContended;
+import static org.github.jamm.utils.MathUtils.roundTo;
 
 /**
  * {@code MemoryMeterStrategy} relying on {@code Unsafe} to measure object sizes for Java version pre-15.

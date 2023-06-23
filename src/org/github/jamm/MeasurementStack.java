@@ -41,7 +41,7 @@ public final class MeasurementStack {
      * @param child the child to be added
      */
     public void pushObject(Object parent, String name, Object child) {
-        if (tracker.add(child)) {
+        if (child != null && tracker.add(child)) {
             stack.push(child);
             listener.fieldAdded(parent, name, child);
         }
@@ -77,6 +77,14 @@ public final class MeasurementStack {
      */
     boolean isEmpty() {
         return stack.isEmpty();
+    }
+
+    /**
+     * Returns the listener used by this stack.
+     * @return the listener used by this stack.
+     */
+    MemoryMeterListener listener() {
+        return listener;
     }
 
     /**

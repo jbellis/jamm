@@ -9,7 +9,7 @@ import java.util.function.Predicate;
 import org.github.jamm.CannotMeasureObjectException;
 import org.github.jamm.VM;
 
-import static org.github.jamm.strategies.MethodHandleUtils.mayBeMethodHandle;
+import static org.github.jamm.utils.MethodHandleUtils.mayBeMethodHandle;
 
 /**
  * Utility methods to retrieve information about the use of {@code @Contended} annotations.

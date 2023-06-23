@@ -5,10 +5,10 @@ import java.lang.reflect.Modifier;
 
 import org.github.jamm.MemoryLayoutSpecification;
 
-import static org.github.jamm.MathUtils.roundTo;
 import static org.github.jamm.strategies.ContendedUtils.countContentionGroup;
 import static org.github.jamm.strategies.ContendedUtils.isClassAnnotatedWithContended;
 import static org.github.jamm.strategies.ContendedUtils.isContendedEnabled;
+import static org.github.jamm.utils.MathUtils.roundTo;
 
 /**
  * {@code MemoryMeterStrategy} that computes the size of the memory occupied by an object, in a Java 15+ JVM, based on 

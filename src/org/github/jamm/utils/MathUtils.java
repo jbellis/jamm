@@ -1,4 +1,4 @@
-package org.github.jamm;
+package org.github.jamm.utils;
 
 public final class MathUtils
 {

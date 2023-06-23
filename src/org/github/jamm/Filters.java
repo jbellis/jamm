@@ -23,10 +23,8 @@ public final class Filters
 
     private static final Class<?> CLEANER_CLASS = getCleanerClass();
 
-    private static Class<?> getCleanerClass()
-    {
-        try
-        {
+    private static Class<?> getCleanerClass() {
+        try {
             return ByteBuffer.allocateDirect(0)
                              .getClass()
                              .getDeclaredField("cleaner")

@@ -1,5 +1,7 @@
 package org.github.jamm;
 
+import org.github.jamm.utils.MathUtils;
+
 /**
  * Information about the memory layout used by the JVM running the code.
  * This code assume that the JVM is an HotSpot JVM.
@@ -14,8 +16,8 @@ package org.github.jamm;
  * <p>Objects are aligned: they always start at some multiple of the alignment.</p>
  *
  */
-public interface MemoryLayoutSpecification
-{
+public interface MemoryLayoutSpecification {
+
     /**
      * Returns the size of the array header.
      * <p>The array header is composed of the object header + the array length.
@@ -106,14 +108,12 @@ public interface MemoryLayoutSpecification
             }
 
             @Override
-            public int getContendedPaddingWidth()
-            {
+            public int getContendedPaddingWidth() {
                 return contendedPaddingWidth;
             }
 
             @Override
-            public String toString()
-            {
+            public String toString() {
                 return new StringBuilder().append("Memory Layout: [objectHeaderSize=")
                                           .append(objectHeaderSize)
                                           .append(" , arrayHeaderSize=")

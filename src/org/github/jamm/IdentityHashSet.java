@@ -13,14 +13,14 @@ package org.github.jamm;
  * {@code IdentityHashSet} will ensure that the underlying array is at most 2/3 full by resizing the array when this
  * limit is reached.</p>
  */
-final class IdentityHashSet
+public final class IdentityHashSet
 {
     int size;
     // Open-addressing table for this set.
     // This table will never be fully populated (2/3) to keep enough "spare slots" that are `null`
     // so a loop checking for an element would not have to check too many slots (iteration stops
     // when an entry in the table is `null`).
-    Object[] table = new Object[16]; // 16 2/3 populated = 10 elements
+    Object[] table = new Object[32]; // 32 2/3 populated = 21 elements
 
     boolean add(Object o)
     {

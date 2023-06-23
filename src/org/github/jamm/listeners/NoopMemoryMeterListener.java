@@ -1,6 +1,8 @@
-package org.github.jamm;
+package org.github.jamm.listeners;
 
 import java.nio.ByteBuffer;
+
+import org.github.jamm.MemoryMeterListener;
 
 /**
  * Listener that does nothing.

@@ -2,7 +2,7 @@ package org.github.jamm;
 
 import org.junit.Test;
 
-import static org.github.jamm.MathUtils.roundTo;
+import static org.github.jamm.utils.MathUtils.roundTo;
 import static org.junit.Assert.*;
 
 public class MathUtilsTest
