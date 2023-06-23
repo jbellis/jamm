@@ -5,13 +5,13 @@ import java.lang.reflect.Array;
 import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.MemoryMeterStrategy;
 
-import static org.github.jamm.MathUtils.roundTo;
+import static org.github.jamm.utils.MathUtils.roundTo;
 
 /**
  * Base class for strategies that need access to the {@code MemoryLayoutSpecification} for computing object size.
  */
-public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
-{
+public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy {
+
     /**
      * The memory layout to use when computing object sizes.
      */
@@ -108,15 +108,19 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy
         return computeArraySize(length, elementSize);
     }
 
+    @Override
+    public boolean supportComputeArraySize() {
+        return true;
+    }
+
     /**
-     * Computes the size of an array from its base offset, length and elementSize.
+     * Computes the size of an array from its length and elementSize.
      *
-     * @param arrayBaseOffset the array base offset
      * @param length the array length
      * @param elementSize the size of the array elements
      * @return the size of the array
      */
-    private long computeArraySize(int length, int elementSize) {
+    public long computeArraySize(int length, int elementSize) {
         return roundTo(arrayBaseOffset + length * (long) elementSize, memoryLayout.getObjectAlignment());
     }
 

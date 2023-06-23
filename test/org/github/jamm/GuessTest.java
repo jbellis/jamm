@@ -43,9 +43,9 @@ public class GuessTest {
 
         List<MemoryMeter.Guess> guesses = new ArrayList<>();
 
-        guesses.add(MemoryMeter.Guess.INSTRUMENTATION_AND_SPEC);
+        guesses.add(MemoryMeter.Guess.INSTRUMENTATION_AND_SPECIFICATION);
         guesses.add(MemoryMeter.Guess.UNSAFE);
-        guesses.add(MemoryMeter.Guess.SPEC);
+        guesses.add(MemoryMeter.Guess.SPECIFICATION);
         return guesses;
     }
 

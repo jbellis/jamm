@@ -7,10 +7,10 @@ import java.lang.reflect.Modifier;
 import org.github.jamm.CannotMeasureObjectException;
 import org.github.jamm.MemoryLayoutSpecification;
 
-import static org.github.jamm.MathUtils.roundTo;
 import static org.github.jamm.strategies.ContendedUtils.isClassAnnotatedWithContended;
 import static org.github.jamm.strategies.ContendedUtils.isContendedEnabled;
 import static org.github.jamm.strategies.ContendedUtils.isFieldAnnotatedWithContended;
+import static org.github.jamm.utils.MathUtils.roundTo;
 
 import sun.misc.Unsafe;
 

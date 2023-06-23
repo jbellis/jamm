@@ -1,4 +1,4 @@
-package org.github.jamm;
+package org.github.jamm.listeners;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -7,10 +7,12 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.github.jamm.MemoryMeterListener;
+
 /**
  * A memory listener that print to the <code>System.out</code> the class tree with the size information.
  */
-final class TreePrinter implements MemoryMeterListener {
+public final class TreePrinter implements MemoryMeterListener {
 
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
 

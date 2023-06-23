@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 /**
  * Listener that receive notification form MemoryMeter.
  */
-interface MemoryMeterListener {
+public interface MemoryMeterListener {
 
     /**
      * A factory for <code>MemoryMeterListener</code>.

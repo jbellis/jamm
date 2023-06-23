@@ -2,7 +2,7 @@ package org.github.jamm.strategies;
 
 import org.github.jamm.MemoryLayoutSpecification;
 
-import static org.github.jamm.MathUtils.roundTo;
+import static org.github.jamm.utils.MathUtils.roundTo;
 
 /**
  * {@code MemoryMeterStrategy} that computes the size of the memory occupied by an object, in a Java 15+ JVM, when the 

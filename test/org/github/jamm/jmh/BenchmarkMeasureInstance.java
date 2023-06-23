@@ -21,16 +21,16 @@ import org.openjdk.jmh.infra.Blackhole;
 
 @Threads(3)
 @Fork(value = 1, jvmArgsPrepend = {
-        "-javaagent:target/jamm-0.4.0-SNAPSHOT.jar"
+        "-javaagent:target/jamm-0.4.0-SNAPSHOT.jar",
 })
 @Warmup(iterations=4, time=5, timeUnit=TimeUnit.SECONDS)
 @Measurement(iterations=5, time=5, timeUnit=TimeUnit.SECONDS)
-@BenchmarkMode(Mode.Throughput)
+@BenchmarkMode(Mode.AverageTime)
 @State(Scope.Thread)
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class BenchmarkMeasureInstance
 {
-    @Param({"INSTRUMENTATION", "INSTRUMENTATION_AND_SPEC", "SPEC", "UNSAFE"})
+    @Param({"INSTRUMENTATION", "INSTRUMENTATION_AND_SPECIFICATION", "SPECIFICATION", "UNSAFE"})
     private String guess;
 
     private MemoryMeter meter;
@@ -41,11 +41,11 @@ public class BenchmarkMeasureInstance
     {
         try {
             Class<?>[] choices = new Class<?>[] {ClassWithoutFields.class,
-                ClassWithOnePrimitiveFields.class,
-                ClassWithOneObjectField.class,
-                ClassWithTreeObjectFields.class,
-                ClassWithOneObjectFieldAndTwoPrimitives.class,
-                ClassWithFiveObjectFields.class};
+                                                 ClassWithOnePrimitiveFields.class,
+                                                 ClassWithOneObjectField.class,
+                                                 ClassWithTreeObjectFields.class,
+                                                 ClassWithOneObjectFieldAndTwoPrimitives.class,
+                                                 ClassWithFiveObjectFields.class};
 
                 Random random = new Random();
 
@@ -77,7 +77,6 @@ public class BenchmarkMeasureInstance
         int intField;
     }
 
-    
     public static class ClassWithOneObjectField {
         Object field = new Object();
     }
@@ -97,7 +96,7 @@ public class BenchmarkMeasureInstance
 
         double third;
     }
-    
+
     public static class ClassWithFiveObjectFields extends ClassWithTreeObjectFields {
         Object fourth = new Object();
 

@@ -134,4 +134,25 @@ public interface MemoryMeterStrategy {
     {
         return measure(s);
     }
+
+    /**
+     * Checks if this instance support the {@code computeArraySize} operation.
+     * @return {@code true} if this instance support the {@code computeArraySize} operation, {@code false} otherwise.
+     */
+    default boolean supportComputeArraySize() {
+        return false;
+    }
+
+    /**
+     * Computes an array size from its length and element size (optional operation).
+     * <p>{@code supportComputeArraySize} should be used before calling this method to check if this operation is supported.</p>
+     *
+     * @param length the array length
+     * @param elementSize the size of the elements
+     * @return the array size
+     * @throws UnsupportedOperationException if the operation is not supported
+     */
+    default long computeArraySize(int length, int elementSize) {
+        throw new UnsupportedOperationException();
+    }
 }

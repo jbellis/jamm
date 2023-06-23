@@ -208,8 +208,11 @@ For a finer control on which classes and fields should be filtered out it is pos
 
 ## ByteBuffer measurements
 
-`MemoryMeter` has 2 ways to measure ByteBuffers. The default one or the `omitSharedBufferOverhead` one.
-By default, `MemoryMeter.measureDeep` will crawl the object graph and sum its different elements.
+`MemoryMeter` has 3 ways to measure ByteBuffers: `NORMAL`, `SLAB_ALLOCATION_NO_SLICE` and `SLAB_ALLOCATION_SLICE`.
+
+### Normal (default) mode
+
+In this mode `MemoryMeter.measureDeep` will crawl the object graph and sum its different elements.
 For a `HeapByteBuffer` like `ByteBuffer.allocate(20)` the crawled graph will be:
 
 ```
@@ -232,8 +235,8 @@ measurement. Those fields are:
 * `queue` as it is a dummy queue referenced by all `Cleaner` instances
 * `next` and `prev` as they are used to create a doubly-linked list of live cleaners and therefore refer to other Cleaners instances
 
-If a slice of the previous buffers is used `buffer.slice().limit(5)` the heap buffer will have a reference to the original buffer array
-while the direct buffer will have a direct reference to the original direct buffer:
+If `slice`, `duplicate` or `asReadOnlyBuffer` is is used to create a new buffer from an heap buffer, the resulting buffer will have a reference to the original buffer array
+whereas if the buffer was a direct buffer the new buffer will have a direct reference to the original direct buffer:
 
 ```
 root [java.nio.DirectByteBuffer] 200 bytes (64 bytes)
@@ -244,17 +247,17 @@ root [java.nio.DirectByteBuffer] 200 bytes (64 bytes)
       |
       +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
 ```
+In the `NORMAL` mode those underlying arrays and direct buffer size will always be included in the final total size.
 
-In both cases, the size of the buffers includes part of the size coming from the original buffer that we might not be interested in measuring.
-If the `omitSharedBufferOverhead` option is used `MemoryMeter` will try to remove the size of shared data from its measurements.
-For heap buffers, if only a portion of the array is used (capacity > remaining), `MemoryMeter` will only take into account the remaining bytes
-instead of the size of the array object. For direct buffer, `MemoryMeter` will ignore the field referencing the original buffer object in its computation.
+### SLAB allocation no slice mode
 
-A read-only buffer might actually be the only representation of a `ByteBuffer` so `MemoryMeter` will not by default consider read-only buffers as shared.
-Pre-java 12, a read-only buffer created from a direct `ByteBuffer` was using the source buffer as an attachment for liveness rather than the source buffer's
- attachment (https://bugs.openjdk.org/browse/JDK-8208362). Therefore prior to Java 12, `MemoryMeter` could easily determine for read-only direct buffers which part was shared.
-Unfortunately, the approach did not work anymore since Java 12. Due to that, for java versions >= 12, `MemoryMeter` use the same approach as the one used for heap buffers to determine
-if the data of a read-only direct buffer is shared (capacity > remaining).
+The goal of this mode is to omit the size of the shared data in slabs when the the slabs are allocated through the us of: `duplicate().position(x).limit(y)`
+This is done by comparing the number of remaining bytes with the buffer capacity and taking into account only the remaining bytes for the size when the number of remaining bytes is smaller than the capacity.
+
+### SLAB allocation no slice mode
+
+The goal of this mode is to omit the size of the shared data in slabs when the the slabs are allocated through the us of: `duplicate().position(x).limit(y).slice()`
+This is done by comparing the capacity of the buffer with the size of the array for heap buffers or with the size of the underlying buffer for direct buffers. If a buffer is considered as a slab only the capacity will be taken into account for the size.
 
 ## @Contended
 

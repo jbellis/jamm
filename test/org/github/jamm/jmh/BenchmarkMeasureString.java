@@ -1,10 +1,11 @@
 package org.github.jamm.jmh;
 
-import java.lang.reflect.Array;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.MemoryMeter;
+import org.github.jamm.utils.ArrayMeasurementUtils;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -29,32 +30,33 @@ import org.openjdk.jmh.infra.Blackhole;
 @BenchmarkMode(Mode.AverageTime)
 @State(Scope.Thread)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-public class BenchmarkMeasureArray {
-
-    @Param({"INSTRUMENTATION", "INSTRUMENTATION_AND_SPECIFICATION", "SPECIFICATION", "UNSAFE"})
+public class BenchmarkMeasureString
+{
+    @Param({"INSTRUMENTATION", "INSTRUMENTATION_AND_SPECIFICATION", "UNSAFE", "SPECIFICATION"})
     private String guess;
 
     private MemoryMeter meter;
 
-    private static Object[] arrays;
-    private static Object[] byteArrays;
+    private static String[] strings;
 
-    static {
+    private long emptySize;
+
+    private MemoryLayoutSpecification spec;
+
+    static
+    {
         try {
-
-            Class<?>[] choices = new Class<?>[] {byte.class, int.class, double.class, Object.class};
-
             Random random = new Random();
 
-            arrays = new Object[1000];
-            for (int i = 0; i < arrays.length; i++) {
-                arrays[i] = Array.newInstance(choices[random.nextInt(choices.length)], random.nextInt(100)); 
+            String[] array = new String[1000];
+            for (int i = 0; i < array.length; i++) {
+                int length = random.nextInt(50);
+                array[i] = random.ints('a', 'z' + 1)
+                                 .limit(length)
+                                 .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                                 .toString();
             }
-
-            byteArrays = new Object[1000];
-            for (int i = 0; i < byteArrays.length; i++) {
-                byteArrays[i] = new byte[random.nextInt(100)];
-            }
+            strings = array;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -65,17 +67,26 @@ public class BenchmarkMeasureArray {
     public void setup() throws Exception {
         MemoryMeter.Guess guess = MemoryMeter.Guess.valueOf(this.guess);
         this.meter = MemoryMeter.builder().withGuessing(guess).build();
+        emptySize = this.meter.measure("");
+        spec = MemoryMeter.getMemoryLayoutSpecification();
     }
 
     @Benchmark
-    public void measure(Blackhole bh) {
-        for (Object o : arrays)
-            bh.consume(meter.measure(o));
+    public void measureStringDeep(Blackhole bh) {
+        for (String s : strings)
+            bh.consume(meter.measureStringDeep(s));
     }
 
+//    @Benchmark
+//    public void measureReference(Blackhole bh) {
+//        for (String s : strings) {
+//            bh.consume(emptySize + ArrayMeasurementUtils.computeArraySize(spec.getArrayHeaderSize(), s.length(), Character.BYTES, spec.getObjectAlignment()));
+//        }
+//    }
+
     @Benchmark
-    public void measureByteArray(Blackhole bh) {
-        for (Object o : byteArrays)
-            bh.consume(meter.measureArray((byte[]) o));
+    public void measureDeep(Blackhole bh) {
+        for (String s : strings)
+            bh.consume(meter.measureDeep(s));
     }
 }

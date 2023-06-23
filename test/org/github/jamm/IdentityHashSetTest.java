@@ -7,22 +7,19 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class IdentityHashSetTest
-{
+public class IdentityHashSetTest {
     @Test
-    public void addSame()
-    {
+    public void addSame() {
         IdentityHashSet s = new IdentityHashSet();
         Object o = new Object();
         assertTrue(s.add(o));
         assertFalse(s.add(o));
         assertEquals(1, s.size);
-        assertEquals(16, s.table.length);
+        assertEquals(32, s.table.length);
     }
 
     @Test
-    public void addMany()
-    {
+    public void addMany() {
         List<Object> ref1 = new ArrayList<>();
         List<Object> ref2 = new ArrayList<>();
         for (int i = 0; i < 250; i++)
@@ -31,8 +28,7 @@ public class IdentityHashSetTest
             assertTrue(ref2.add("x" + i));
 
         IdentityHashSet s = new IdentityHashSet();
-        for (int i = 0; i < ref1.size(); i++)
-        {
+        for (int i = 0; i < ref1.size(); i++) {
             Object o = ref1.get(i);
             assertEquals(i, s.size);
             assertEquals("" + i, expectedCapacity(i), s.table.length);
@@ -43,8 +39,7 @@ public class IdentityHashSetTest
         for (Object o : ref1)
             assertFalse(s.add(o));
 
-        for (int i = 0; i < ref2.size(); i++)
-        {
+        for (int i = 0; i < ref2.size(); i++) {
             Object o = ref2.get(i);
             assertEquals(ref1.size() + i, s.size);
             assertTrue(s.add(o));
@@ -58,13 +53,12 @@ public class IdentityHashSetTest
             assertFalse(s.add(o));
     }
 
-    private static int expectedCapacity(int i)
-    {
+    private static int expectedCapacity(int i) {
         // the backing array must be at most 2/3 full in order to have enough 'null's in the open-addressing-map
         i = (i * 3) / 2;
 
         // next power of 2
         i = 1 << (32 - Integer.numberOfLeadingZeros(i));
-        return Math.max(16, i);
+        return Math.max(32, i);
     }
 }

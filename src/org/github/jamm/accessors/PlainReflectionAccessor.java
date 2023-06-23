@@ -1,6 +1,8 @@
-package org.github.jamm;
+package org.github.jamm.accessors;
 
 import java.lang.reflect.Field;
+
+import org.github.jamm.CannotAccessFieldException;
 
 /**
  * {@code FieldAccessor} relying on plain reflection to retrieve field value.

@@ -9,18 +9,19 @@ import java.util.Queue;
 
 import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.MemoryMeter.Guess;
+
+import static org.github.jamm.utils.MethodHandleUtils.mayBeMethodHandle;
+
 import org.github.jamm.MemoryMeterStrategy;
 import org.github.jamm.VM;
 
 import sun.misc.Unsafe;
 
-import static org.github.jamm.strategies.MethodHandleUtils.mayBeMethodHandle;
-
 /**
  * The different strategies that can be used to measure object sizes.
  */
-public final class MemoryMeterStrategies
-{
+public final class MemoryMeterStrategies {
+
     public static Instrumentation instrumentation;
 
     /**
@@ -186,7 +187,7 @@ public final class MemoryMeterStrategies
             if (guess.requireInstrumentation()) {
 
                 if (hasInstrumentation())
-                    return guess == Guess.INSTRUMENTATION_AND_SPEC ? instrumentationAndSpecStrategy
+                    return guess == Guess.INSTRUMENTATION_AND_SPECIFICATION ? instrumentationAndSpecStrategy
                                                                    : instrumentationStrategy;
 
                 if (guesses.isEmpty())
