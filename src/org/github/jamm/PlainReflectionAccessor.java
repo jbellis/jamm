@@ -1,7 +1,6 @@
 package org.github.jamm;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 
 /**
  * {@code FieldAccessor} relying on plain reflection to retrieve field value.
@@ -12,7 +11,7 @@ final class PlainReflectionAccessor implements FieldAccessor
     @Override
     public Object getFieldValue(Object object, Field field) {
         try {
-            if (!Modifier.isPublic(field.getModifiers()) && !field.isAccessible())
+            if (!field.isAccessible())
                 field.setAccessible(true);
 
             return field.get(object);
