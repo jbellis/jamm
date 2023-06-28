@@ -89,30 +89,23 @@ public final class Filters
 
         @Override
         public boolean ignore(Class<?> cls) {
-            return isUnmeteredAnnotationPresent(cls);
+            // The @Inherited annotation only causes annotations to be inherited from superclasses. Therefore we need to check the interfaces manually 
+            return cls != null && (cls.isAnnotationPresent(Unmetered.class) || isAnnotationPresentOnInterfaces(cls));
         }
 
         /**
-         * Checks if the specified class or one of its parents is annotated with {@code Unmetered}
-         *
-         * @param cls the class to check 
-         * @return {@code true} if the specified class or one of its parents is annotated with {@code Unmetered}, {@code false} otherwise.
+         * Checks if any of the implemented interfaces has the {@code @Unmetered} annotation
+         * @param cls the class for which the interfaces must be checked
+         * @return {@code true} if any of the interfaces is annotated with {@code @Unmetered}. {@code false} otherwise.
          */
-        private boolean isUnmeteredAnnotationPresent(Class<?> cls) {
-
-            if (cls == null)
-                return false;
-
-            if (cls.isAnnotationPresent(Unmetered.class))
-                return true;
-
+        private boolean isAnnotationPresentOnInterfaces(Class<?> cls) {
             Class<?>[] interfaces = cls.getInterfaces();
             for (int i = 0; i < interfaces.length; i++) {
-                if (isUnmeteredAnnotationPresent(cls.getInterfaces()[i]))
+                if (cls.getInterfaces()[i].isAnnotationPresent(Unmetered.class))
                     return true;
             }
 
-            return isUnmeteredAnnotationPresent(cls.getSuperclass());
+            return false;
         }
     };
 

@@ -163,15 +163,21 @@ public class MemoryMeterTest
         MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
         String s = "test";
-        assertEquals(0, meter.measureDeep(new WithTypeAnnotation(s)));
+        assertEquals(0, meter.measureDeep(new ClassWithAnnotation(s)));
     }
 
     @Test
     public void testUnmeteredAnnotationOnParent() {
         MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
 
-        String s = "test";
-        assertEquals(0, meter.measureDeep(new WithParentWithAnnotation(s)));
+        assertEquals(0, meter.measureDeep(new WithParentWithAnnotation("test")));
+    }
+
+    @Test
+    public void testUnmeteredAnnotationOnImplementedInteface() {
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
+
+        assertEquals(0, meter.measureDeep(new WithAnnotatedInterface("test")));
     }
 
     @Test
@@ -197,6 +203,17 @@ public class MemoryMeterTest
         assertEquals(withoutSize, withSize);
     }
 
+    @Test
+    public void testUnmeteredAnnotationOnFieldImplementedInterface() {
+        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
+
+        long withoutSize = meter.measureDeep(new WithFieldTypeWithAnnotatedInterface(null));
+
+        WithAnnotatedInterface field = new WithAnnotatedInterface("test");
+        long withSize = meter.measureDeep(new WithFieldTypeWithAnnotatedInterface(field));
+        assertEquals(withoutSize, withSize);
+    }
+
     @SuppressWarnings("unused")
     private static class WithoutAnnotationField {
         private String s;
@@ -218,15 +235,15 @@ public class MemoryMeterTest
 
     @Unmetered
     @SuppressWarnings("unused")
-    private static class WithTypeAnnotation {
+    private static class ClassWithAnnotation {
         private String s;
 
-        public WithTypeAnnotation(String s) {
+        public ClassWithAnnotation(String s) {
             this.s = s;
         }
     }
 
-    private static class WithParentWithAnnotation extends WithTypeAnnotation {
+    private static class WithParentWithAnnotation extends ClassWithAnnotation {
 
         public WithParentWithAnnotation(String s) {
             super(s);
@@ -258,6 +275,26 @@ public class MemoryMeterTest
         }
     }
 
+    private static class WithAnnotatedInterface implements AnnotatedInterface {
+
+        private String s;
+
+        public WithAnnotatedInterface(String s) {
+            this.s = s;
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static class WithFieldTypeWithAnnotatedInterface {
+
+        private final WithAnnotatedInterface field;
+
+        public WithFieldTypeWithAnnotatedInterface(WithAnnotatedInterface field) {
+            this.field = field;
+        }
+    }
+
+    
     @Test
     public void testMeasureWithLambdaField() {
         MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).build();
