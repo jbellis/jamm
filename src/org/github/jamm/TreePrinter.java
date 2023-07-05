@@ -120,7 +120,7 @@ final class TreePrinter implements MemoryMeterListener {
         /**
          * The name for a root object
          */
-        private static final String ROOT_NAME = "root";
+        private static final String ROOT_NAME = "#root"; // use # sign to makes sure that it could not be a valid field name
 
         /**
          * The object name
@@ -240,7 +240,7 @@ final class TreePrinter implements MemoryMeterListener {
                                      boolean printTotalSize,
                                      StringBuilder builder)
         {
-            if (!name.equals(ROOT_NAME)) {
+            if (name != (ROOT_NAME)) { // Checking for instance equality and not simple equality
                 builder.append(indentation)
                        .append('|')
                        .append(LINE_SEPARATOR)
@@ -271,7 +271,7 @@ final class TreePrinter implements MemoryMeterListener {
          * @return the <code>StringBuilder</code>
          */
         public StringBuilder appendNameAndClassName(StringBuilder builder) {
-            return builder.append(name)
+            return builder.append(name.equals(ROOT_NAME) ? "root" : name)
                           .append(" [")
                           .append(className)
                           .append("] ");
