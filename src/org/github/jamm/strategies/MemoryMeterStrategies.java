@@ -7,15 +7,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
 
-import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.MemoryMeter.Guess;
 
 import static org.github.jamm.utils.MethodHandleUtils.mayBeMethodHandle;
 
 import org.github.jamm.MemoryMeterStrategy;
 import org.github.jamm.VM;
-
-import sun.misc.Unsafe;
 
 /**
  * The different strategies that can be used to measure object sizes.
@@ -30,17 +27,12 @@ public final class MemoryMeterStrategies {
     private static MemoryMeterStrategies instance; 
 
     /**
-     * Information about the memory layout used by the JVM running the code.
-     */
-    private final MemoryLayoutSpecification memoryLayoutSpecification;
-
-    /**
      * Strategy relying on instrumentation or {@code null} if the instrumentation was not provided
      */
     private final MemoryMeterStrategy instrumentationStrategy;
 
     /**
-     * Strategy relying on instrumentation to measure non array object and the SPEC approach to measure arrays.
+     * Strategy relying on instrumentation to measure non array object and the {@code Specification} approach to measure arrays.
      * {@code null} if the instrumentation was not provided
      */
     private final MemoryMeterStrategy instrumentationAndSpecStrategy;
@@ -55,13 +47,11 @@ public final class MemoryMeterStrategies {
      */
     private final MemoryMeterStrategy specStrategy;
 
-    private MemoryMeterStrategies(MemoryLayoutSpecification memoryLayoutSpecification,
-                                  MemoryMeterStrategy instrumentationStrategy,
+    private MemoryMeterStrategies(MemoryMeterStrategy instrumentationStrategy,
                                   MemoryMeterStrategy instrumentationAndSpecStrategy,
                                   MemoryMeterStrategy unsafeStrategy,
                                   MemoryMeterStrategy specStrategy) {
 
-        this.memoryLayoutSpecification = memoryLayoutSpecification;
         this.instrumentationStrategy = instrumentationStrategy;
         this.instrumentationAndSpecStrategy = instrumentationAndSpecStrategy;
         this.unsafeStrategy = unsafeStrategy;
@@ -82,55 +72,48 @@ public final class MemoryMeterStrategies {
      */
     private static MemoryMeterStrategies createStrategies() {
 
-        MemoryLayoutSpecification specification = MemoryLayoutSpecification.getEffectiveMemoryLayoutSpecification();
-
         Optional<MethodHandle> mayBeIsHiddenMH = mayBeIsHiddenMethodHandle();
 
         MemoryMeterStrategy instrumentationStrategy = createInstrumentationStrategy();
-        MemoryMeterStrategy instrumentationAndSpecStrategy = createInstrumentationAndSpecStrategy(specification);
-        MemoryMeterStrategy specStrategy = createSpecStrategy(specification, mayBeIsHiddenMH);
-        MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(specification, mayBeIsHiddenMH, (MemoryLayoutBasedStrategy) specStrategy);
+        MemoryMeterStrategy instrumentationAndSpecStrategy = createInstrumentationAndSpecStrategy();
+        MemoryMeterStrategy specStrategy = createSpecStrategy(mayBeIsHiddenMH);
+        MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(mayBeIsHiddenMH, (MemoryLayoutBasedStrategy) specStrategy);
 
         // Logging important information once at startup for debugging purpose
         System.out.println("Jamm starting with: java.version='" + System.getProperty("java.version")
                             + "', java.vendor='" + System.getProperty("java.vendor")
                             + "', instrumentation=" + (instrumentationStrategy != null)
                             + ", unsafe=" + (unsafeStrategy != null)
-                            + ", " + specification);
+                            + ", " + MemoryMeterStrategy.MEMORY_LAYOUT);
  
-        return new MemoryMeterStrategies(specification, instrumentationStrategy, instrumentationAndSpecStrategy, unsafeStrategy, specStrategy);
+        return new MemoryMeterStrategies(instrumentationStrategy, instrumentationAndSpecStrategy, unsafeStrategy, specStrategy);
     }
 
-    private static MemoryMeterStrategy createSpecStrategy(MemoryLayoutSpecification specification,
-                                                          Optional<MethodHandle> mayBeIsHiddenMH) {
+    private static MemoryMeterStrategy createSpecStrategy(Optional<MethodHandle> mayBeIsHiddenMH) {
 
         if (mayBeIsHiddenMH.isPresent() && !VM.useEmptySlotsInSuper())
             System.out.println("WARNING: Jamm is starting with the UseEmptySlotsInSupers JVM option disabled."
-                               + " The memory layout created when this option is enabled cannot always be reproduced accurately by the SPEC or UNSAFE strategies."
+                               + " The memory layout created when this option is enabled cannot always be reproduced accurately by the Specification or UNSAFE strategies."
                                + " By consequence the measured sizes when these strategies are used might be off in some cases.");
 
         // The Field layout was optimized in Java 15. For backward compatibility reasons, in 15+, the optimization can be disabled through the {@code -XX:-UseEmptySlotsInSupers} option.
         // (see https://bugs.openjdk.org/browse/JDK-8237767 and https://bugs.openjdk.org/browse/JDK-8239016)
         // Unfortunately, when {@code UseEmptySlotsInSupers} is disabled the layout resulting does not match the pre-15 versions
-        return mayBeIsHiddenMH.isPresent() ? VM.useEmptySlotsInSuper() ? new SpecStrategy(specification)
-                                                                       : new DoesNotUseEmptySlotInSuperSpecStrategy(specification)
-                                           : new PreJava15SpecStrategy(specification);
+        return mayBeIsHiddenMH.isPresent() ? VM.useEmptySlotsInSuper() ? new SpecStrategy()
+                                                                       : new DoesNotUseEmptySlotInSuperSpecStrategy()
+                                           : new PreJava15SpecStrategy();
     }
 
-    private static MemoryMeterStrategy createUnsafeStrategy(MemoryLayoutSpecification specification,
-                                                            Optional<MethodHandle> mayBeIsHiddenMH,
+    private static MemoryMeterStrategy createUnsafeStrategy(Optional<MethodHandle> mayBeIsHiddenMH,
                                                             MemoryLayoutBasedStrategy specStrategy) {
-
-        Unsafe unsafe = VM.getUnsafe();
-
-        if (unsafe == null)
+        if (!VM.hasUnsafe())
             return null;
 
         Optional<MethodHandle> mayBeIsRecordMH = mayBeIsRecordMethodHandle();
 
         // The hidden method was added in Java 15 so if isHidden exists we are on a version greater or equal to Java 15
-        return mayBeIsHiddenMH.isPresent() ? new UnsafeStrategy(specification, unsafe, mayBeIsRecordMH.get(), mayBeIsHiddenMH.get(), specStrategy)
-                                           : new PreJava15UnsafeStrategy(specification, unsafe, mayBeIsRecordMH, specStrategy);
+        return mayBeIsHiddenMH.isPresent() ? new UnsafeStrategy(mayBeIsRecordMH.get(), mayBeIsHiddenMH.get(), specStrategy)
+                                           : new PreJava15UnsafeStrategy(mayBeIsRecordMH, specStrategy);
 
     }
 
@@ -156,8 +139,8 @@ public final class MemoryMeterStrategies {
         return instrumentation != null ? new InstrumentationStrategy(instrumentation) : null;
     }
 
-    private static MemoryMeterStrategy createInstrumentationAndSpecStrategy(MemoryLayoutSpecification specification) {
-        return instrumentation != null ? new InstrumentationAndSpecStrategy(specification, instrumentation) : null;
+    private static MemoryMeterStrategy createInstrumentationAndSpecStrategy() {
+        return instrumentation != null ? new InstrumentationAndSpecStrategy(instrumentation) : null;
     }
 
     public boolean hasInstrumentation() {
@@ -168,15 +151,12 @@ public final class MemoryMeterStrategies {
         return unsafeStrategy != null;
     }
 
-    /**
-     * Provides information about the memory layout used by the JVM.
-     * @return information about the memory layout used by the JVM
-     */
-    public MemoryLayoutSpecification getMemoryLayoutSpecification() {
-        return this.memoryLayoutSpecification;
-    }
-
     public MemoryMeterStrategy getStrategy(List<Guess> guessList) {
+
+        if (guessList.isEmpty())
+            throw new IllegalArgumentException("The guessList argument is empty");
+
+        Guess.checkOrder(guessList);
 
         Queue<Guess> guesses = new LinkedList<>(guessList);
 

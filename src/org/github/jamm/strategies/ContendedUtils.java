@@ -14,7 +14,7 @@ import static org.github.jamm.utils.MethodHandleUtils.mayBeMethodHandle;
 /**
  * Utility methods to retrieve information about the use of {@code @Contended} annotations.
  */
-public final class ContendedUtils {
+final class ContendedUtils {
 
     /**
      * {@code true} if contended is enabled, {@code false} otherwise.
@@ -35,9 +35,9 @@ public final class ContendedUtils {
      * The {@code MethodHandle} used to invoke the value method from {@code @Contended} if it is accessible.
      *
      * @Contended was introduced in Java 8 as {@code sun.misc.Contended} but was repackaged in the jdk.internal.vm.annotation package in Java 9.
-     * Therefore in Java 9+ unless '-XX:-RestrictContended' or '--add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED' is specified we will not have access
+     * Therefore, in Java 9+ unless '-XX:-RestrictContended' or '--add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED' is specified we will not have access
      * to the value() method of @Contended and will be unable to retrieve the contention group tags and might be unable to computes the correct sizes.
-     * Nevertheless, it also means that only the internal Java classes will use that annotation and we know which one they are. Therefore we can rely on this fact to mitigate the problem.
+     * Nevertheless, it also means that only the internal Java classes will use that annotation, and we know which one they are. Therefore, we can rely on this fact to mitigate the problem.
      */
     private static final Optional<MethodHandle> MAY_BE_CONTENDED_VALUE_MH = mayBeMethodHandle(CONTENDED_CLASS, "value");
 

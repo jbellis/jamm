@@ -6,6 +6,7 @@ public class PublicClassWithPackageProtectedClassField
 {
     public static String publicStaticField = "publicStaticField";
 
+    @SuppressWarnings("unused")
     private static String privateStaticField = "privateStaticField";
 
     public String publicField;

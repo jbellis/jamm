@@ -6,13 +6,14 @@ import java.lang.reflect.Modifier;
 import java.util.Optional;
 
 import org.github.jamm.CannotMeasureObjectException;
-import org.github.jamm.MemoryLayoutSpecification;
-
-import sun.misc.Unsafe;
+import org.github.jamm.VM;
 
 import static org.github.jamm.strategies.ContendedUtils.isClassAnnotatedWithContended;
 import static org.github.jamm.strategies.ContendedUtils.isContendedEnabled;
 import static org.github.jamm.strategies.ContendedUtils.isFieldAnnotatedWithContended;
+
+import sun.misc.Unsafe;
+
 import static org.github.jamm.utils.MathUtils.roundTo;
 
 /**
@@ -22,9 +23,11 @@ import static org.github.jamm.utils.MathUtils.roundTo;
  * always came first. From Java 15 onward it is not the case anymore. This strategy takes advantage and it looks at
  * the child class first to find the greatest offsets.</p>
  */
-final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
-{
-    private final Unsafe unsafe;
+final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy {
+
+    private final static Unsafe UNSAFE = VM.getUnsafe();
+
+    private final static int ARRAY_BASE_OFFSET = UNSAFE.arrayBaseOffset(Object[].class);
 
     /**
      * Method Handle for the {@code Class.isRecord} method introduced in Java 14.
@@ -36,13 +39,9 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
      */
     private final MemoryLayoutBasedStrategy recordsStrategy;
 
-    public PreJava15UnsafeStrategy(MemoryLayoutSpecification memoryLayout,
-                                   Unsafe unsafe,
-                                   Optional<MethodHandle> mayBeIsRecordMH,
+    public PreJava15UnsafeStrategy(Optional<MethodHandle> mayBeIsRecordMH,
                                    MemoryLayoutBasedStrategy strategy) {
 
-        super(memoryLayout, unsafe.arrayBaseOffset(Object[].class)); 
-        this.unsafe = unsafe;
         this.mayBeIsRecordMH = mayBeIsRecordMH;
         this.recordsStrategy = strategy;
     }
@@ -66,7 +65,7 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
                     if (!Modifier.isStatic(f.getModifiers()))
                     {
                         long previousSize = size;
-                        size = Math.max(size, unsafe.objectFieldOffset(f) + measureField(f.getType()));
+                        size = Math.max(size, UNSAFE.objectFieldOffset(f) + measureField(f.getType()));
                         if (previousSize < size)
                             isLastFieldWithinContentionGroup = isFieldAnnotatedWithContended(f) && isContendedEnabled(type);
                     }
@@ -74,18 +73,18 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
 
                 // If the last field is within a contention group we need to add the end padding
                 if (isLastFieldWithinContentionGroup)
-                    size += memoryLayout.getContendedPaddingWidth();
+                    size += MEMORY_LAYOUT.getContendedPaddingWidth();
 
                 // As we know that the superclass fields always come first pre-Java 15, if the size is greater than zero
                 // we know that all the other fields will have a smaller offset.
                 if (size > 0) {
                     // If the class is annotated with @Contended we need to add the end padding
                     if (isClassAnnotatedWithContended(type) && isContendedEnabled(type))
-                        size += memoryLayout.getContendedPaddingWidth();
+                        size += MEMORY_LAYOUT.getContendedPaddingWidth();
 
-                    size += annotatedClassesWithoutFields * (memoryLayout.getContendedPaddingWidth() << 1);
+                    size += annotatedClassesWithoutFields * (MEMORY_LAYOUT.getContendedPaddingWidth() << 1);
 
-                    return roundTo(size, memoryLayout.getObjectAlignment());
+                    return roundTo(size, MEMORY_LAYOUT.getObjectAlignment());
                 }
 
                 // The JVM will add padding even if the annotated class does not have any fields 
@@ -94,10 +93,15 @@ final class PreJava15UnsafeStrategy extends MemoryLayoutBasedStrategy
 
                 type = type.getSuperclass();
             }
-            return roundTo(memoryLayout.getObjectHeaderSize(), memoryLayout.getObjectAlignment());
+            return roundTo(MEMORY_LAYOUT.getObjectHeaderSize(), MEMORY_LAYOUT.getObjectAlignment());
         } 
         catch (Throwable e) {
             throw new CannotMeasureObjectException("The object of type " + type + " cannot be measured by the unsafe strategy", e);
         }
+    }
+
+    @Override
+    protected int arrayBaseOffset() {
+        return ARRAY_BASE_OFFSET;
     }
 }

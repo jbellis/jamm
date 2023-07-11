@@ -82,12 +82,12 @@ mark the classes (or interfaces) using the `Unmetered` annotation.
 
 The 0.4.0 version comes with speed improvements and support java versions up to Java 17 but also some breaking
 changes at the API level. 
-* The `MemoryMeter` constructor and the static methods used to configure the different options (`omitSharedBufferOverhead`, `withGuessing`, `ignoreOuterClassReference`, `ignoreKnownSingletons`, `ignoreNonStrongReferences`, `enableDebug`) have been removed. Instead `MemoryMeter` instances must be created through a `Builder`.
+* The `MemoryMeter` constructor and the static methods used to configure the different options (`withGuessing`, `ignoreOuterClassReference`, `ignoreKnownSingletons`, `ignoreNonStrongReferences`, `enableDebug`) have been removed. Instead `MemoryMeter` instances must be created through a `Builder`.
+* The `omitSharedBufferOverhead` option has been removed. Instead a `ByteBufferMode` can be provided as an argument to `measureDeep`. The provided mode must match the way the application is creating SLABs for accurate results.
 * The ability to provide a tracker for visited object has been removed.
 * `Guess` values have been changed to each represent a single strategy. Fallback strategies can be defined through the `MemoryMeter.Builder::withGuessing` method.
 * `MemoryMeter.countChildren` has been removed.
 * The `MemoryMeter.measure` and `MemoryMeter.measureDeep` now accept `null` parameters
-* The behavior of the `omitSharedBufferOverhead` has been changed as it was incorrect. It was not counting correctly for direct ByteBuffers and considering some buffer has shared even if they were not.
 * Jamm is not trying anymore to support non Hotspot JVM (e.g. OpenJ9)
 * By default `MemoryMeter.measureDeep` is now ignoring the space occupied by known singletons such as `Class` objects, `enums`, `ClassLoaders`, `AccessControlContexts` as well as non-strong references
 (like weak/soft/phantom references). If you want `MemoryMeter` to measure them you need to enable those measurements through `MemoryMeter.builder().measureKnownSingletons()` and `MemoryMeter.builder().measureNonStrongReferences()`.
@@ -133,7 +133,7 @@ the given object. It is the safest strategy.
 This strategy requires `java.lang.instrument.Instrumentation` as the `Instrumentation` strategy and will use it 
 to measure non array object. For measuring arrays it will use the `Specification` strategy way.
 This strategy tries to combine the best of both strategies the accuracy and speed of `Instrumentation` for non array object
-and the speed of SPEC for measuring array objects for which all strategy are accurate. For some reason `Instrumentation` is slower for arrays.
+and the speed of `Specification` for measuring array objects for which all strategy are accurate. For some reason `Instrumentation` is slower for arrays before Java 17.
 
 ### Unsafe
 
@@ -235,8 +235,8 @@ measurement. Those fields are:
 * `queue` as it is a dummy queue referenced by all `Cleaner` instances
 * `next` and `prev` as they are used to create a doubly-linked list of live cleaners and therefore refer to other Cleaners instances
 
-If `slice`, `duplicate` or `asReadOnlyBuffer` is is used to create a new buffer from an heap buffer, the resulting buffer will have a reference to the original buffer array
-whereas if the buffer was a direct buffer the new buffer will have a direct reference to the original direct buffer:
+If `slice`, `duplicate` or `asReadOnlyBuffer` is used to create a new buffer from a heap buffer, the resulting buffer will have a reference to the original buffer array,
+whereas if the buffer was a direct buffer, the new buffer would have a direct reference to the original direct buffer:
 
 ```
 root [java.nio.DirectByteBuffer] 200 bytes (64 bytes)
@@ -251,13 +251,13 @@ In the `NORMAL` mode those underlying arrays and direct buffer size will always 
 
 ### SLAB allocation no slice mode
 
-The goal of this mode is to omit the size of the shared data in slabs when the the slabs are allocated through the us of: `duplicate().position(x).limit(y)`
-This is done by comparing the number of remaining bytes with the buffer capacity and taking into account only the remaining bytes for the size when the number of remaining bytes is smaller than the capacity.
+The goal of this mode is to omit the size of the shared data in slabs when the slabs are allocated through the use of: `duplicate().position(x).limit(y)`.
+This is done by comparing the number of remaining bytes with the buffer capacity and considering only the remaining bytes for the size when the number of remaining bytes is smaller than the capacity.
 
-### SLAB allocation no slice mode
+### SLAB allocation slice mode
 
-The goal of this mode is to omit the size of the shared data in slabs when the the slabs are allocated through the us of: `duplicate().position(x).limit(y).slice()`
-This is done by comparing the capacity of the buffer with the size of the array for heap buffers or with the size of the underlying buffer for direct buffers. If a buffer is considered as a slab only the capacity will be taken into account for the size.
+The goal of this mode is to omit the size of the shared data in slabs when the slabs are allocated through the use of: `duplicate().position(x).limit(y).slice()`.
+This is done by comparing the buffer's capacity with the array'size for heap buffers or with the size of the underlying buffer for direct buffers. If a buffer is considered a slab, only its capacity will considered for the size.
 
 ## @Contended
 

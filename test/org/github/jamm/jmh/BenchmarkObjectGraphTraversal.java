@@ -27,9 +27,10 @@ import org.openjdk.jmh.infra.Blackhole;
 @Threads(3)
 @Fork(value = 1, jvmArgsPrepend = {
         "-javaagent:target/jamm-0.4.0-SNAPSHOT.jar",
+//      "--add-opens=java.base/java.lang=ALL-UNNAMED"
 })
-@Warmup(iterations=4, time=5, timeUnit=TimeUnit.SECONDS)
-@Measurement(iterations=5, time=30, timeUnit=TimeUnit.SECONDS)
+@Warmup(iterations=4, time=5)
+@Measurement(iterations=5, time=5)
 @BenchmarkMode(Mode.AverageTime)
 @State(Scope.Thread)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -112,6 +113,11 @@ public class BenchmarkObjectGraphTraversal
 
         private int intField;
 
+        @Override
+        public long shallowSize(MemoryMeterStrategy strategy) {
+            return 1;
+        }
+
         public MeasurableClassWithOnePrimitiveFields(int intField) {
             this.intField = intField;
         }
@@ -142,6 +148,11 @@ public class BenchmarkObjectGraphTraversal
 
         public MeasurableClassWithOneObjectField(Object field) {
             this.field = field;
+        }
+
+        @Override
+        public long shallowSize(MemoryMeterStrategy strategy) {
+            return 1;
         }
 
         @Override
@@ -179,6 +190,11 @@ public class BenchmarkObjectGraphTraversal
             this.first = first;
             this.second = second;
             this.third = third;
+        }
+
+        @Override
+        public long shallowSize(MemoryMeterStrategy strategy) {
+            return 1;
         }
 
         @Override
@@ -221,6 +237,11 @@ public class BenchmarkObjectGraphTraversal
         }
 
         @Override
+        public long shallowSize(MemoryMeterStrategy strategy) {
+            return 1;
+        }
+
+        @Override
         public void addChildrenTo(MeasurementStack stack) {
             stack.pushObject(this, "second", second);
         }
@@ -251,6 +272,11 @@ public class BenchmarkObjectGraphTraversal
             super(first, second, third);
             this.fourth = fourth;
             this.fifth = fifth;
+        }
+
+        @Override
+        public long shallowSize(MemoryMeterStrategy strategy) {
+            return 1;
         }
 
         @Override

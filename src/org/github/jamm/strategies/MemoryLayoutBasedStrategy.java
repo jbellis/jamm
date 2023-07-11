@@ -2,7 +2,6 @@ package org.github.jamm.strategies;
 
 import java.lang.reflect.Array;
 
-import org.github.jamm.MemoryLayoutSpecification;
 import org.github.jamm.MemoryMeterStrategy;
 
 import static org.github.jamm.utils.MathUtils.roundTo;
@@ -12,23 +11,7 @@ import static org.github.jamm.utils.MathUtils.roundTo;
  */
 public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy {
 
-    /**
-     * The memory layout to use when computing object sizes.
-     */
-    protected final MemoryLayoutSpecification memoryLayout;
-
-    /**
-     * Array base is aligned based on heap word. It is not visible by default as compressed references are used and the
-     * header size is 16 but becomes visible when they are disabled.
-     */
-    private final int arrayBaseOffset;
-
-    public MemoryLayoutBasedStrategy(MemoryLayoutSpecification memoryLayout,
-                                     int arrayBaseOffset) {
-
-        this.memoryLayout = memoryLayout;
-        this.arrayBaseOffset = arrayBaseOffset;
-    }
+    private final static int ARRAY_BASE_OFFSET = MEMORY_LAYOUT.getArrayHeaderSize();
 
     @Override
     public final long measure(Object object) {
@@ -38,7 +21,7 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy {
 
     @Override
     public long measureArray(Object[] array) {
-        return computeArraySize(array.length, memoryLayout.getReferenceSize());
+        return computeArraySize(array.length, MEMORY_LAYOUT.getReferenceSize());
     }
 
     @Override
@@ -81,11 +64,6 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy {
         return computeArraySize(array.length, Double.BYTES);
     }
 
-    @Override
-    public long measureString(String s) {
-        return measure(s);
-    }
-
     /**
      * Measures the shallow memory used by objects of the specified class.
      *
@@ -114,6 +92,16 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy {
     }
 
     /**
+     * Returns the array base offset.
+     * <p>Array base is aligned based on heap word. It is not visible by default as compressed references are used and the
+     * header size is 16 but becomes visible when they are disabled. 
+     * @return the array base offset.
+     */
+    protected int arrayBaseOffset() {
+        return ARRAY_BASE_OFFSET;
+    }
+
+    /**
      * Computes the size of an array from its length and elementSize.
      *
      * @param length the array length
@@ -121,7 +109,7 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy {
      * @return the size of the array
      */
     public long computeArraySize(int length, int elementSize) {
-        return roundTo(arrayBaseOffset + length * (long) elementSize, memoryLayout.getObjectAlignment());
+        return roundTo(arrayBaseOffset() + length * (long) elementSize, MEMORY_LAYOUT.getObjectAlignment());
     }
 
     /**
@@ -130,7 +118,7 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy {
     protected final int measureField(Class<?> type) {
 
         if (!type.isPrimitive())
-            return memoryLayout.getReferenceSize();
+            return MEMORY_LAYOUT.getReferenceSize();
 
         if (type == boolean.class || type == byte.class)
             return 1;

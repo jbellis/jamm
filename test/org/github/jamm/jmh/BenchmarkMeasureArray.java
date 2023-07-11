@@ -24,8 +24,8 @@ import org.openjdk.jmh.infra.Blackhole;
 @Fork(value = 1, jvmArgsPrepend = {
         "-javaagent:target/jamm-0.4.0-SNAPSHOT.jar",
 })
-@Warmup(iterations=4, time=5, timeUnit=TimeUnit.SECONDS)
-@Measurement(iterations=5, time=5, timeUnit=TimeUnit.SECONDS)
+@Warmup(iterations=4, time=5)
+@Measurement(iterations=5, time=5)
 @BenchmarkMode(Mode.AverageTime)
 @State(Scope.Thread)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)

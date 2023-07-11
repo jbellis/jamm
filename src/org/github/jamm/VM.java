@@ -123,7 +123,7 @@ public final class VM
         String enableContended = getVMOption("EnableContended");
         return enableContended == null ? true : Boolean.parseBoolean(enableContended);
     }
-    
+
     /**
      * Returns the number of bytes used to pad the fields/classes annotated with {@code Contended}.
      * <p>The value will be between 0 and 8192 (inclusive) and will be a multiple of 8.</p>
@@ -140,8 +140,7 @@ public final class VM
      * Checks if the JVM is a 32 bits one.
      * @return {@code true} if the JVM is a 32 bits version, {@code false} otherwise.
      */
-    public static boolean is32Bits()
-    {
+    public static boolean is32Bits() {
         return "32".equals(System.getProperty("sun.arch.data.model"));
     }
 
@@ -149,17 +148,23 @@ public final class VM
      * Checks if the JVM is a pre-Java 12 version.
      * @return {@code true} if the JVM is a pre-Java 12 version, {@code false} otherwise.
      */
-    public static boolean isPreJava12JVM()
-    {
+    public static boolean isPreJava12JVM() {
         return IS_PRE_JAVA12_JVM;
+    }
+
+    /**
+     * Checks if {@code Unsafe} is available.
+     * @return {@code true} if unsafe is available, {@code false} otherwise.
+     */
+    public static boolean hasUnsafe() {
+        return UNSAFE != null;
     }
 
     /**
      * Returns {@code Unsafe} if it is available.
      * @return {@code Unsafe} if it is available, {@code null} otherwise.
      */
-    public static Unsafe getUnsafe()
-    {
+    public static Unsafe getUnsafe() {
         return UNSAFE;
     }
 
@@ -168,8 +173,7 @@ public final class VM
      *
      * @param obj the object to analyze
      */
-    public static void printOffsets(Object obj)
-    {
+    public static void printOffsets(Object obj) {
         if (UNSAFE == null)
             throw new IllegalStateException("printOffsets relies on Unsafe which could not be loaded");
 
@@ -185,12 +189,9 @@ public final class VM
         } else {
 
             Map<Long, String> fieldInfo = new TreeMap<>();
-            while (type != null)
-            {
-                for (Field f : type.getDeclaredFields())
-                {
-                    if (!Modifier.isStatic(f.getModifiers()))
-                    {
+            while (type != null) {
+                for (Field f : type.getDeclaredFields()) {
+                    if (!Modifier.isStatic(f.getModifiers())) {
                         long offset = UNSAFE.objectFieldOffset(f);
                         Class<?> fieldType = f.getType();
                         String fieldTypeAsString = fieldType.isArray() ? fieldType.getComponentType().getName() + "[]" : fieldType.getName();
@@ -207,14 +208,17 @@ public final class VM
         }
     }
 
-    private static Unsafe loadUnsafe()
-    {
+    private static Unsafe loadUnsafe() {
         try {
-            Field field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-            field.setAccessible(true);
-            return (sun.misc.Unsafe) field.get(null);
-        } catch (Exception e) {
-            return null;
+            return Unsafe.getUnsafe();
+        } catch (final Exception ex) {
+            try {
+                Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                field.setAccessible(true);
+                return (Unsafe) field.get(null);
+            } catch (Exception e) {
+                return null;
+            }
         }
     }
 

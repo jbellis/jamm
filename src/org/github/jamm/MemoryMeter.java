@@ -18,14 +18,14 @@ import static java.util.Collections.unmodifiableList;
 
 /**
  * Utility to measure the heap space used by java objects.
- * <p>This class support multithreading and can be reused safely.</p>
+ * <p>This class supports multithreading and can be reused safely.</p>
  */
 public final class MemoryMeter {
 
     public static void premain(String options, Instrumentation inst) {
         MemoryMeterStrategies.instrumentation = inst;
     }
-    
+
     public static void agentmain(String options, Instrumentation inst) {
         MemoryMeterStrategies.instrumentation = inst;
     }
@@ -36,6 +36,10 @@ public final class MemoryMeter {
 
     public static boolean hasUnsafe() {
         return MemoryMeterStrategies.getInstance().hasUnsafe();
+    }
+
+    public static boolean useStringOptimization() {
+        return StringMeter.ENABLE;
     }
 
     /**
@@ -53,9 +57,9 @@ public final class MemoryMeter {
             }
         },
         /**
-         * Relies on {@code java.lang.instrument.Instrumentation} to measure non array object and the SPEC approach to measure arrays.
+         * Relies on {@code java.lang.instrument.Instrumentation} to measure non array object and the {@code Specification} approach to measure arrays.
          * This strategy tries to combine the best of both strategies the accuracy and speed of {@code Instrumentation} for non array object
-         * and the speed of SPEC for measuring array objects for which all strategy are accurate. For some reason {@code Instrumentation} is slower for arrays.
+         * and the speed of {@code Specification} for measuring array objects for which all strategy are accurate. For some reason {@code Instrumentation} is slower for arrays before Java 17.
          */
         INSTRUMENTATION_AND_SPECIFICATION {
 
@@ -110,6 +114,16 @@ public final class MemoryMeter {
         public boolean canBeUsedAsFallbackFrom(Guess guess) {
             return false;
         }
+
+        public static void checkOrder(List<Guess> guesses) {
+            Guess previous = null;
+            for (Guess guess : guesses) {
+                if (previous != null && !guess.canBeUsedAsFallbackFrom(previous)) {
+                    throw new IllegalArgumentException("The " + guess + " strategy cannot be used as fallback for the " + previous + " strategy.");
+                }
+                previous = guess;
+            }
+        }
     }
 
     /**
@@ -127,7 +141,7 @@ public final class MemoryMeter {
         },
         /**
          * Mode used to handle SLAB allocated {@code ByteBuffers}, without slices, where the overhead amortized over all
-         * the allocations is negligible and we prefer to under count than over count.
+         * the allocations is negligible and we prefer to undercount than over count.
          */
         SLAB_ALLOCATION_NO_SLICE {
             @Override
@@ -138,7 +152,7 @@ public final class MemoryMeter {
         },
         /**
          * Mode used to handle SLAB allocated {@code ByteBuffers}, with slices, where the overhead amortized over all
-         * the allocations is negligible and we prefer to under count than over count.
+         * the allocations is negligible and we prefer to undercount than over count.
          */
         SLAB_ALLOCATION_SLICE {
             @Override
@@ -182,7 +196,7 @@ public final class MemoryMeter {
     /**
      * Filter used to determine which field should be ignored.
      */
-    protected final FieldFilter fieldFilter;
+    private final FieldFilter fieldFilter;
 
     /**
      * Utility used to optimize the deep measurement of String objects.
@@ -233,7 +247,7 @@ public final class MemoryMeter {
      * @return information about the memory layout used by the JVM
      */
     public static MemoryLayoutSpecification getMemoryLayoutSpecification() {
-        return MemoryMeterStrategies.getInstance().getMemoryLayoutSpecification();
+        return MemoryMeterStrategy.MEMORY_LAYOUT;
     }
 
     /**
@@ -404,16 +418,21 @@ public final class MemoryMeter {
      */
     public long measureStringDeep(String s) {
 
-        if (s == null)
-            return 0L;
+        if (StringMeter.ENABLE) {
 
-        return STRING_METER.measure(strategy, s);
+            if (s == null)
+                return 0L;
+
+            return STRING_METER.measureDeep(strategy, s);
+        }
+        return measureDeep(s);
     }
 
     /**
      * Measures the memory usage of the object including referenced objects.
      *
      * <p>If the object is {@code null} the value returned will be zero.</p>
+     * <p>Calling this method is equivalent to calling {@code measureDeep(object, ByteBufferMode)} with a {@code NORMAL} {@code ByteBufferMode}.</p>
      *
      * @param object the object to measure
      * @return the memory usage of @param object including referenced objects
@@ -452,8 +471,17 @@ public final class MemoryMeter {
             Object current = stack.pop();
 
             // Deal with optimizations first.
-            if (current instanceof String) {
-                total += measureStringWithChild((String) current, listener);
+            if (StringMeter.ENABLE && current instanceof String) {
+                String s = (String) current;
+                long size1 = measureDeep(s, listener);
+                total += size1;
+                continue;
+            }
+ 
+            if (current instanceof Measurable) {
+                Measurable measurable = (Measurable) current;
+                total += measure(measurable, listener);
+                measurable.addChildrenTo(stack);
                 continue;
             }
 
@@ -467,29 +495,31 @@ public final class MemoryMeter {
                 if (!cls.getComponentType().isPrimitive())
                     addArrayElements((Object[]) current, stack);
              } else {
-                 if (current instanceof Measurable) {
-                     ((Measurable) current).addChildrenTo(stack);
-                } else {
-                    if (current instanceof ByteBuffer && bbMode.isSlab((ByteBuffer) current)) {
-                        ByteBuffer buffer = (ByteBuffer) current;
-                        if (!buffer.isDirect()) { // If direct we should simply not measure the fields
-                            long remaining = buffer.remaining();
-                            listener.byteBufferRemainingMeasured(buffer, remaining);
-                            total += remaining;
-                        }
-                        continue;
+                if (current instanceof ByteBuffer && bbMode.isSlab((ByteBuffer) current)) {
+                    ByteBuffer buffer = (ByteBuffer) current;
+                    if (!buffer.isDirect()) { // If direct we should simply not measure the fields
+                        long remaining = buffer.remaining();
+                        listener.byteBufferRemainingMeasured(buffer, remaining);
+                        total += remaining;
                     }
-                    addFields(current, cls, stack);
+                    continue;
                 }
+                addFields(current, cls, stack);
             }
         } 
         listener.done(total);
         return total;
     }
 
-    private long measureStringWithChild(String s, MemoryMeterListener listener) {
-        long size = STRING_METER.measure(strategy, s);
+    private long measureDeep(String s, MemoryMeterListener listener) {
+        long size = STRING_METER.measureDeep(strategy, s);
         listener.objectMeasured(s, size);
+        return size;
+    }
+
+    private long measure(Measurable measurable, MemoryMeterListener listener) {
+        long size = measurable.shallowSize(strategy);
+        listener.objectMeasured(measurable, size);
         return size;
     }
 
@@ -554,11 +584,6 @@ public final class MemoryMeter {
     public static final class Builder {
 
         /**
-         * The default guesses in accuracy order.
-         */
-        private static final List<Guess> BEST = unmodifiableList(asList(Guess.INSTRUMENTATION, Guess.UNSAFE, Guess.SPECIFICATION));
-
-        /**
          * The strategy to perform shallow measurements and its fallback strategies in case the required classes are not available. 
          */
         private List<Guess> guesses = BEST;
@@ -578,18 +603,19 @@ public final class MemoryMeter {
         /**
          * Specify what should be the strategy used to measure the shallow size of object.
          */
-        public Builder withGuessing(Guess measurementStrategy, Guess... fallbacks) {
+        public Builder withGuessing(Guess strategy, Guess... fallbacks) {
 
-            List<Guess> guessList = new ArrayList<>(fallbacks.length + 1);
-            guessList.add(measurementStrategy);
-            Guess previous = measurementStrategy;
-            for (Guess fallback : fallbacks) {
-                if (!fallback.canBeUsedAsFallbackFrom(previous)) {
-                    throw new IllegalArgumentException("The " + fallback + " strategy cannot be used as fallback for the " + previous + " strategy.");
-                }
-                guessList.add(fallback);
-            }
-            this.guesses = guessList;
+            if (strategy == null)
+                throw new IllegalArgumentException("The strategy parameter should not be null");
+
+            List<Guess> guesseList = new ArrayList<>();
+            guesseList.add(strategy);
+            for (Guess guess : fallbacks)
+                guesseList.add(guess);
+
+            Guess.checkOrder(guesseList);
+
+            this.guesses = guesseList;
             return this;
         }
 
