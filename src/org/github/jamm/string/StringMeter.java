@@ -21,6 +21,11 @@ import static org.github.jamm.utils.MethodHandleUtils.methodHandle;
 public abstract class StringMeter {
 
     /**
+     * Enable or disable string optimization through the {@code org.github.jamm.string.Optimize} String system property. {@code true} by default.
+     */
+    public static final boolean ENABLE = Boolean.parseBoolean(System.getProperty("org.github.jamm.string.Optimize", "true"));
+
+    /**
      * The String shallow size stored as a constant to have it compiled directly into the measure method.
      */
     public static final long STRING_SHALLOW_SIZE = MemoryMeterStrategies.getInstance()
@@ -34,7 +39,7 @@ public abstract class StringMeter {
      * @param s the string
      * @return the size of the deep string
      */
-    public long measure(MemoryMeterStrategy strategy, String s) {
+    public long measureDeep(MemoryMeterStrategy strategy, String s) {
         return STRING_SHALLOW_SIZE + measureStringValue(strategy, s);
     }
 
@@ -53,22 +58,23 @@ public abstract class StringMeter {
      */
     public static StringMeter newInstance() {
 
-        try
-        {
+        try {
             Field field = String.class.getDeclaredField("value");
 
             Optional<MethodHandle> mayBeTrySetAccessible = MethodHandleUtils.mayBeMethodHandle(Field.class, "trySetAccessible"); // Added in Java 9
             if (mayBeTrySetAccessible.isPresent()) {
 
-                if ((boolean) mayBeTrySetAccessible.get().invoke(field)) {
-                    return new PlainReflectionStringMeter(methodHandle(field));
-                }
-                // We do not have access to the field through reflection we need to use Unsafe
+                // Base on the JMH benchmarks, Unsafe is faster than using a MethodHandle so we try to use Unsafe first and default to reflection if it is unavailable.  
                 Unsafe unsafe = VM.getUnsafe();
 
-                if (unsafe == null)
+                if (unsafe == null) {
+
+                    if ((boolean) mayBeTrySetAccessible.get().invoke(field)) {
+                        return new PlainReflectionStringMeter(methodHandle(field));
+                    }
                     throw new CannotAccessFieldException("The value of the 'value' field from java.lang.String"
                                                          + " cannot be retrieved as the field cannot be made accessible and Unsafe is unavailable");
+                }
 
                 long valueFieldOffset = unsafe.objectFieldOffset(field);
                 return new UnsafeStringMeter(unsafe, valueFieldOffset);

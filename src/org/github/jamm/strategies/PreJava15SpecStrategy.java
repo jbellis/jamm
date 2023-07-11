@@ -3,12 +3,10 @@ package org.github.jamm.strategies;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
-import org.github.jamm.MemoryLayoutSpecification;
-
-import static org.github.jamm.strategies.ContendedUtils.isContendedEnabled;
-import static org.github.jamm.utils.MathUtils.roundTo;
 import static org.github.jamm.strategies.ContendedUtils.countContentionGroup;
 import static org.github.jamm.strategies.ContendedUtils.isClassAnnotatedWithContended;
+import static org.github.jamm.strategies.ContendedUtils.isContendedEnabled;
+import static org.github.jamm.utils.MathUtils.roundTo;
 
 /**
  * {@code MemoryMeterStrategy} that computes the size of the memory occupied by an object, in a pre-Java 15 JVM, based on 
@@ -102,11 +100,7 @@ import static org.github.jamm.strategies.ContendedUtils.isClassAnnotatedWithCont
  * </p>
  * <p> For more inside on the Java Object Layout, I highly recommend the excellent <a href="https://shipilev.net/jvm/objects-inside-out/">Java Objects Inside Out</a> blog post from Aleksey Shipilëv.
  */
-class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
-{
-    public PreJava15SpecStrategy(MemoryLayoutSpecification memoryLayout) {
-        super(memoryLayout, memoryLayout.getArrayHeaderSize());
-    }
+class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy {
 
     /**
      * Align the size of the fields.
@@ -117,14 +111,14 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
      * @return the size of the class fields aligned.
      */
     protected long alignFieldBlock(long sizeOfDeclaredFields) {
-        return roundTo(sizeOfDeclaredFields, memoryLayout.getReferenceSize());
+        return roundTo(sizeOfDeclaredFields, MEMORY_LAYOUT.getReferenceSize());
     }
 
     @Override
     public final long measureInstance(Object instance, Class<?> type) {
 
         long size = sizeOfFields(type, false);
-        return roundTo(size, memoryLayout.getObjectAlignment());
+        return roundTo(size, MEMORY_LAYOUT.getObjectAlignment());
     }
 
     private long sizeOfFields(Class<?> type, boolean useFieldBlockAlignment) {
@@ -132,7 +126,7 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
         final boolean isContendedEnabled = isContendedEnabled(type); 
 
         if (type == Object.class)
-            return memoryLayout.getObjectHeaderSize();
+            return MEMORY_LAYOUT.getObjectHeaderSize();
 
         long size = sizeOfFields(type.getSuperclass(), true);
 
@@ -168,10 +162,10 @@ class PreJava15SpecStrategy extends MemoryLayoutBasedStrategy
          * in a superclass and subclass, represent distinct contention groups.
          */
         if (isContendedEnabled && isClassAnnotatedWithContended(type))
-            size += (memoryLayout.getContendedPaddingWidth() << 1);
+            size += (MEMORY_LAYOUT.getContendedPaddingWidth() << 1);
 
         if (contentionGroupCounter != null)
-            size += (contentionGroupCounter.count() + 1) * memoryLayout.getContendedPaddingWidth(); // 1 padding before each group + 1 at the end
+            size += (contentionGroupCounter.count() + 1) * MEMORY_LAYOUT.getContendedPaddingWidth(); // 1 padding before each group + 1 at the end
 
         return size;
     }

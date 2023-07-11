@@ -7,6 +7,11 @@ package org.github.jamm;
 public interface MemoryMeterStrategy {
 
     /**
+     * The memory layout detected by JAMM.
+     */
+    MemoryLayoutSpecification MEMORY_LAYOUT = MemoryLayoutSpecification.getEffectiveMemoryLayoutSpecification();
+
+    /**
      * Measures the shallow memory used by the specified object.
      *
      * @param object the object to measure
@@ -31,8 +36,7 @@ public interface MemoryMeterStrategy {
      * @param array the array to measure
      * @return the shallow memory used by the specified array.
      */
-    default long measureArray(Object[] array)
-    {
+    default long measureArray(Object[] array) {
         return measure(array);
     }
 
@@ -42,8 +46,7 @@ public interface MemoryMeterStrategy {
      * @param array the array to measure
      * @return the shallow memory used by the specified byte array.
      */
-    default long measureArray(byte[] array)
-    {
+    default long measureArray(byte[] array) {
         return measure(array);
     }
 
@@ -53,8 +56,7 @@ public interface MemoryMeterStrategy {
      * @param array the boolean array to measure
      * @return the shallow memory used by the specified boolean array.
      */
-    default long measureArray(boolean[] array)
-    {
+    default long measureArray(boolean[] array) {
         return measure(array);
     }
 
@@ -64,41 +66,37 @@ public interface MemoryMeterStrategy {
      * @param array the short array to measure
      * @return the shallow memory used by the specified short array.
      */
-    default long measureArray(short[] array)
-    {
+    default long measureArray(short[] array) {
         return measure(array);
     }
-    
+
     /**
      * Measures the shallow memory used by the specified char array.
      *
      * @param array the char array to measure
      * @return the shallow memory used by the specified char array.
      */
-    default long measureArray(char[] array)
-    {
+    default long measureArray(char[] array) {
         return measure(array);
     }
-    
+
     /**
      * Measures the shallow memory used by the specified int array.
      *
      * @param array the int array to measure
      * @return the shallow memory used by the specified int array.
      */
-    default long measureArray(int[] array)
-    {
+    default long measureArray(int[] array) {
         return measure(array);
     }
-    
+
     /**
      * Measures the shallow memory used by the specified float array.
      *
      * @param array the float array to measure
      * @return the shallow memory used by the specified float array.
      */
-    default long measureArray(float[] array)
-    {
+    default long measureArray(float[] array) {
         return measure(array);
     }
 
@@ -108,8 +106,7 @@ public interface MemoryMeterStrategy {
      * @param array the long array to measure
      * @return the shallow memory used by the specified long array.
      */
-    default long measureArray(long[] array)
-    {
+    default long measureArray(long[] array) {
         return measure(array);
     }
 
@@ -119,24 +116,12 @@ public interface MemoryMeterStrategy {
      * @param array the long array to measure
      * @return the shallow memory used by the specified double array.
      */
-    default long measureArray(double[] array)
-    {
+    default long measureArray(double[] array) {
         return measure(array);
     }
 
     /**
-     * Measures the shallow memory used by the specified {@code String}.
-     *
-     * @param s the {@code String} to measure
-     * @return the shallow memory used by the specified {@code String}.
-     */
-    default long measureString(String s)
-    {
-        return measure(s);
-    }
-
-    /**
-     * Checks if this instance support the {@code computeArraySize} operation.
+     * Checks if this instance supports the {@code computeArraySize} operation.
      * @return {@code true} if this instance support the {@code computeArraySize} operation, {@code false} otherwise.
      */
     default boolean supportComputeArraySize() {

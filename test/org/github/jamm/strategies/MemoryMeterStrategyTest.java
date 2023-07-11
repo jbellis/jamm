@@ -32,8 +32,8 @@ import static org.github.jamm.MemoryMeter.ByteBufferMode.SLAB_ALLOCATION_SLICE;
  * returned by the instrumentation strategy.
  */
 @RunWith(Parameterized.class)
-public class MemoryMeterStrategyTest
-{
+public class MemoryMeterStrategyTest {
+
     private final MemoryMeter.Guess guess;
 
     private MemoryMeter tested;
@@ -340,6 +340,7 @@ public class MemoryMeterStrategyTest
 
         expected = sizeShallowEmptyBuffer + reference.measureArray(twenty.array());
         assertEquals("Deep ByteBuffer", expected, m1.measureDeep(twenty));
+        assertEquals("Deep ByteBuffer", expected, m1.measureDeep(twentySlice));
         assertEquals("Deep read-only ByteBuffer", expected, m1.measureDeep(readOnlyTwenty));
         assertEquals("Deep read-only ByteBuffer", expected, m1.measureDeep(readOnlyTwentySlice));
 
@@ -378,6 +379,7 @@ public class MemoryMeterStrategyTest
 
         expected = sizeShallowEmptyBuffer + reference.measureArray(twenty.array());
         assertEquals("Deep ByteBuffer", expected, m2.measureDeep(twenty, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep ByteBuffer", expected, m2.measureDeep(twentySlice, SLAB_ALLOCATION_NO_SLICE));
         assertEquals("Deep read-only ByteBuffer", expected, m2.measureDeep(readOnlyTwenty, SLAB_ALLOCATION_NO_SLICE));
         assertEquals("Deep read-only ByteBuffer", expected, m2.measureDeep(readOnlyTwentySlice, SLAB_ALLOCATION_NO_SLICE));
 
@@ -418,6 +420,7 @@ public class MemoryMeterStrategyTest
 
         expected = sizeShallowEmptyBuffer + reference.measureArray(twenty.array());
         assertEquals("Deep ByteBuffer", expected, m3.measureDeep(twenty, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep ByteBuffer", expected, m3.measureDeep(twentySlice, SLAB_ALLOCATION_SLICE));
         assertEquals("Deep read-only ByteBuffer", expected, m3.measureDeep(readOnlyTwenty, SLAB_ALLOCATION_SLICE));
         assertEquals("Deep read-only ByteBuffer", expected, m3.measureDeep(readOnlyTwentySlice, SLAB_ALLOCATION_SLICE));
 
@@ -476,12 +479,12 @@ public class MemoryMeterStrategyTest
         ByteBuffer fivePositionAndLimitShiftSlice = ((ByteBuffer) twenty.duplicate().position(10).limit(15)).slice();
         ByteBuffer readOnlyFivePositionAndLimitShiftSlice = fivePositionAndLimitShiftSlice.asReadOnlyBuffer();
 
-        MemoryMeter m1 = MemoryMeter.builder().withGuessing(guess).build();
+        MemoryMeter m = MemoryMeter.builder().withGuessing(guess).build();
 
         // Read-only and normal direct ByteBuffer have the same fields and therefore the same size
         long sizeShallowBuffer = reference.measure(empty);
-        assertEquals("empty ByteBuffer", sizeShallowBuffer, m1.measure(empty));
-        assertEquals("empty ByteBuffer", sizeShallowBuffer, m1.measure(readOnlyEmpty));
+        assertEquals("empty ByteBuffer", sizeShallowBuffer, m.measure(empty));
+        assertEquals("empty ByteBuffer", sizeShallowBuffer, m.measure(readOnlyEmpty));
 
         // Measure deep will include reference to the cleaner for Read-write buffers
         //
@@ -491,12 +494,12 @@ public class MemoryMeterStrategyTest
         //     |
         //     +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
         long sizeDeepRwBuffer = reference.measureDeep(empty);
-        assertEquals("Deep empty ByteBuffer", sizeDeepRwBuffer, m1.measureDeep(empty));
-        assertEquals("Deep 1-byte ByteBuffer", sizeDeepRwBuffer, m1.measureDeep(one));
+        assertEquals("Deep empty ByteBuffer", sizeDeepRwBuffer, m.measureDeep(empty));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepRwBuffer, m.measureDeep(one));
 
 
         // If a DirectByteBuffer is referencing a part of another DirectByteBuffer (read only, duplicate or slice buffer), it will have a 
-        // reference to the original buffer through the att (attachement) field and no cleaner
+        // reference to the original buffer through the att (attachment) field and no cleaner
         long sizeDeepWithAttachedBuffer = sizeShallowBuffer + sizeDeepRwBuffer;
         // root [java.nio.DirectByteBufferR] 200 bytes (64 bytes)
         //   |
@@ -506,18 +509,18 @@ public class MemoryMeterStrategyTest
         //       |
         //       +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
         //
-        assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyEmpty));
-        assertEquals("Deep 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyOne));
+        assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m.measureDeep(readOnlyEmpty));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m.measureDeep(readOnlyOne));
 
-        assertEquals("Deep duplicated ByteBuffer with position shift", sizeDeepWithAttachedBuffer, m1.measureDeep(emptyPositionShift));
-        assertEquals("Deep duplicated ByteBuffer with limit shift", sizeDeepWithAttachedBuffer, m1.measureDeep(emptyLimitShift));
+        assertEquals("Deep duplicated ByteBuffer with position shift", sizeDeepWithAttachedBuffer, m.measureDeep(emptyPositionShift));
+        assertEquals("Deep duplicated ByteBuffer with limit shift", sizeDeepWithAttachedBuffer, m.measureDeep(emptyLimitShift));
 
-        assertEquals("Deep ByteBuffer", sizeDeepRwBuffer, m1.measureDeep(twenty));
-        assertEquals("Deep read-only ByteBuffer", sizeDeepWithAttachedBuffer, m1.measureDeep(readOnlyTwenty));
+        assertEquals("Deep ByteBuffer", sizeDeepRwBuffer, m.measureDeep(twenty));
+        assertEquals("Deep read-only ByteBuffer", sizeDeepWithAttachedBuffer, m.measureDeep(readOnlyTwenty));
 
-        assertEquals("Deep duplicated ByteBuffer with position shift", sizeDeepWithAttachedBuffer, m1.measureDeep(fivePositionShift));
-        assertEquals("Deep duplicated ByteBuffer with limit shift", sizeDeepWithAttachedBuffer, m1.measureDeep(fiveLimitShift));
-        assertEquals("Deep duplicated ByteBuffer with position and limit shift", sizeDeepWithAttachedBuffer, m1.measureDeep(fivePositionAndLimitShift));
+        assertEquals("Deep duplicated ByteBuffer with position shift", sizeDeepWithAttachedBuffer, m.measureDeep(fivePositionShift));
+        assertEquals("Deep duplicated ByteBuffer with limit shift", sizeDeepWithAttachedBuffer, m.measureDeep(fiveLimitShift));
+        assertEquals("Deep duplicated ByteBuffer with position and limit shift", sizeDeepWithAttachedBuffer, m.measureDeep(fivePositionAndLimitShift));
 
         // Pre java 12, a DirectByteBuffer created from another DirectByteBuffer was using the source buffer as an attachment
         // for liveness rather than the source buffer's attachment (https://bugs.openjdk.org/browse/JDK-8208362)
@@ -533,16 +536,16 @@ public class MemoryMeterStrategyTest
         //      +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
         //
         long sizeDeepWithMultiLayersOfReferences = VM.isPreJava12JVM() ? sizeShallowBuffer + sizeDeepWithAttachedBuffer : sizeDeepWithAttachedBuffer;
-        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyEmptyPositionShift));
-        assertEquals("Deep read-only duplicated ByteBuffer with limit shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyEmptyLimitShift));
-        assertEquals("Deep read-only ByteBuffer", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyTwentySlice));
-        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyFivePositionShift));
-        assertEquals("Deep duplicated read-only ByteBuffer with limit shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyFiveLimitShift));
-        assertEquals("Deep duplicated read-only ByteBuffer with position and limit shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyFivePositionAndLimitShift));
+        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyEmptyPositionShift));
+        assertEquals("Deep read-only duplicated ByteBuffer with limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyEmptyLimitShift));
+        assertEquals("Deep read-only ByteBuffer", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyTwentySlice));
+        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFivePositionShift));
+        assertEquals("Deep duplicated read-only ByteBuffer with limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFiveLimitShift));
+        assertEquals("Deep duplicated read-only ByteBuffer with position and limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFivePositionAndLimitShift));
 
-        assertEquals("Deep ByteBuffer slice with position shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(fivePositionShiftSlice));
-        assertEquals("Deep ByteBuffer slice with limit shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(fiveLimitShiftSlice));
-        assertEquals("Deep ByteBuffer slice with position and limit shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(fivePositionAndLimitShiftSlice));
+        assertEquals("Deep ByteBuffer slice with position shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(fivePositionShiftSlice));
+        assertEquals("Deep ByteBuffer slice with limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(fiveLimitShiftSlice));
+        assertEquals("Deep ByteBuffer slice with position and limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(fivePositionAndLimitShiftSlice));
 
         // With Java < 12:
         // root [java.nio.DirectByteBufferR] 328 bytes (64 bytes)
@@ -558,28 +561,26 @@ public class MemoryMeterStrategyTest
         //           +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
         //
         sizeDeepWithMultiLayersOfReferences = VM.isPreJava12JVM() ? (2 * sizeShallowBuffer) + sizeDeepWithAttachedBuffer : sizeDeepWithAttachedBuffer;
-        assertEquals("Deep read-only ByteBuffer slice with position shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyFivePositionShiftSlice));
-        assertEquals("Deep read-only ByteBuffer slice with limit shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyFiveLimitShiftSlice));
-        assertEquals("Deep read-only ByteBuffer slice with position and limit shift", sizeDeepWithMultiLayersOfReferences, m1.measureDeep(readOnlyFivePositionAndLimitShiftSlice));
+        assertEquals("Deep read-only ByteBuffer slice with position shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFivePositionShiftSlice));
+        assertEquals("Deep read-only ByteBuffer slice with limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFiveLimitShiftSlice));
+        assertEquals("Deep read-only ByteBuffer slice with position and limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFivePositionAndLimitShiftSlice));
 
         // Test omitting shared overhead for slab WITHOUT slice
-        MemoryMeter m2 = MemoryMeter.builder().withGuessing(guess).build();
-
-        assertEquals("Deep empty ByteBuffer", sizeDeepRwBuffer, m2.measureDeep(empty, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep 1-byte ByteBuffer", sizeDeepRwBuffer, m2.measureDeep(one, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep empty ByteBuffer", sizeDeepRwBuffer, m.measureDeep(empty, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepRwBuffer, m.measureDeep(one, SLAB_ALLOCATION_NO_SLICE));
 
 
-        assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyEmpty, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyOne, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m.measureDeep(readOnlyEmpty, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m.measureDeep(readOnlyOne, SLAB_ALLOCATION_NO_SLICE));
 
-        assertEquals("Deep duplicated ByteBuffer with position shift", sizeShallowBuffer, m2.measureDeep(emptyPositionShift, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeShallowBuffer, m2.measureDeep(readOnlyEmptyPositionShift, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep duplicated ByteBuffer with position shift", sizeShallowBuffer, m.measureDeep(emptyPositionShift, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeShallowBuffer, m.measureDeep(readOnlyEmptyPositionShift, SLAB_ALLOCATION_NO_SLICE));
 
-        assertEquals("Deep duplicated ByteBuffer with limit shift", sizeShallowBuffer, m2.measureDeep(emptyLimitShift, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep read-only duplicated ByteBuffer with limit shift", sizeShallowBuffer, m2.measureDeep(readOnlyEmptyLimitShift, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep duplicated ByteBuffer with limit shift", sizeShallowBuffer, m.measureDeep(emptyLimitShift, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep read-only duplicated ByteBuffer with limit shift", sizeShallowBuffer, m.measureDeep(readOnlyEmptyLimitShift, SLAB_ALLOCATION_NO_SLICE));
 
-        assertEquals("Deep ByteBuffer", sizeDeepRwBuffer, m2.measureDeep(twenty, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep read-only ByteBuffer", sizeDeepWithAttachedBuffer, m2.measureDeep(readOnlyTwenty, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep ByteBuffer", sizeDeepRwBuffer, m.measureDeep(twenty, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep read-only ByteBuffer", sizeDeepWithAttachedBuffer, m.measureDeep(readOnlyTwenty, SLAB_ALLOCATION_NO_SLICE));
 
         // Pre java 12, a DirectByteBuffer created from another DirectByteBuffer was using the source buffer as an attachment
         // for liveness rather than the source buffer's attachment (https://bugs.openjdk.org/browse/JDK-8208362)
@@ -595,26 +596,26 @@ public class MemoryMeterStrategyTest
         //      +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
         //
         sizeDeepWithMultiLayersOfReferences = VM.isPreJava12JVM() ? sizeShallowBuffer + sizeDeepWithAttachedBuffer : sizeDeepWithAttachedBuffer;
-        assertEquals("Deep read-only ByteBuffer", sizeDeepWithMultiLayersOfReferences, m2.measureDeep(readOnlyTwentySlice, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep read-only ByteBuffer", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyTwentySlice, SLAB_ALLOCATION_NO_SLICE));
 
         // Even if the is read-only MemoryMeter can efficiently determine that the buffer are slabs 
-        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeShallowBuffer, m2.measureDeep(readOnlyEmptyPositionShift, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep read-only duplicated ByteBuffer with limit shift", sizeShallowBuffer, m2.measureDeep(readOnlyEmptyLimitShift, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeShallowBuffer, m2.measureDeep(readOnlyFivePositionShift, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep duplicated read-only ByteBuffer with limit shift", sizeShallowBuffer, m2.measureDeep(readOnlyFiveLimitShift, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep duplicated read-only ByteBuffer with position and limit shift", sizeShallowBuffer, m2.measureDeep(readOnlyFivePositionAndLimitShift, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeShallowBuffer, m.measureDeep(readOnlyEmptyPositionShift, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep read-only duplicated ByteBuffer with limit shift", sizeShallowBuffer, m.measureDeep(readOnlyEmptyLimitShift, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeShallowBuffer, m.measureDeep(readOnlyFivePositionShift, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep duplicated read-only ByteBuffer with limit shift", sizeShallowBuffer, m.measureDeep(readOnlyFiveLimitShift, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep duplicated read-only ByteBuffer with position and limit shift", sizeShallowBuffer, m.measureDeep(readOnlyFivePositionAndLimitShift, SLAB_ALLOCATION_NO_SLICE));
 
         // With Java < 12, the top slice as capacity == remaining but the attached duplicated buffer as a capacity < remaining and is considered as a slab.
-        // Therefore the original buffer is ignored: 
+        // Therefore, the original buffer is ignored: 
         // root [java.nio.DirectByteBuffer] 128 bytes (64 bytes)
         //   |
         //   +--att [java.nio.DirectByteBuffer] 64 bytes (64 bytes)
         //
         // With Java >= 12, the slice has capacity = remaining and the underlying buffer is the original one so capacity = remaining too.
         sizeDeepWithMultiLayersOfReferences = VM.isPreJava12JVM() ? 2 * sizeShallowBuffer : sizeDeepWithAttachedBuffer;
-        assertEquals("Deep ByteBuffer slice with position shift", sizeDeepWithMultiLayersOfReferences, m2.measureDeep(fivePositionShiftSlice, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep ByteBuffer slice with limit shift", sizeDeepWithMultiLayersOfReferences, m2.measureDeep(fiveLimitShiftSlice, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep ByteBuffer slice with position and limit shift", sizeDeepWithMultiLayersOfReferences, m2.measureDeep(fivePositionAndLimitShiftSlice, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep ByteBuffer slice with position shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(fivePositionShiftSlice, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep ByteBuffer slice with limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(fiveLimitShiftSlice, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep ByteBuffer slice with position and limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(fivePositionAndLimitShiftSlice, SLAB_ALLOCATION_NO_SLICE));
 
         // MemoryMeter does not see the read-only buffer and top slice as a slab but detect that the slice underlying buffer is a slab.
         // With Java < 12:
@@ -625,21 +626,18 @@ public class MemoryMeterStrategyTest
         //     +--att [java.nio.DirectByteBuffer] 64 bytes (64 bytes)
         //
         sizeDeepWithMultiLayersOfReferences = VM.isPreJava12JVM() ? (3 * sizeShallowBuffer) : sizeDeepWithAttachedBuffer;
-        assertEquals("Deep read-only ByteBuffer slice with position shift", sizeDeepWithMultiLayersOfReferences, m2.measureDeep(readOnlyFivePositionShiftSlice, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep read-only ByteBuffer slice with limit shift", sizeDeepWithMultiLayersOfReferences, m2.measureDeep(readOnlyFiveLimitShiftSlice, SLAB_ALLOCATION_NO_SLICE));
-        assertEquals("Deep read-only ByteBuffer slice with position and limit shift", sizeDeepWithMultiLayersOfReferences, m2.measureDeep(readOnlyFivePositionAndLimitShiftSlice, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep read-only ByteBuffer slice with position shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFivePositionShiftSlice, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep read-only ByteBuffer slice with limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFiveLimitShiftSlice, SLAB_ALLOCATION_NO_SLICE));
+        assertEquals("Deep read-only ByteBuffer slice with position and limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFivePositionAndLimitShiftSlice, SLAB_ALLOCATION_NO_SLICE));
 
         // Test omitting shared overhead for slab WITH slice
-        MemoryMeter m3 = MemoryMeter.builder().withGuessing(guess).build();
+        assertEquals("Deep empty ByteBuffer", sizeDeepRwBuffer, m.measureDeep(empty, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepRwBuffer, m.measureDeep(one, SLAB_ALLOCATION_SLICE));
 
-        assertEquals("Deep empty ByteBuffer", sizeDeepRwBuffer, m3.measureDeep(empty, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep 1-byte ByteBuffer", sizeDeepRwBuffer, m3.measureDeep(one, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m.measureDeep(readOnlyEmpty, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m.measureDeep(readOnlyOne, SLAB_ALLOCATION_SLICE));
 
-
-        assertEquals("Deep empty ByteBuffer", sizeDeepWithAttachedBuffer, m3.measureDeep(readOnlyEmpty, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep 1-byte ByteBuffer", sizeDeepWithAttachedBuffer, m3.measureDeep(readOnlyOne, SLAB_ALLOCATION_SLICE));
-
-        assertEquals("Deep duplicated ByteBuffer with position shift", sizeDeepWithAttachedBuffer, m3.measureDeep(emptyPositionShift, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep duplicated ByteBuffer with position shift", sizeDeepWithAttachedBuffer, m.measureDeep(emptyPositionShift, SLAB_ALLOCATION_SLICE));
         // Pre java 12, a DirectByteBuffer created from another DirectByteBuffer was using the source buffer as an attachment
         // for liveness rather than the source buffer's attachment (https://bugs.openjdk.org/browse/JDK-8208362)
         // With Java < 12:
@@ -654,20 +652,20 @@ public class MemoryMeterStrategyTest
         //      +--thunk [java.nio.DirectByteBuffer$Deallocator] 32 bytes (32 bytes)
         //
         sizeDeepWithMultiLayersOfReferences = VM.isPreJava12JVM() ? sizeShallowBuffer + sizeDeepWithAttachedBuffer : sizeDeepWithAttachedBuffer;
-        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeDeepWithMultiLayersOfReferences, m3.measureDeep(readOnlyEmptyPositionShift, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep read-only duplicated ByteBuffer with limit shift", sizeDeepWithMultiLayersOfReferences, m3.measureDeep(readOnlyEmptyLimitShift, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep read-only ByteBuffer", sizeDeepWithMultiLayersOfReferences, m3.measureDeep(readOnlyTwentySlice, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeDeepWithMultiLayersOfReferences, m3.measureDeep(readOnlyFivePositionShift, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep duplicated read-only ByteBuffer with limit shift", sizeDeepWithMultiLayersOfReferences, m3.measureDeep(readOnlyFiveLimitShift, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep duplicated read-only ByteBuffer with position and limit shift", sizeDeepWithMultiLayersOfReferences, m3.measureDeep(readOnlyFivePositionAndLimitShift, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyEmptyPositionShift, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep read-only duplicated ByteBuffer with limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyEmptyLimitShift, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep read-only ByteBuffer", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyTwentySlice, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep read-only duplicated ByteBuffer with position shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFivePositionShift, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep duplicated read-only ByteBuffer with limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFiveLimitShift, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep duplicated read-only ByteBuffer with position and limit shift", sizeDeepWithMultiLayersOfReferences, m.measureDeep(readOnlyFivePositionAndLimitShift, SLAB_ALLOCATION_SLICE));
 
-        // MemoryMetter can identify all the slice as slabs
-        assertEquals("Deep ByteBuffer slice with position shift", sizeShallowBuffer, m3.measureDeep(fivePositionShiftSlice, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep ByteBuffer slice with limit shift", sizeShallowBuffer, m3.measureDeep(fiveLimitShiftSlice, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep ByteBuffer slice with position and limit shift", sizeShallowBuffer, m3.measureDeep(fivePositionAndLimitShiftSlice, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep read-only ByteBuffer slice with position shift", sizeShallowBuffer, m3.measureDeep(readOnlyFivePositionShiftSlice, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep read-only ByteBuffer slice with limit shift", sizeShallowBuffer, m3.measureDeep(readOnlyFiveLimitShiftSlice, SLAB_ALLOCATION_SLICE));
-        assertEquals("Deep read-only ByteBuffer slice with position and limit shift", sizeShallowBuffer, m3.measureDeep(readOnlyFivePositionAndLimitShiftSlice, SLAB_ALLOCATION_SLICE));
+        // MemoryMeter can identify all the slice as slabs
+        assertEquals("Deep ByteBuffer slice with position shift", sizeShallowBuffer, m.measureDeep(fivePositionShiftSlice, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep ByteBuffer slice with limit shift", sizeShallowBuffer, m.measureDeep(fiveLimitShiftSlice, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep ByteBuffer slice with position and limit shift", sizeShallowBuffer, m.measureDeep(fivePositionAndLimitShiftSlice, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep read-only ByteBuffer slice with position shift", sizeShallowBuffer, m.measureDeep(readOnlyFivePositionShiftSlice, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep read-only ByteBuffer slice with limit shift", sizeShallowBuffer, m.measureDeep(readOnlyFiveLimitShiftSlice, SLAB_ALLOCATION_SLICE));
+        assertEquals("Deep read-only ByteBuffer slice with position and limit shift", sizeShallowBuffer, m.measureDeep(readOnlyFivePositionAndLimitShiftSlice, SLAB_ALLOCATION_SLICE));
     }
 
     @Test

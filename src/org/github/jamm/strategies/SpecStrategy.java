@@ -3,8 +3,6 @@ package org.github.jamm.strategies;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
-import org.github.jamm.MemoryLayoutSpecification;
-
 import static org.github.jamm.strategies.ContendedUtils.countContentionGroup;
 import static org.github.jamm.strategies.ContendedUtils.isClassAnnotatedWithContended;
 import static org.github.jamm.strategies.ContendedUtils.isContendedEnabled;
@@ -16,21 +14,16 @@ import static org.github.jamm.utils.MathUtils.roundTo;
  * <p>In Java 15 the Field layout computation was optimized (https://bugs.openjdk.org/browse/JDK-8237767) to eliminate 
  * a certain amount of the inefficiency from the previous versions (see {@link PreJava15SpecStrategy}).</p>
  */
-class SpecStrategy extends MemoryLayoutBasedStrategy
-{
-    public SpecStrategy(MemoryLayoutSpecification memoryLayout)
-    {
-        super(memoryLayout, memoryLayout.getArrayHeaderSize());
-    }
+class SpecStrategy extends MemoryLayoutBasedStrategy {
 
     @Override
     public final long measureInstance(Object instance, Class<?> type) {
 
-        long size = memoryLayout.getObjectHeaderSize() + sizeOfDeclaredFields(type);
+        long size = MEMORY_LAYOUT.getObjectHeaderSize() + sizeOfDeclaredFields(type);
         while ((type = type.getSuperclass()) != Object.class && type != null)
             size += sizeOfDeclaredFields(type);
 
-        return roundTo(size, memoryLayout.getObjectAlignment());
+        return roundTo(size, MEMORY_LAYOUT.getObjectAlignment());
     }
 
     /**
@@ -62,10 +55,10 @@ class SpecStrategy extends MemoryLayoutBasedStrategy
          * in a superclass and subclass, represent distinct contention groups.
          */
         if (isClassAnnotatedWithContended(type) && isContendedEnabled(type))
-            size += (memoryLayout.getContendedPaddingWidth() << 1); 
+            size += (MEMORY_LAYOUT.getContendedPaddingWidth() << 1); 
 
         if (contentionGroupCounter != null)
-            size += contentionGroupCounter.count() * (memoryLayout.getContendedPaddingWidth() << 1);
+            size += contentionGroupCounter.count() * (MEMORY_LAYOUT.getContendedPaddingWidth() << 1);
 
         return size;
     }

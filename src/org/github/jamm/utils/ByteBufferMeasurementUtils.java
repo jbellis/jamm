@@ -54,12 +54,12 @@ public final class ByteBufferMeasurementUtils {
      * Returns the declared field with the specified name for the given class.
      *
      * @param cls the class
-     * @param fieldname the field name
+     * @param fieldName the field name
      * @return the declared field
      */
-    private static Field getDeclaredField(Class<?> cls, String fieldname) {
+    private static Field getDeclaredField(Class<?> cls, String fieldName) {
         try {
-            return cls.getDeclaredField(fieldname);
+            return cls.getDeclaredField(fieldName);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
