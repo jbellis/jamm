@@ -13,6 +13,7 @@ import sun.misc.Contended;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,6 +34,11 @@ import static org.github.jamm.MemoryMeter.ByteBufferMode.SLAB_ALLOCATION_SLICE;
  */
 @RunWith(Parameterized.class)
 public class MemoryMeterStrategyTest {
+
+    @BeforeClass
+    public static void logInfoAtStartup() {
+        System.setProperty("org.github.jamm.strategies.LogInfoAtStartup", "true");
+    }
 
     private final MemoryMeter.Guess guess;
 

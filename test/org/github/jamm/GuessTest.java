@@ -38,6 +38,11 @@ import java.util.regex.Pattern;
 @RunWith(Parameterized.class)
 public class GuessTest {
 
+    @BeforeClass
+    public static void logInfoAtStartup() {
+        System.setProperty("org.github.jamm.strategies.LogInfoAtStartup", "true");
+    }
+
     @Parameterized.Parameters
     public static Collection<MemoryMeter.Guess> guesses() {
 

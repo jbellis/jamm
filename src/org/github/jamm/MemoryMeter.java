@@ -39,7 +39,7 @@ public final class MemoryMeter {
     }
 
     public static boolean useStringOptimization() {
-        return StringMeter.ENABLE;
+        return StringMeter.ENABLED;
     }
 
     /**
@@ -418,7 +418,7 @@ public final class MemoryMeter {
      */
     public long measureStringDeep(String s) {
 
-        if (StringMeter.ENABLE) {
+        if (StringMeter.ENABLED) {
 
             if (s == null)
                 return 0L;
@@ -471,7 +471,7 @@ public final class MemoryMeter {
             Object current = stack.pop();
 
             // Deal with optimizations first.
-            if (StringMeter.ENABLE && current instanceof String) {
+            if (StringMeter.ENABLED && current instanceof String) {
                 String s = (String) current;
                 long size1 = measureDeep(s, listener);
                 total += size1;

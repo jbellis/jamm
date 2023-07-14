@@ -22,6 +22,11 @@ import static org.junit.Assert.assertFalse;
 public class StringMeterTest {
 
     @BeforeClass
+    public static void logInfoAtStartup() {
+        System.setProperty("org.github.jamm.strategies.LogInfoAtStartup", "true");
+    }
+
+    @BeforeClass
     public static void turnOffStringOptimization() {
         System.setProperty("org.github.jamm.string.Optimize", "false");
     }
@@ -51,6 +56,7 @@ public class StringMeterTest {
                                          "...... really ...... really .... really ... really .... longuer",
                                          "with a chinese character: 我"};
 
+        // The optimization is disabled for the MemoryMeter but not for the StringMeter which does not take into account the ENABLED field.
         MemoryMeter reference = MemoryMeter.builder().withGuessing(MemoryMeter.Guess.INSTRUMENTATION).build();
         assertFalse(MemoryMeter.useStringOptimization());
         StringMeter stringMeter = StringMeter.newInstance();

@@ -79,14 +79,25 @@ public final class MemoryMeterStrategies {
         MemoryMeterStrategy specStrategy = createSpecStrategy(mayBeIsHiddenMH);
         MemoryMeterStrategy unsafeStrategy = createUnsafeStrategy(mayBeIsHiddenMH, (MemoryLayoutBasedStrategy) specStrategy);
 
+        if (logInformationAtStartup()) {
         // Logging important information once at startup for debugging purpose
-        System.out.println("Jamm starting with: java.version='" + System.getProperty("java.version")
-                            + "', java.vendor='" + System.getProperty("java.vendor")
-                            + "', instrumentation=" + (instrumentationStrategy != null)
-                            + ", unsafe=" + (unsafeStrategy != null)
-                            + ", " + MemoryMeterStrategy.MEMORY_LAYOUT);
+            System.out.println("Jamm starting with: java.version='" + System.getProperty("java.version")
+                                + "', java.vendor='" + System.getProperty("java.vendor")
+                                + "', instrumentation=" + (instrumentationStrategy != null)
+                                + ", unsafe=" + (unsafeStrategy != null)
+                                + ", " + MemoryMeterStrategy.MEMORY_LAYOUT);
+        }
  
         return new MemoryMeterStrategies(instrumentationStrategy, instrumentationAndSpecStrategy, unsafeStrategy, specStrategy);
+    }
+
+    /**
+     * Checks if layout and JDK information should be logged at startup.
+     * <p>{@code false} by default to avoid causing issues to existing applications that do not expect that message to be logged.</p>
+     * @return {@code true} if the information should be logged, {@code false} otherwise.
+     */
+    private static boolean logInformationAtStartup() {
+        return Boolean.parseBoolean(System.getProperty("org.github.jamm.strategies.LogInfoAtStartup", "false"));
     }
 
     private static MemoryMeterStrategy createSpecStrategy(Optional<MethodHandle> mayBeIsHiddenMH) {
