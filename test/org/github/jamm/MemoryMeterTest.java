@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.function.Predicate;
 
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -17,8 +18,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 @RunWith(Parameterized.class)
-public class MemoryMeterTest
-{
+public class MemoryMeterTest {
+
+    @BeforeClass
+    public static void logInfoAtStartup() {
+        System.setProperty("org.github.jamm.strategies.LogInfoAtStartup", "true");
+    }
+
     @Parameterized.Parameters
     public static Collection<MemoryMeter.Guess> guesses() {
 

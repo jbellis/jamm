@@ -23,7 +23,7 @@ public abstract class StringMeter {
     /**
      * Enable or disable string optimization through the {@code org.github.jamm.string.Optimize} String system property. {@code true} by default.
      */
-    public static final boolean ENABLE = Boolean.parseBoolean(System.getProperty("org.github.jamm.string.Optimize", "true"));
+    public static final boolean ENABLED = Boolean.parseBoolean(System.getProperty("org.github.jamm.string.Optimize", "true"));
 
     /**
      * The String shallow size stored as a constant to have it compiled directly into the measure method.

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.github.jamm.MemoryMeter.Guess;
@@ -15,6 +16,11 @@ import static org.github.jamm.MemoryMeter.Guess.UNSAFE;
 import static org.junit.Assert.*;
 
 public class MemoryMeterStrategiesTest {
+
+    @BeforeClass
+    public static void logInfoAtStartup() {
+        System.setProperty("org.github.jamm.strategies.LogInfoAtStartup", "true");
+    }
 
     @Test
     public void testInvalidEmptyGuessList() {

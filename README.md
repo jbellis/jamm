@@ -270,6 +270,17 @@ Moreover as specified in the `Supported Java versions` section the `ContendedPad
 
 ## Debugging
 
+### Layout and JVM information
+
+The `org.github.jamm.strategies.LogInfoAtStartup` system property can be set to `true` to request Jamm to log at startup in `System.out` information about the JVM and the detected memory layout.
+
+Example of output:
+
+```
+Jamm starting with: java.version='1.8.0_144', java.vendor='Oracle Corporation', instrumentation=true, unsafe=true, Memory Layout: [objectHeaderSize=12 , arrayHeaderSize=16, objectAlignment=8, referenceSize=4, contendedPaddingWidth=128]
+```
+### Visited object tree
+
 In order to see the object tree visited when calling `MemoryMeter.measureDeep` and ensuring that it matches your
 expectations you can build the `MemoryMeter` instance using `printVisitedTree`:
 
