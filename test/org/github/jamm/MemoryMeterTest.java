@@ -1,5 +1,7 @@
 package org.github.jamm;
 
+import java.lang.ref.PhantomReference;
+import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.util.Arrays;
 import java.util.Collection;
@@ -134,14 +136,61 @@ public class MemoryMeterTest {
     }
 
     @Test
-    public void testIgnoreNonStrongReferences() {
-        MemoryMeter meter = MemoryMeter.builder().withGuessing(guess).measureNonStrongReferences().build();
+    public void testIgnoreNonStrongReferences() throws InterruptedException {
+        // The Reference fields 'next' and 'discovered' are used by 'ReferenceQueue' instances and are not part of what
+        // we want to measure. The 'queue' field is either a singleton 'ReferenceQueue.NULL' or a provided queue that user hold a reference to.
+        // Therefore, those fields should be ignored.
+        MemoryMeter meterIgnoring = MemoryMeter.builder().withGuessing(guess).build();
+        MemoryMeter meterMeasuring = MemoryMeter.builder().withGuessing(guess).measureNonStrongReferences().build();
 
-        long classFieldSize = meter.measureDeep(new HasReferenceField());
+        // test SoftReference
+        SoftReference<Date> ref = new SoftReference<Date>(new Date());
+        long refShallowSize = meterIgnoring.measure(ref);
+        assertEquals(refShallowSize,  meterIgnoring.measureDeep(ref));
 
-        meter = MemoryMeter.builder().withGuessing(guess).build();
+        // SoftReference + deep queue + referent
+        long deepSize = refShallowSize + meterMeasuring.measureDeep(new ReferenceQueue<Object>()) + meterMeasuring.measure(new Date());
+        assertEquals(deepSize,  meterMeasuring.measureDeep(ref));
 
-        assertNotEquals(classFieldSize, meter.measureDeep(new HasClassField()));
+        HasReferenceField hasReferenceField = new HasReferenceField(ref);
+        long hasReferenceFieldShallowSize = meterIgnoring.measure(hasReferenceField);
+        assertEquals(refShallowSize + hasReferenceFieldShallowSize, meterIgnoring.measureDeep(hasReferenceField));
+
+        // HasReferenceField + SoftReference + deep queue + referent
+        deepSize = hasReferenceFieldShallowSize + refShallowSize + meterMeasuring.measureDeep(new ReferenceQueue<Object>()) + meterMeasuring.measure(new Date());
+        assertEquals(deepSize,  meterMeasuring.measureDeep(hasReferenceField));
+
+        // Test ReferenceQueue measurement with one object
+        ReferenceQueue<Object> queue = new ReferenceQueue<>();
+        MyPhantomReference p = new MyPhantomReference(new Object(), queue);
+
+        refShallowSize = meterIgnoring.measure(p);
+        assertEquals(refShallowSize,  meterIgnoring.measureDeep(p));
+
+        // PhantomReference + deep queue + referent
+        deepSize = refShallowSize + meterMeasuring.measureDeep(new ReferenceQueue<Object>()) + meterMeasuring.measure(new Object());
+        assertEquals(deepSize,  meterMeasuring.measureDeep(p));
+
+        System.gc();
+        // wait for garbage collection
+        long start = System.currentTimeMillis();
+        while (!p.isEnqueued() && (System.currentTimeMillis() - start) < 1000)
+            Thread.yield();
+
+        Assert.assertTrue(p.isEnqueued());
+
+        long queueShallowSize = meterIgnoring.measure(queue);
+        long lockSize = meterIgnoring.measure(new Object()); // The ReferenceQueue lock field has the same size as an empty object.
+        assertEquals(queueShallowSize + lockSize,  meterIgnoring.measureDeep(queue));
+
+        assertEquals(p, queue.poll());
+    }
+
+    private static class MyPhantomReference extends PhantomReference<Object> {
+
+        public MyPhantomReference(Object referent, ReferenceQueue<Object> q) {
+            super(referent, q);
+        }
     }
 
     @SuppressWarnings("unused")
@@ -167,7 +216,11 @@ public class MemoryMeterTest {
 
     @SuppressWarnings("unused")
     private static class HasReferenceField {
-        private SoftReference<Date> ref = new SoftReference<Date>(new Date());
+        private final SoftReference<Date> ref;
+
+        public HasReferenceField(SoftReference<Date> ref) {
+            this.ref = ref;
+        }
     }
 
     @Test
