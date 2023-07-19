@@ -93,6 +93,7 @@ changes at the API level.
 (like weak/soft/phantom references). If you want `MemoryMeter` to measure them you need to enable those measurements through `MemoryMeter.builder().measureKnownSingletons()` and `MemoryMeter.builder().measureNonStrongReferences()`.
 * When measuring direct `ByteBuffer` objects `MemoryMeter` is ignoring some fields from the Cleaner as it might lead to some incorrect measurements by including references to other Cleaner instances
 * When measuring `Thread` objects `MemoryMeter` is ignoring the `group` field as it references the all the threads from the group
+* The behavior around non-strong references has changed. When non-strong references are ignored (the default) `MemoryMeter` will ignore all the fields from the `Reference` class as well as the `head` field from `ReferenceQueue`.
 
 # Supported Java versions
 
@@ -267,6 +268,16 @@ This is done by comparing the buffer's capacity with the array'size for heap buf
  As it also means that only the internal Java classes will use that annotation, `MemoryMeter` will rely on its knowledge of those internal classes to try to go around that problem.
 
 Moreover as specified in the `Supported Java versions` section the `ContendedPaddingWidth` and `EnableContended` arguments logics are broken in Java 17. Therefore the use of the `ContendedPaddingWidth` argument or of `-XX:-EnableContended` might caused the `Unsafe` and `Specification` strategies to return wrong results when the classes are using `@Contended`.
+
+## Non-strong references
+
+By default `MemoryMeter` will ignore non-strong reference objects. It will also ignore all the Reference's fields and the `head` field of `ReferenceQueue`.
+The Reference fields `next` and `discovered` are used by `ReferenceQueue` instances to create a linked list, and taking them into account could lead to measuring a much larger part of the heap than what is usually intended.
+The `queue` field is either a singleton `ReferenceQueue.NULL` or a provided queue that users hold a reference to and therefore should be ignored too.
+To be consistent, the `head` field of `ReferenceQueue` is also ignored to fully decouple queue and references.
+This means that calling measureDeep on a `ReferenceQueue` will by default only measure the `ReferenceQueue` instance and its related objects but not the References that are part of the queue.
+
+If `measureNonStrongReferences` is set, `MemoryMeter` will measure referenced objects but also all the fields from `Reference` objects and `ReferenceQueue` object.
 
 ## Debugging
 

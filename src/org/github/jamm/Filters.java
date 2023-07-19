@@ -1,6 +1,7 @@
 package org.github.jamm;
 
 import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
@@ -50,9 +51,13 @@ public final class Filters
                                                                          || AccessControlContext.class.isAssignableFrom(c);
 
     /**
-     * Filter excluding non-strong references
+     * Filter excluding all the Reference's fields and the {@code head} field of {@code ReferenceQueue}.
+     * The Reference fields {@code next} and {@code discovered} are used by {@code ReferenceQueue} instances to create a linked list and are not part of what
+     * we want to measure. The {@code queue} field is either a singleton {@code ReferenceQueue.NULL} or a provided queue that user hold a reference to and therefore
+     * should be ignored too. To be consistent, the {@code head} field of {@code ReferenceQueue} is also ignored to fully decouple queue and references.
      */
-    public static final FieldFilter IGNORE_NON_STRONG_REFERENCES = (c, f) -> Reference.class.isAssignableFrom(c) && "referent".equals(f.getName());
+    public static final FieldFilter IGNORE_NON_STRONG_REFERENCES = (c, f) ->
+        f.getDeclaringClass().equals(Reference.class) || (ReferenceQueue.class.isAssignableFrom(c) && "head".equals(f.getName()));
 
     /**
      * Filter excluding some of the fields from sun.misc.Cleaner as they should not be taken into account.
