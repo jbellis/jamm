@@ -15,7 +15,7 @@ import static org.github.jamm.utils.MathUtils.roundTo;
 import sun.misc.Unsafe;
 
 /**
- * {@code MemoryMeterStrategy} relying on {@code Unsafe} to measure object sizes for Java versions >= 15.
+ * {@code MemoryMeterStrategy} relying on {@code Unsafe} to measure object sizes for Java versions &ge; 15.
  * 
  * <p>In Java 15, the way the JVM layout fields across the hierarchy changed. Prior to Java 15 superclass field
  * always came first. Therefore that strategy could only look at the current class to find the greatest offsets.

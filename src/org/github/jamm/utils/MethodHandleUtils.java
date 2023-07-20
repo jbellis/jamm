@@ -29,7 +29,7 @@ public final class MethodHandleUtils
      *
      * @param method the method
      * @return the {@code MethodHandle} for the specified method
-     * @throws IllegalAccessException 
+     * @throws IllegalAccessException if the method is not accessible
      */
     public static MethodHandle methodHandle(Method method) throws IllegalAccessException {
         return MethodHandles.lookup().unreflect(method);
@@ -40,7 +40,7 @@ public final class MethodHandleUtils
      *
      * @param field the field
      * @return the {@code MethodHandle} for the specified field
-     * @throws IllegalAccessException 
+     * @throws IllegalAccessException if the method is not accessible
      */
     public static MethodHandle methodHandle(Field field) throws IllegalAccessException {
         return MethodHandles.lookup().unreflectGetter(field);

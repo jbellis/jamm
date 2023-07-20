@@ -219,7 +219,7 @@ public final class MemoryMeter {
     /**
      * Create a new {@link MemoryMeter} instance from the different component it needs to measure object graph.
      * <p>Unless there is a specific need to override some of the {@code MemoryMeter} logic people should only create 
-     * {@MemoryMeter} instances through {@code MemoryMeter.builder()}. This constructor provides a way to modify part of the 
+     * {@code MemoryMeter} instances through {@code MemoryMeter.builder()}. This constructor provides a way to modify part of the 
      * logic being used by allowing to use specific implementations for the strategy or filters.</p>
      * 
      * @param strategy the {@code MemoryMeterStrategy} to use for measuring object shallow size.
@@ -602,6 +602,10 @@ public final class MemoryMeter {
 
         /**
          * Specify what should be the strategy used to measure the shallow size of object.
+         *
+         * @param strategy the strategy that should be used to measure objects
+         * @param fallbacks the fallback strategies
+         * @return this builder
          */
         public Builder withGuessing(Guess strategy, Guess... fallbacks) {
 

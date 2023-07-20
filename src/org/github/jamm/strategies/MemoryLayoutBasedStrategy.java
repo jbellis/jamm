@@ -113,6 +113,9 @@ public abstract class MemoryLayoutBasedStrategy implements MemoryMeterStrategy {
     }
 
     /**
+     * Returns the size of a field of the specified type.
+     *
+     * @param type the field type
      * @return The memory size of a field of a class of the provided type; for Objects this is the size of the reference only
      */
     protected final int measureField(Class<?> type) {
