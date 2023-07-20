@@ -98,6 +98,13 @@
         <role>developer</role>
       </roles>
     </developer>
+    <developer>
+      <id>ekaterinadimitrova2</id>
+      <name>Ekaterina Dimitrova</name>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
   </developers>
   <properties>
     <jvmArgs></jvmArgs>
