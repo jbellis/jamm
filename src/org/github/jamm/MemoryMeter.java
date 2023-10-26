@@ -1,10 +1,11 @@
 package org.github.jamm;
 
 import java.lang.instrument.Instrumentation;
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.github.jamm.accessors.FieldAccessor;
 import org.github.jamm.listeners.NoopMemoryMeterListener;
@@ -218,10 +219,10 @@ public final class MemoryMeter {
 
     /**
      * Create a new {@link MemoryMeter} instance from the different component it needs to measure object graph.
-     * <p>Unless there is a specific need to override some of the {@code MemoryMeter} logic people should only create 
-     * {@code MemoryMeter} instances through {@code MemoryMeter.builder()}. This constructor provides a way to modify part of the 
+     * <p>Unless there is a specific need to override some of the {@code MemoryMeter} logic people should only create
+     * {@code MemoryMeter} instances through {@code MemoryMeter.builder()}. This constructor provides a way to modify part of the
      * logic being used by allowing to use specific implementations for the strategy or filters.</p>
-     * 
+     *
      * @param strategy the {@code MemoryMeterStrategy} to use for measuring object shallow size.
      * @param classFilter the filter used to filter out classes from the measured object graph
      * @param fieldFilter the filter used to filter out fields from the measured object graph
@@ -450,6 +451,7 @@ public final class MemoryMeter {
      * @param bbMode the mode that should be used to measure ByteBuffers.
      * @return the memory usage of @param object including referenced objects
      */
+
     public long measureDeep(Object object, ByteBufferMode bbMode) {
 
         if (object == null) {
@@ -459,6 +461,7 @@ public final class MemoryMeter {
         if (classFilter.ignore(object.getClass()))
             return 0;
 
+        Map<Class<?>, ClassMetadata> cache = new HashMap<>();
         MemoryMeterListener listener = listenerFactory.newInstance();
 
         // track stack manually, so we can handle deeper hierarchies than recursion
@@ -469,15 +472,14 @@ public final class MemoryMeter {
         while (!stack.isEmpty()) {
 
             Object current = stack.pop();
+            Class<?> cls = current.getClass();
 
             // Deal with optimizations first.
-            if (StringMeter.ENABLED && current instanceof String) {
-                String s = (String) current;
-                long size1 = measureDeep(s, listener);
-                total += size1;
+            if (StringMeter.ENABLED && cls == String.class) {
+                total += measureDeep((String) current, listener);
                 continue;
             }
- 
+
             if (current instanceof Measurable) {
                 Measurable measurable = (Measurable) current;
                 total += measure(measurable, listener);
@@ -485,28 +487,40 @@ public final class MemoryMeter {
                 continue;
             }
 
-            long size = strategy.measure(current);
-            listener.objectMeasured(current, size);
-            total += size;
-
-            Class<?> cls = current.getClass();
-
             if (cls.isArray()) {
-                if (!cls.getComponentType().isPrimitive())
-                    addArrayElements((Object[]) current, stack);
-             } else {
-                if (current instanceof ByteBuffer && bbMode.isSlab((ByteBuffer) current)) {
-                    ByteBuffer buffer = (ByteBuffer) current;
-                    if (!buffer.isDirect()) { // If direct we should simply not measure the fields
-                        long remaining = buffer.remaining();
-                        listener.byteBufferRemainingMeasured(buffer, remaining);
-                        total += remaining;
-                    }
-                    continue;
+                long size = strategy.measure(current);
+                listener.objectMeasured(current, size);
+                total += size;
+                if (!cls.getComponentType().isPrimitive()){
+                    stack.pushArrayElements((Object[]) current);
                 }
-                addFields(current, cls, stack);
+                continue;
             }
-        } 
+
+            ClassMetadata metadata = cache.get(cls);
+            if (metadata == null) {
+                // Casting to int is safe as the class data model can't support more than about
+                // 65K fields per class (including all superclass fields) so the shallow size
+                // can't approach anywhere near the max value of integers (max 2 GB shallow size)
+                int shallowSize = (int)strategy.measure(current);
+                metadata = new ClassMetadata(shallowSize, cls, fieldFilter);
+                cache.put(cls, metadata);
+            }
+            listener.objectMeasured(current, metadata.shallowSize);
+            total += metadata.shallowSize;
+
+            if (current instanceof ByteBuffer && bbMode.isSlab((ByteBuffer) current)) {
+                ByteBuffer buffer = (ByteBuffer) current;
+                if (!buffer.isDirect()) { // If direct we should simply not measure the fields
+                    long remaining = buffer.remaining();
+                    listener.byteBufferRemainingMeasured(buffer, remaining);
+                    total += remaining;
+                }
+                continue;
+            }
+
+            metadata.addFieldReferences(current, ACCESSOR, classFilter, stack);
+        }
         listener.done(total);
         return total;
     }
@@ -523,68 +537,13 @@ public final class MemoryMeter {
         return size;
     }
 
-    private void addFields(Object obj, Class<?> cls, MeasurementStack stack) {
-        Class<?> type = cls;
-        while (type != null) {
-            addDeclaredFields(obj, type, stack);
-            type = type.getSuperclass();
-        }
-    }
-
-    private void addDeclaredFields(Object obj, Class<?> type, MeasurementStack stack) {
-        for (Field field : type.getDeclaredFields()) {
-            if (!fieldFilter.ignore(obj.getClass(), field)) {
-                addField(obj, field, stack);
-            }
-        }
-    }
-
-    /**
-     * Adds the object field value to the stack.
-     *
-     * @param obj the object from which the field value must be retrieved
-     * @param field the field
-     * @param stack
-     */
-    private void addField(Object obj, Field field, MeasurementStack stack) {
-        Object child = getFieldValue(obj, field, stack.listener());
-
-        if (child != null && (!classFilter.ignore(child.getClass()))) {
-            stack.pushObject(obj, field.getName(), child);
-        }
-    }
-
-    /**
-     * Retrieves the field value if possible.
-     *
-     * @param obj the object for which the field value must be retrieved
-     * @param field the field for which the value must be retrieved
-     * @param listener the {@code MemoryMeterListener}
-     * @return the field value if it was possible to retrieve it
-     * @throws CannotAccessFieldException if the field could not be accessed
-     */
-    private Object getFieldValue(Object obj, Field field, MemoryMeterListener listener) {
-        try {
-            return ACCESSOR.getFieldValue(obj, field);
-        } catch (CannotAccessFieldException e) {
-            listener.failedToAccessField(obj, field.getName(), field.getType());
-            throw e;
-        }
-    }
-
-    private void addArrayElements(Object[] array, MeasurementStack stack) {
-        for (int i = 0; i < array.length; i++) {
-            stack.pushArrayElement(array, i);
-        }
-    }
-
     /**
      * Builder for {@code MemoryMeter} instances
      */
     public static final class Builder {
 
         /**
-         * The strategy to perform shallow measurements and its fallback strategies in case the required classes are not available. 
+         * The strategy to perform shallow measurements and its fallback strategies in case the required classes are not available.
          */
         private List<Guess> guesses = BEST;
         private boolean ignoreOuterClassReference;
@@ -625,7 +584,7 @@ public final class MemoryMeter {
 
         /**
          * Ignores the outer class reference from non-static inner classes.
-         * <p>In practice this is only useful if the top class provided to {@code MemoryMeter.measureDeep} is an inner 
+         * <p>In practice this is only useful if the top class provided to {@code MemoryMeter.measureDeep} is an inner
          * class and we wish to ignore the outer class in the measurement.</p>
          *
          * @return this builder
