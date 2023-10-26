@@ -26,7 +26,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 @Threads(3)
 @Fork(value = 1, jvmArgsPrepend = {
-        "-javaagent:target/jamm-0.4.0-SNAPSHOT.jar",
+        "-javaagent:target/jamm-0.4.1-SNAPSHOT.jar",
 //      "--add-opens=java.base/java.lang=ALL-UNNAMED"
 })
 @Warmup(iterations=4, time=5)
