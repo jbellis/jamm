@@ -1,0 +1,662 @@
+version: 2
+jobs:
+  j8_build:
+    docker:
+    - image: edimitrova86/jamm-testing-ubuntu2204:latest
+    resource_class: medium
+    working_directory: ~/
+    shell: /bin/bash -eo pipefail -l
+    parallelism: 1
+    steps:
+    - run:
+        name: Log Environment Information
+        command: |
+          echo '*** id ***'
+          id
+          echo '*** cat /proc/cpuinfo ***'
+          cat /proc/cpuinfo
+          echo '*** free -m ***'
+          free -m
+          echo '*** df -m ***'
+          df -m
+          echo '*** ifconfig -a ***'
+          ifconfig -a
+          echo '*** uname -a ***'
+          uname -a
+          echo '*** mount ***'
+          mount
+          echo '*** env ***'
+          env
+          echo '*** java ***'
+          which java
+          java -version
+          mvn -version
+    - run:
+        name: Clone Jamm Repository (via git)
+        command: |
+          git clone --single-branch --depth 1 --branch $CIRCLE_BRANCH https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git ~/jamm
+    - run:
+        name: Build Jamm
+        command: |
+          export PATH=$JAVA_HOME/bin:$PATH
+          mkdir .m2
+          cd ~/jamm
+          cp toolchains.example.xml ~/.m2/toolchains.xml
+          mvn compile
+          mvn compiler:testCompile
+          mvn jar:test-jar
+        no_output_timeout: 15m
+    - persist_to_workspace:
+        root: /home/jamm
+        paths:
+        - jamm
+        - .m2
+    environment:
+    - JAVA11_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+    - JAVA8_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - LANG: en_US.UTF-8
+    - KEEP_TEST_DIR: true
+    - DEFAULT_DIR: /home/jamm/jamm-test
+    - JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - JDK_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+  j8_32_bits_tests:
+    docker:
+    - image: edimitrova86/jamm-testing-ubuntu2204:latest
+    resource_class: medium
+    working_directory: ~/
+    shell: /bin/bash -eo pipefail -l
+    parallelism: 1
+    steps:
+    - attach_workspace:
+        at: /home/jamm
+    - run:
+        name: Log Environment Information
+        command: |
+          echo '*** id ***'
+          id
+          echo '*** cat /proc/cpuinfo ***'
+          cat /proc/cpuinfo
+          echo '*** free -m ***'
+          free -m
+          echo '*** df -m ***'
+          df -m
+          echo '*** ifconfig -a ***'
+          ifconfig -a
+          echo '*** uname -a ***'
+          uname -a
+          echo '*** mount ***'
+          mount
+          echo '*** env ***'
+          env
+          echo '*** java ***'
+          which java
+          java -version
+          mvn -version
+    - run:
+        name: Run Tests
+        command: |
+          set -x
+          export PATH=$JAVA_HOME/bin:$PATH
+          time mv ~/jamm /tmp
+          cd /tmp/jamm
+          EXECUTION_ID=surefire:test@test-jdk8-32 ./run-tests.sh
+        no_output_timeout: 30m
+    - store_test_results:
+        path: /tmp/jamm/test/output/
+    - store_artifacts:
+        path: /tmp/jamm/test/logs
+        destination: logs
+    environment:
+    - JAVA11_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+    - JAVA8_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - LANG: en_US.UTF-8
+    - KEEP_TEST_DIR: true
+    - DEFAULT_DIR: /home/jamm/jamm-test
+    - JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - JDK_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+  j8_64_bits_tests:
+    docker:
+    - image: edimitrova86/jamm-testing-ubuntu2204:latest
+    resource_class: medium
+    working_directory: ~/
+    shell: /bin/bash -eo pipefail -l
+    parallelism: 1
+    steps:
+    - attach_workspace:
+        at: /home/jamm
+    - run:
+        name: Log Environment Information
+        command: |
+          echo '*** id ***'
+          id
+          echo '*** cat /proc/cpuinfo ***'
+          cat /proc/cpuinfo
+          echo '*** free -m ***'
+          free -m
+          echo '*** df -m ***'
+          df -m
+          echo '*** ifconfig -a ***'
+          ifconfig -a
+          echo '*** uname -a ***'
+          uname -a
+          echo '*** mount ***'
+          mount
+          echo '*** env ***'
+          env
+          echo '*** java ***'
+          which java
+          java -version
+          mvn -version
+    - run:
+        name: Run Tests
+        command: |
+          set -x
+          export PATH=$JAVA_HOME/bin:$PATH
+          time mv ~/jamm /tmp
+          cd /tmp/jamm
+          EXECUTION_ID=surefire:test@test-default ./run-tests.sh
+        no_output_timeout: 30m
+    - store_test_results:
+        path: /tmp/jamm/test/output/
+    - store_artifacts:
+        path: /tmp/jamm/test/logs
+        destination: logs
+    environment:
+    - JAVA11_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+    - JAVA8_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - LANG: en_US.UTF-8
+    - KEEP_TEST_DIR: true
+    - DEFAULT_DIR: /home/jamm/jamm-test
+    - JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - JDK_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+  j11_32_bits_tests:
+    docker:
+    - image: edimitrova86/jamm-testing-ubuntu2204:latest
+    resource_class: medium
+    working_directory: ~/
+    shell: /bin/bash -eo pipefail -l
+    parallelism: 1
+    steps:
+    - attach_workspace:
+        at: /home/jamm
+    - run:
+        name: Log Environment Information
+        command: |
+          echo '*** id ***'
+          id
+          echo '*** cat /proc/cpuinfo ***'
+          cat /proc/cpuinfo
+          echo '*** free -m ***'
+          free -m
+          echo '*** df -m ***'
+          df -m
+          echo '*** ifconfig -a ***'
+          ifconfig -a
+          echo '*** uname -a ***'
+          uname -a
+          echo '*** mount ***'
+          mount
+          echo '*** env ***'
+          env
+          echo '*** java ***'
+          which java
+          java -version
+          mvn -version
+    - run:
+        name: Run Tests
+        command: |
+          set -x
+          export PATH=$JAVA_HOME/bin:$PATH
+          time mv ~/jamm /tmp
+          cd /tmp/jamm
+          EXECUTION_ID=surefire:test@test-jdk11-32 ./run-tests.sh
+        no_output_timeout: 30m
+    - store_test_results:
+        path: /tmp/jamm/test/output/
+    - store_artifacts:
+        path: /tmp/jamm/test/logs
+        destination: logs
+    environment:
+    - JAVA11_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+    - JAVA8_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - LANG: en_US.UTF-8
+    - KEEP_TEST_DIR: true
+    - DEFAULT_DIR: /home/jamm/jamm-test
+    - JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - JDK_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+  j11_64_bits_tests:
+    docker:
+    - image: edimitrova86/jamm-testing-ubuntu2204:latest
+    resource_class: medium
+    working_directory: ~/
+    shell: /bin/bash -eo pipefail -l
+    parallelism: 1
+    steps:
+    - attach_workspace:
+        at: /home/jamm
+    - run:
+        name: Log Environment Information
+        command: |
+          echo '*** id ***'
+          id
+          echo '*** cat /proc/cpuinfo ***'
+          cat /proc/cpuinfo
+          echo '*** free -m ***'
+          free -m
+          echo '*** df -m ***'
+          df -m
+          echo '*** ifconfig -a ***'
+          ifconfig -a
+          echo '*** uname -a ***'
+          uname -a
+          echo '*** mount ***'
+          mount
+          echo '*** env ***'
+          env
+          echo '*** java ***'
+          which java
+          java -version
+          mvn -version
+    - run:
+        name: Run Tests
+        command: |
+          set -x
+          export PATH=$JAVA_HOME/bin:$PATH
+          time mv ~/jamm /tmp
+          cd /tmp/jamm
+          EXECUTION_ID=surefire:test@test-jdk11-64 ./run-tests.sh
+        no_output_timeout: 30m
+    - store_test_results:
+        path: /tmp/jamm/test/output/
+    - store_artifacts:
+        path: /tmp/jamm/test/logs
+        destination: logs
+    environment:
+    - JAVA11_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+    - JAVA8_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - LANG: en_US.UTF-8
+    - KEEP_TEST_DIR: true
+    - DEFAULT_DIR: /home/jamm/jamm-test
+    - JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - JDK_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+  j17_32_bits_tests:
+    docker:
+    - image: edimitrova86/jamm-testing-ubuntu2204:latest
+    resource_class: medium
+    working_directory: ~/
+    shell: /bin/bash -eo pipefail -l
+    parallelism: 1
+    steps:
+    - attach_workspace:
+        at: /home/jamm
+    - run:
+        name: Log Environment Information
+        command: |
+          echo '*** id ***'
+          id
+          echo '*** cat /proc/cpuinfo ***'
+          cat /proc/cpuinfo
+          echo '*** free -m ***'
+          free -m
+          echo '*** df -m ***'
+          df -m
+          echo '*** ifconfig -a ***'
+          ifconfig -a
+          echo '*** uname -a ***'
+          uname -a
+          echo '*** mount ***'
+          mount
+          echo '*** env ***'
+          env
+          echo '*** java ***'
+          which java
+          java -version
+          mvn -version
+    - run:
+        name: Run Tests
+        command: |
+          set -x
+          export PATH=$JAVA_HOME/bin:$PATH
+          time mv ~/jamm /tmp
+          cd /tmp/jamm
+          EXECUTION_ID=surefire:test@test-jdk17-32 ./run-tests.sh
+        no_output_timeout: 30m
+    - store_test_results:
+        path: /tmp/jamm/test/output/
+    - store_artifacts:
+        path: /tmp/jamm/test/logs
+        destination: logs
+    environment:
+    - JAVA11_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+    - JAVA8_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - LANG: en_US.UTF-8
+    - KEEP_TEST_DIR: true
+    - DEFAULT_DIR: /home/jamm/jamm-test
+    - JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - JDK_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+  j17_64_bits_tests:
+    docker:
+    - image: edimitrova86/jamm-testing-ubuntu2204:latest
+    resource_class: medium
+    working_directory: ~/
+    shell: /bin/bash -eo pipefail -l
+    parallelism: 1
+    steps:
+    - attach_workspace:
+        at: /home/jamm
+    - run:
+        name: Log Environment Information
+        command: |
+          echo '*** id ***'
+          id
+          echo '*** cat /proc/cpuinfo ***'
+          cat /proc/cpuinfo
+          echo '*** free -m ***'
+          free -m
+          echo '*** df -m ***'
+          df -m
+          echo '*** ifconfig -a ***'
+          ifconfig -a
+          echo '*** uname -a ***'
+          uname -a
+          echo '*** mount ***'
+          mount
+          echo '*** env ***'
+          env
+          echo '*** java ***'
+          which java
+          java -version
+          mvn -version
+    - run:
+        name: Run Tests
+        command: |
+          set -x
+          export PATH=$JAVA_HOME/bin:$PATH
+          time mv ~/jamm /tmp
+          cd /tmp/jamm
+          EXECUTION_ID=surefire:test@test-jdk17-64 ./run-tests.sh
+        no_output_timeout: 30m
+    - store_test_results:
+        path: /tmp/jamm/test/output/
+    - store_artifacts:
+        path: /tmp/jamm/test/logs
+        destination: logs
+    environment:
+    - JAVA11_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+    - JAVA8_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - LANG: en_US.UTF-8
+    - KEEP_TEST_DIR: true
+    - DEFAULT_DIR: /home/jamm/jamm-test
+    - JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+    - JDK_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+workflows:
+  version: 2
+  jamm_tests:
+    jobs:
+    - start_j8_build:
+        type: approval
+    - j8_build:
+        requires:
+        - start_j8_build
+    - start_j8_32_bits_tests:
+        type: approval
+    - j8_32_bits_tests:
+        requires:
+        - start_j8_32_bits_tests
+        - j8_build
+    - start_j8_64_bits_tests:
+        type: approval
+    - j8_64_bits_tests:
+        requires:
+        - start_j8_64_bits_tests
+        - j8_build
+    - start_j11_32_bits_tests:
+        type: approval
+    - j11_32_bits_tests:
+        requires:
+        - start_j11_32_bits_tests
+        - j8_build
+    - start_j11_64_bits_tests:
+        type: approval
+    - j11_64_bits_tests:
+        requires:
+        - start_j11_64_bits_tests
+        - j8_build
+    - start_j17_32_bits_tests:
+        type: approval
+    - j17_32_bits_tests:
+        requires:
+        - start_j17_32_bits_tests
+        - j8_build
+    - start_j17_64_bits_tests:
+        type: approval
+    - j17_64_bits_tests:
+        requires:
+        - start_j17_64_bits_tests
+        - j8_build
+
+# Original config.yml file:
+# version: 2.1
+# 
+# default_env_vars: &default_env_vars
+#   JAVA11_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+#   JAVA8_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+#   LANG: en_US.UTF-8
+#   KEEP_TEST_DIR: true
+#   DEFAULT_DIR: /home/jamm/jamm-test
+# 
+# j8_64bits_small_executor: &j8_64bits_small_executor
+#   executor:
+#     name: java8-64bits-executor
+#     exec_resource_class: medium
+#   parallelism: 1
+# 
+# test_jobs: &test_jobs
+#   jobs:
+#     - start_j8_build:
+#         type: approval
+#     - j8_build:
+#         requires:
+#           - start_j8_build
+#     # Java 8 tests
+#     - start_j8_32_bits_tests:
+#         type: approval
+#     - j8_32_bits_tests:
+#         requires:
+#           - start_j8_32_bits_tests
+#           - j8_build
+#     - start_j8_64_bits_tests:
+#         type: approval
+#     - j8_64_bits_tests:
+#         requires:
+#           - start_j8_64_bits_tests
+#           - j8_build
+#     # Java 11 tests
+#     - start_j11_32_bits_tests:
+#         type: approval
+#     - j11_32_bits_tests:
+#         requires:
+#           - start_j11_32_bits_tests
+#           - j8_build
+#     - start_j11_64_bits_tests:
+#         type: approval
+#     - j11_64_bits_tests:
+#         requires:
+#           - start_j11_64_bits_tests
+#           - j8_build
+#     # Java 17 tests
+#     - start_j17_32_bits_tests:
+#         type: approval
+#     - j17_32_bits_tests:
+#         requires:
+#           - start_j17_32_bits_tests
+#           - j8_build
+#     - start_j17_64_bits_tests:
+#         type: approval
+#     - j17_64_bits_tests:
+#         requires:
+#           - start_j17_64_bits_tests
+#           - j8_build
+# 
+# workflows:
+#   version: 2
+#   jamm_tests: *test_jobs
+# 
+# executors:
+#   java8-64bits-executor:
+#     parameters:
+#       exec_resource_class:
+#         type: string
+#         default: medium
+#     docker:
+#       - image: edimitrova86/jamm-testing-ubuntu2204:latest
+#     resource_class: << parameters.exec_resource_class >>
+#     working_directory: ~/
+#     shell: /bin/bash -eo pipefail -l
+#     environment:
+#       <<: *default_env_vars
+#       JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+#       JDK_HOME: /usr/lib/jvm/java-8-openjdk-amd64
+# 
+# build_common: &build_common
+#   parallelism: 1 # This job doesn't benefit from parallelism
+#   steps:
+#     - log_environment
+#     - clone_jamm
+#     - build_jamm
+#     - persist_to_workspace:
+#         root: /home/jamm
+#         paths:
+#           - jamm
+#           - .m2
+# 
+# jobs:
+#   j8_build:
+#     executor: java8-64bits-executor
+#     <<: *build_common
+# 
+#   j8_32_bits_tests:
+#     <<: *j8_64bits_small_executor
+#     steps:
+#       - attach_workspace:
+#           at: /home/jamm
+#       - log_environment
+#       - run_tests:
+#           execution_id: surefire:test@test-jdk8-32
+# 
+#   j8_64_bits_tests:
+#     <<: *j8_64bits_small_executor
+#     steps:
+#       - attach_workspace:
+#           at: /home/jamm
+#       - log_environment
+#       - run_tests:
+#           execution_id: surefire:test@test-default
+# 
+#   j11_64_bits_tests:
+#     <<: *j8_64bits_small_executor
+#     steps:
+#       - attach_workspace:
+#           at: /home/jamm
+#       - log_environment
+#       - run_tests:
+#           execution_id: surefire:test@test-jdk11-64
+# 
+#   j11_32_bits_tests:
+#     <<: *j8_64bits_small_executor
+#     steps:
+#       - attach_workspace:
+#           at: /home/jamm
+#       - log_environment
+#       - run_tests:
+#           execution_id: surefire:test@test-jdk11-32
+# 
+#   j17_64_bits_tests:
+#     <<: *j8_64bits_small_executor
+#     steps:
+#       - attach_workspace:
+#           at: /home/jamm
+#       - log_environment
+#       - run_tests:
+#           execution_id: surefire:test@test-jdk17-64
+# 
+#   j17_32_bits_tests:
+#     <<: *j8_64bits_small_executor
+#     steps:
+#       - attach_workspace:
+#           at: /home/jamm
+#       - log_environment
+#       - run_tests:
+#           execution_id: surefire:test@test-jdk17-32
+# 
+# commands:
+#   log_environment:
+#     steps:
+#       - run:
+#           name: Log Environment Information
+#           command: |
+#             echo '*** id ***'
+#             id
+#             echo '*** cat /proc/cpuinfo ***'
+#             cat /proc/cpuinfo
+#             echo '*** free -m ***'
+#             free -m
+#             echo '*** df -m ***'
+#             df -m
+#             echo '*** ifconfig -a ***'
+#             ifconfig -a
+#             echo '*** uname -a ***'
+#             uname -a
+#             echo '*** mount ***'
+#             mount
+#             echo '*** env ***'
+#             env
+#             echo '*** java ***'
+#             which java
+#             java -version
+#             mvn -version
+# 
+#   clone_jamm:
+#     steps:
+#     - run:
+#         name: Clone Jamm Repository (via git)
+#         command: |
+#           git clone --single-branch --depth 1 --branch $CIRCLE_BRANCH https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git ~/jamm
+# 
+#   build_jamm:
+#     steps:
+#     - run:
+#         name: Build Jamm
+#         command: |
+#           export PATH=$JAVA_HOME/bin:$PATH
+#           mkdir .m2
+#           cd ~/jamm
+#           cp toolchains.example.xml ~/.m2/toolchains.xml
+#           mvn compile
+#           mvn compiler:testCompile
+#           mvn jar:test-jar
+#         no_output_timeout: 15m
+# 
+#   run_tests:
+#     parameters:
+#       execution_id:
+#         type: string
+#         default: \"\"
+#       no_output_timeout:
+#         type: string
+#         default: 30m
+#     steps:
+#       - run:
+#           name: Run Tests
+#           command: |
+#             set -x
+#             export PATH=$JAVA_HOME/bin:$PATH
+#             time mv ~/jamm /tmp
+#             cd /tmp/jamm
+#             EXECUTION_ID=<<parameters.execution_id>> ./run-tests.sh
+#           no_output_timeout: <<parameters.no_output_timeout>>
+#       - store_test_results:
+#           path: /tmp/jamm/test/output/
+#       - store_artifacts:
+#           path: /tmp/jamm/test/logs
+#           destination: logs

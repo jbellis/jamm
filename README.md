@@ -18,7 +18,7 @@ should be put in your `${user.home}/.m2` directory. When the maven-toolchains-pl
 file, reads it and looks for a toolchain matching the toolchains requirements configured in the plugin.
 Jamm repo contains a `toolchains.example.xml` which you can use as a baseline for your own `toolchains.xml`. You need it
 to be able to run the tests. Copy `toolchains.example.xml` to `${user.home}/.m2`, rename the file to `toolchains.xml`.
-In `toolchains.xml`, check to update your vendor and jdkHome for JDK8, JDK11 and JDK17 which you have installed on your machine.
+In `toolchains.xml`, check to update your vendor and jdkHome for JDK8, JDK11 and JDK17 (32 and 64 bit) which you have installed on your machine.
 
 # Running Tests
 
@@ -30,9 +30,9 @@ mvn test -DjvmArgs="-Xmx64g"
 mvn test -DjvmArgs="-Xmx64g -XX:ObjectAlignmentInBytes=16 -XX:-UseCompressedClassPointers"
 ```
 
-`mvn test` runs all tests with JDK8, JDK11, and then with JDK17
+`mvn test` runs all tests with JDK8, JDK11, and then with JDK17 (both 32 and 64 bit)
 To run the tests with only one particular JDK version run:
-* for JDK8:
+* for JDK8 (64 bit):
 ```
 mvn surefire:test@test-default
 ```
@@ -40,13 +40,25 @@ or
 ```
 mvn surefire:test
 ```
-* for JDK11:
+* for JDK8 (32 bit)
 ```
-mvn surefire:test@test-jdk11
+mvn surefire:test@test-jdk8-32
 ```
-* for JDK17:
+* for JDK11 (64 bit):
 ```
-mvn surefire:test@test-jdk17
+mvn surefire:test@test-jdk11-64
+```
+* for JDK11 (32 bit):
+```
+mvn surefire:test@test-jdk11-32
+```
+* for JDK17 (64 bit):
+```
+mvn surefire:test@test-jdk17-64
+```
+* for JDK17 (32 bit):
+```
+mvn surefire:test@test-jdk17-32
 ```
 
 # Use

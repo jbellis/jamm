@@ -1,0 +1,91 @@
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+FROM ubuntu:22.04
+# Maintainer: TBD
+MAINTAINER Apache Cassandra <dev@cassandra.apache.org>
+
+# configure apt to retry downloads
+RUN echo 'APT::Acquire::Retries "99";' > /etc/apt/apt.conf.d/80-retries
+RUN echo 'Acquire::http::Timeout "60";' > /etc/apt/apt.conf.d/80proxy.conf
+RUN echo 'Acquire::ftp::Timeout "60";' >> /etc/apt/apt.conf.d/80proxy.conf
+
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends software-properties-common apt-utils vim && \
+    apt-get install -y lsof && \
+    apt-get install -y gpg-agent
+
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    apt-get install -y curl git-core \
+        net-tools libev4 libev-dev wget gcc libssl-dev libxml2 libxslt1-dev
+
+# install dumb-init as minimal init system
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    apt-get install -y dumb-init
+
+# generate locales for the standard en_US.UTF8 value we use for testing
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    apt-get install -y locales && \
+    locale-gen en_US.UTF-8
+
+# openjdk
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends openjdk-8-jdk openjdk-11-jdk openjdk-17-jdk openjdk-11-jdk:i386 openjdk-17-jdk:i386 openjdk-8-jdk:i386
+# we hit this bug - https://bugs.launched.net/ubutu/+source/openjdk-8/+bug/1890592 so we run the mention workaround
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt -o=Dpkg::Options::="--force-overwrite" --fix-broken install
+
+
+# make Java 8 the default executable (we use to run all tests against Java 8)
+RUN update-java-alternatives --set java-1.8.0-openjdk-$(dpkg --print-architecture)
+
+# setup our own user
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get install sudo && \
+    adduser --disabled-password --gecos "" jamm && \
+    echo "jamm ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/jamm && \
+    chmod 0440 /etc/sudoers.d/jamm
+
+# fix up permissions on the jamm home dir
+RUN chown -R jamm:jamm /home/jamm
+
+# switch to the jamm user... we are all done running things as root
+USER jamm
+ENV HOME /home/jamm
+WORKDIR /home/jamm
+
+# add environment variables for Ant and Java and add them to the PATH
+RUN echo 'export ANT_HOME=/usr/share/ant' >> /home/jamm/.bashrc && \
+    echo 'export JAVA8_HOME=/usr/lib/jvm/java-8-openjdk-$(dpkg --print-architecture)' >> /home/jamm/.bashrc && \
+    echo 'export JAVA11_HOME=/usr/lib/jvm/java-11-openjdk-$(dpkg --print-architecture)' >> /home/jamm/.bashrc && \
+    echo 'export JAVA17_HOME=/usr/lib/jvm/java-17-openjdk-$(dpkg --print-architecture)' >> /home/jamm/.bashrc && \
+    echo 'export JAVA_HOME=$JAVA8_HOME' >> /home/jamm/.bashrc
+
+# add maven
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    sudo apt-get update && \
+    sudo apt-get install -y --no-install-recommends maven
+
+# below is leftover from the Cassandra test image used as a template, not convinced we will need this for jamm
+# mark "/tmp" as a volume so it will get mounted as an ext4 mount and not
+# the stupid aufs/CoW stuff that the actual docker container mounts will have.
+# We've been seeing 3+ minute hangs when calling sync on an aufs backed mount
+# so it greatly makes tests flaky as things can hang basically anywhere
+VOLUME ["/tmp"]
