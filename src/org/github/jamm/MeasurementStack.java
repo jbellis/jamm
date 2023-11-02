@@ -58,16 +58,17 @@ public final class MeasurementStack {
     }
 
     /**
-     * Push the specified array element into the stack.
+     * Push all the eligible elements from the array into the stack.
      *
      * @param array the array
-     * @param index the element index
      */
-    void pushArrayElement(Object[] array, int index) {
-        Object child = array[index];
-        if (child != null && !classFilter.ignore(child.getClass()) && tracker.add(child)) {
-            stack.push(child);
-            listener.arrayElementAdded(array, index, child);
+    void pushArrayElements(Object[] array) {
+        for (int i = 0; i < array.length; i++) {
+            Object element = array[i];
+            if (element != null && !classFilter.ignore(element.getClass()) && tracker.add(element)) {
+                stack.push(element);
+                listener.arrayElementAdded(array, i, element);
+            }
         }
     }
 
